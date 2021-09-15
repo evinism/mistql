@@ -1,0 +1,27 @@
+{
+  "name": "millieql",
+  "version": "0.0.1",
+  "description": "JS implementation of miniature query language",
+  "main": "dist/index.js",
+  "author": "Evin Sellin",
+  "license": "MIT",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "buildts": "tsc",
+    "test": "ts-mocha -p tsconfig.json ./**/*.spec.ts"
+  },
+  "devDependencies": {
+    "@types/expect": "^24.3.0",
+    "@types/mocha": "^9.0.0",
+    "mocha": "^9.1.1",
+    "ts-mocha": "^8.0.0",
+    "typescript": "^4.4.3"
+  },
+  "dependencies": {
+    "fp-ts": "^2.11.2",
+    "parser-ts": "^0.6.15"
+  }
+}
