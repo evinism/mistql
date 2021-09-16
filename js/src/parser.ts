@@ -4,6 +4,7 @@ import { apFirst, between, either, eof, many1, map, Parser, sepBy, sepBy1, seq, 
 import { stream } from "parser-ts/lib/Stream";
 import { doubleQuotedString, float as floatParser, string as stringParser } from "parser-ts/lib/string";
 import { ASTExpression, ASTPipelineExpression } from "./types";
+import { escapeRegExp } from "./util";
 
 // To help with circular refs. 
 const lazyRef: <A, B>(fn: () => Parser<A, B>) => Parser<A, B> = (fn) => seq(succeed(undefined), fn);
@@ -127,7 +128,7 @@ const statementParser = apFirst<string, void>(eof())(expressionParser)
 // Normalizes and removes unnecessary whitespace
 const whiteSpacealyzer = (str: string) => {
   // TODO: Make these more solid.
-  return str
+  let retval = str
     .trim()
     .replace(/\s+/g, ' ')
     .replace(/\s*\.\s*/g, '.')
@@ -135,9 +136,11 @@ const whiteSpacealyzer = (str: string) => {
     .replace(/\s*\)/g, ')')
     .replace(/\s*\|\s*/g, '|')
     .replace(/\s*,\s*/g, ',')
-    .replace(/\s*==\s*/g, '==')
-    .replace(/\s*&&\s*/g, '&&')
-    .replace(/\s*\|\|\s*/g, '||');
+    binaryExpressionStrings.forEach((binexp) => {
+      const re = new RegExp(`\\s*${escapeRegExp(binexp)}\\s*`, 'g');
+      retval = retval.replace(re, binexp);
+    })
+    return retval;
 }
 
 export const parse = (raw: string) => statementParser(stream(whiteSpacealyzer(raw).split(''), 0));
