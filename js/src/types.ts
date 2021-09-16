@@ -24,7 +24,7 @@ type ASTLiteral = {
 } | {
   type: "literal",
   valueType: 'array',
-  value: Array<unknown>,
+  value: Array<ASTExpression>,
 } | {
   type: "literal",
   valueType: 'null',
@@ -37,7 +37,7 @@ export type ASTPipelineExpression = {
 }
 
 export type ASTExpression = {
-  type: "function"
+  type: "application"
   function: ASTExpression,
   arguments: ASTExpression[]
 } | {
