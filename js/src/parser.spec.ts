@@ -55,10 +55,41 @@ describe('#parse', () => {
       assert.deepStrictEqual(parseOrThrow('@.hello.there'), { type: 'reference', path: ['@', 'hello', 'there'] });
     });
 
-    it("parses  ", () => {
+    it("parses a deep series of items", () => {
       assert.deepStrictEqual(
         parseOrThrow('there.is.much.to.learn'),
         { type: 'reference', path: ['there', 'is', 'much', 'to', 'learn'] });
+    });
+  });
+
+  describe('pipelines', () => {
+    it("parses a simple pipeline", () => {
+      assert.deepStrictEqual(parseOrThrow('hello|there'), {
+        type: 'pipeline', stages: [
+          { type: 'reference', path: ['hello'] },
+          { type: 'reference', path: ['there'] }
+        ]
+      });
+    });
+
+    it("parses a pipeline with whitespace", () => {
+      assert.deepStrictEqual(parseOrThrow('hello | there'), {
+        type: 'pipeline', stages: [
+          { type: 'reference', path: ['hello'] },
+          { type: 'reference', path: ['there'] }
+        ]
+      });
+    });
+
+    it("parses a pipeline with a number of stages", () => {
+      assert.deepStrictEqual(parseOrThrow('hello | there | hi | whatup'), {
+        type: 'pipeline', stages: [
+          { type: 'reference', path: ['hello'] },
+          { type: 'reference', path: ['there'] },
+          { type: 'reference', path: ['hi'] },
+          { type: 'reference', path: ['whatup'] }
+        ]
+      });
     });
   });
 });
