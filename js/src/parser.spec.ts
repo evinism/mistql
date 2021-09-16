@@ -1,8 +1,14 @@
 import assert from 'assert';
-import { parseOrThrow } from './parser';
+import { parseOrThrow, parse } from './parser';
 import { ASTExpression } from './types';
 
 describe('#parse', () => {
+  describe('overall', () => {
+    it("fails to parse an empty statement", () => {
+      assert.throws(() => parseOrThrow(''));
+    })
+  });
+
   describe('literals', () => {
     const lit = (type: any, value: any): ASTExpression => ({
       type: 'literal',
@@ -99,6 +105,10 @@ describe('#parse', () => {
         { type: 'reference', path: ['hello'] });
     });
 
+    it('errors when parsing an empty parenthetical', () => {
+      assert.throws(() => parseOrThrow('()'));
+    });
+
     it("interops with pipes", () => {
       assert.deepStrictEqual(parseOrThrow('hello | (there) | hi | (whatup)'), {
         type: 'pipeline', stages: [
@@ -148,5 +158,55 @@ describe('#parse', () => {
           }]
         });
     });
+
+    it('parses function applications with parentheticals', () => {
+      assert.deepStrictEqual(parseOrThrow('(sup) (nernd) (hi)'),
+        {
+          type: 'application', function: {
+            type: "reference",
+            path: ['sup']
+          }, 
+          arguments: [{
+            type: "reference",
+            path: ['nernd']
+          },
+          {
+            type: "reference",
+            path: ['hi']
+          }]
+        });
+    });
+
+    it('doesnt capture over pipes', () => {
+      assert.deepStrictEqual(parseOrThrow('sup nernd | hi there'),
+        { 
+          type:"pipeline", 
+          stages: [{
+            type: 'application', function: {
+              type: "reference",
+              path: ['sup']
+            }, 
+            arguments: [{
+              type: "reference",
+              path: ['nernd']
+            }]
+          },
+          {
+            type: 'application', function: {
+              type: "reference",
+              path: ['hi']
+            }, 
+            arguments: [{
+              type: "reference",
+              path: ['there']
+            }]
+          }]
+        }
+      );
+    });
+  });
+
+  describe('binary expressions', () => {
+    it("")
   });
 });
