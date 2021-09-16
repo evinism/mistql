@@ -7,6 +7,9 @@ import { ASTExpression, ASTPipelineExpression } from "./types";
 
 // To help with circular refs. 
 const lazyRef: <A, B>(fn: () => Parser<A, B>) => Parser<A, B> = (fn) => seq(succeed(undefined), fn);
+const lazySimpleExpressionParser = lazyRef(() => simpleExpressionParser);
+const lazyExpressionParser = lazyRef(() => expressionParser);
+
 
 const doubleQuotedLiteralParser = map((str: string) => ({
   type: "literal" as 'literal',
@@ -30,7 +33,7 @@ const arrayLiteralParser: Parser<string, ASTExpression> = map((expressions: ASTE
   type: "literal" as "literal",
   valueType: "array" as "array",
   value: expressions,
-}))(between(char('['), char(']'))(sepBy(char(","), lazyRef(() => expressionParser))))
+}))(between(char('['), char(']'))(sepBy(char(","), lazyExpressionParser)))
 
 const trueLiteralParser = map(() => true)(stringParser('true'));
 const falseLiteralParser = map(() => false)(stringParser('false'));
@@ -46,9 +49,40 @@ const referenceParser = map((raw: string[][]) => {
     type: "reference" as "reference",
     path: path,
   }
-})(sepBy(char('.'), either(many1(alphanum), () => map(() => ["@"])(char("@")))))
+})(sepBy1(char('.'), either(many1(alphanum), () => map(() => ["@"])(char("@")))))
 
-const parentheticalExpression = between(char('('), char(')'))(lazyRef(() => expressionParser))
+const parentheticalExpression = between(char('('), char(')'))(lazyExpressionParser);
+
+// This might be order of precedence, but it needs testing
+const binaryExpressionStrings = [
+  '+',
+  '-',
+  '*',
+  '/',
+  '&&',
+  '||',
+  '==',
+  '!=',
+  '<',
+  '>',
+  '<=',
+  '>=',
+];
+
+const matchBinExpParser = binaryExpressionStrings.map(stringParser).reduce((acc, cur) => either(acc, () => cur));
+
+const binaryExpressionParser = seq(
+  lazySimpleExpressionParser, 
+  (first) => seq(
+    lazySimpleExpressionParser, 
+    (second) => map((operator: string) => ({
+      type: 'application' as 'application',
+      function: {
+        type: "reference" as 'reference',
+        path: [operator]
+      },
+      arguments: [first, second],
+    }))(matchBinExpParser)))
 
 const listOfSimpleExpressionParsers: Parser<string, ASTExpression>[] = [
   parentheticalExpression,
@@ -58,6 +92,7 @@ const listOfSimpleExpressionParsers: Parser<string, ASTExpression>[] = [
   numberLiteralParser,
   booleanParser,
   referenceParser,
+  binaryExpressionParser,
 ];
 
 const simpleExpressionParser: Parser<string, ASTExpression> =
@@ -96,8 +131,8 @@ const whiteSpacealyzer = (str: string) => {
     .trim()
     .replace(/\s+/g, ' ')
     .replace(/\s*\.\s*/g, '.')
-    .replace(/\s*\(\s*/g, '(')
-    .replace(/\s*\)\s*/g, ')')
+    .replace(/\(\s*/g, '(')
+    .replace(/\s*\)/g, ')')
     .replace(/\s*\|\s*/g, '|')
     .replace(/\s*,\s*/g, ',')
     .replace(/\s*==\s*/g, '==')
