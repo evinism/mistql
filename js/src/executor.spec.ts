@@ -62,6 +62,16 @@ describe("executor", () => {
         const result = execute(parseOrThrow('foo | map @ + 1 | map @ * 2'), { foo: [1, 2, 3, 4, 5] });
         assert.deepStrictEqual(result, [4, 6, 8, 10, 12]);
       });
+
+      it("operates left-associatively", () => {
+        const result = execute(parseOrThrow('(foo | map @ + 1) | map @ * 2'), { foo: [1, 2, 3, 4, 5] });
+        assert.deepStrictEqual(result, [4, 6, 8, 10, 12]);
+      });
+
+      it("correctly handles bare functions", () => {
+        const result = execute(parseOrThrow('foo | count'), { foo: [1, 2, 3, 4, 5] });
+        assert.deepStrictEqual(result, 5);
+      });
     });
   })
 });

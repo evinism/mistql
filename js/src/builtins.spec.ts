@@ -24,4 +24,62 @@ describe("builtins", () => {
         [{ type: "hi", foo: 1 }]);
     });
   });
+
+  describe('#keys', () => {
+    it("correctly filters events", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('@ | keys'),
+          { type: "hi", foo: 1 }
+        ),
+        ["type", "foo"]);
+    });
+  });
+
+  describe('#values', () => {
+    it("correctly filters events", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('@ | values'),
+          { type: 5, foo: 1 }
+        ),
+        [5, 1]);
+    });
+  });
+
+  describe('#groupby', () => {
+    it("correctly groups events", () => {
+      const events = [
+        { type: "signup", email: "test1@example.com" },
+        { type: "signup", email: "test2@example.com" },
+        { type: "play", email: "test2@example.com" },
+        { type: "play", email: "test2@example.com" },
+      ];
+      const expected = {
+        'test1@example.com': [
+          {
+            email: 'test1@example.com',
+            type: 'signup'
+          }
+        ],
+        'test2@example.com': [
+          {
+            email: 'test2@example.com',
+            type: 'signup'
+          },
+          {
+            email: 'test2@example.com',
+            type: 'play'
+          },
+          {
+            email: 'test2@example.com',
+            type: 'play'
+          }
+        ]
+      }
+      assert.deepEqual(
+        execute(parseOrThrow('events | groupby email'),
+          { events }
+        ),
+        expected);
+    });
+  });
 });
