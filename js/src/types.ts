@@ -37,5 +37,15 @@ export type ASTApplicationExpression = {
   arguments: ASTExpression[]
 }
 
-export type ASTExpression = ASTApplicationExpression | ASTReferenceExpression| ASTPipelineExpression | ASTLiteralExpression;
+export type ASTExpression = ASTApplicationExpression | ASTReferenceExpression | ASTPipelineExpression | ASTLiteralExpression;
 
+
+/* Runtime types */
+export type RuntimeValue = any;
+export type Closure = {
+  [varname: string]: RuntimeValue,
+}
+export type Stack = Closure[];
+
+export type ExecutionFunction = (exp: ASTExpression, stack: Stack) => RuntimeValue;
+export type BuiltinFunction = (args: ASTExpression[], stack: Stack, executeInner: ExecutionFunction) => RuntimeValue;
