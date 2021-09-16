@@ -1,15 +1,5 @@
-// General
-
-export type Result<L, R> = {
-  success: L,
-  error?: void,
-} | {
-  success?: void
-  error: R,
-}
-
 // Parser Types 
-type ASTLiteral = {
+export type ASTLiteralExpression = {
   type: "literal",
   valueType: 'string',
   value: string
@@ -36,13 +26,16 @@ export type ASTPipelineExpression = {
   stages: ASTExpression[],
 }
 
-export type ASTExpression = {
+export type ASTReferenceExpression = {
+  type: 'reference',
+  path: string[],
+}
+
+export type ASTApplicationExpression = {
   type: "application"
   function: ASTExpression,
   arguments: ASTExpression[]
-} | {
-  type: 'reference',
-  path: string[],
-} | ASTPipelineExpression | ASTLiteral;
+}
 
-export type ParseResult<Err> = Result<ASTExpression, Err>;
+export type ASTExpression = ASTApplicationExpression | ASTReferenceExpression| ASTPipelineExpression | ASTLiteralExpression;
+
