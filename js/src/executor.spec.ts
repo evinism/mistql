@@ -51,4 +51,11 @@ describe("#execute", () => {
       assert.deepStrictEqual(result, [[5], 6]);
     });
   });
+
+  describe('pipe', () => {
+    it("handles piping to parameterized functions", () => {
+      const result = execute(parseOrThrow('foo | map @ + 1'), { foo: [1, 2, 3, 4, 5] });
+      assert.deepStrictEqual(result, [2, 3, 4, 5, 6]);
+    });
+  });
 })

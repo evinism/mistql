@@ -1,10 +1,11 @@
 import builtins from "./builtins";
+import { pushRuntimeValueToStack } from "./stackManip";
 import { ASTApplicationExpression, ASTExpression, ASTLiteralExpression, ASTReferenceExpression, Closure, ExecutionFunction, RuntimeValue, Stack } from "./types";
 
 const defaultStack: Stack = [builtins];
 
 export const execute = (node: ASTExpression, variables: Closure) => {
-  return executeInner(node, defaultStack.concat(variables));
+  return executeInner(node, pushRuntimeValueToStack(variables, defaultStack));
 }
 
 const executeInner: ExecutionFunction = (statement: ASTExpression, stack: Closure[]): RuntimeValue => {
@@ -15,6 +16,28 @@ const executeInner: ExecutionFunction = (statement: ASTExpression, stack: Closur
       return executeReference(statement, stack);
     case 'application':
       return executeApplication(statement, stack);
+    case 'pipeline':
+      let last: RuntimeValue = executeInner(statement.stages[0], stack);
+      for (let i = 1; i < statement.stages.length; i++) {
+        const stage = statement.stages[i];
+        let app: ASTApplicationExpression;
+        const atRef: ASTExpression = { type: "reference", path: ["@"] };
+        if (stage.type === 'application') {
+          app = {
+            type: "application",
+            function: stage.function,
+            arguments: stage.arguments.concat(atRef)
+          }
+        } else {
+          app = {
+            type: "application",
+            function: stage,
+            arguments: [atRef],
+          }
+        }
+        last = executeApplication(app, pushRuntimeValueToStack(last, stack));
+      }
+      return last;
   }
 }
 
