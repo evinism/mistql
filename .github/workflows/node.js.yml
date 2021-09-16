@@ -30,5 +30,5 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
-    - run: yarn install
-    - run: yarn test
+    - run: npm install --dev
+    - run: npm test
