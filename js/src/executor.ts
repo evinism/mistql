@@ -1,30 +1,20 @@
-import { ASTExpression, ASTLiteralExpression, ASTReferenceExpression } from "./types";
+import builtins from "./builtins";
+import { ASTApplicationExpression, ASTExpression, ASTLiteralExpression, ASTReferenceExpression, Closure, ExecutionFunction, RuntimeValue, Stack } from "./types";
 
-type RuntimeValue = any;
-
-type Closure = {
-  [varname: string]: RuntimeValue,
-}
-
-const defaultStack: Closure[] = [{}];
+const defaultStack: Stack = [builtins];
 
 export const execute = (node: ASTExpression, variables: Closure) => {
   return executeInner(node, defaultStack.concat(variables));
 }
 
-const executeInner = (statement: ASTExpression, stack: Closure[]): RuntimeValue => {
+const executeInner: ExecutionFunction = (statement: ASTExpression, stack: Closure[]): RuntimeValue => {
   switch (statement.type) {
     case 'literal':
       return executeLiteral(statement, stack);
     case 'reference':
       return executeReference(statement, stack);
-    case 'pipeline': {
-      let pipeStack = stack;
-      for (let i = 0; i < statement.stages.length; i++) {
-        const retval = executeInner(statement.stages[i], pipeStack);
-      }
-      break;
-    }
+    case 'application':
+      return executeApplication(statement, stack);
   }
 }
 
@@ -61,4 +51,12 @@ const executeReference = (statement: ASTReferenceExpression, stack: Closure[]): 
     }
   }
   return retval;
+}
+
+const executeApplication = (statement: ASTApplicationExpression, stack: Closure[]): RuntimeValue => {
+  const fn = executeInner(statement.function, stack);
+  if (typeof fn !== 'function') {
+    throw new Error('Expected a function, got.. something else!');
+  }
+  return fn(statement.arguments, stack, executeInner);
 }
