@@ -132,14 +132,19 @@ describe('#parse', () => {
   });
   describe('applications', () => {
     it('parses a basic function application', () => {
-      assert.deepStrictEqual(parseOrThrow('sup nernd'),
+      assert.deepStrictEqual(parseOrThrow('sup nernd hi'),
         {
-          type: 'application', function: [{
+          type: 'application', function: {
             type: "reference",
             path: ['sup']
-          }], arguments: [{
+          }, 
+          arguments: [{
             type: "reference",
             path: ['nernd']
+          },
+          {
+            type: "reference",
+            path: ['hi']
           }]
         });
     });

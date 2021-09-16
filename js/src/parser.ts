@@ -48,15 +48,9 @@ const referenceParser = map((raw: string[][]) => {
   }
 })(sepBy(char('.'), either(many1(alphanum), () => map(() => ["@"])(char("@")))))
 
-const applicationParser = map((expressions: ASTExpression[]) => ({
-  type: "application" as "application",
-  function: expressions[0],
-  arguments: expressions.slice(1),
-}))(sepBy1(char(' '), lazyRef(() => nonPipelineExpressionParser)))
-
 const parentheticalExpression = between(char('('), char(')'))(lazyRef(() => expressionParser))
 
-const listOfNonPipelineExpressionParsers: Parser<string, ASTExpression>[] = [
+const listOfSimpleExpressionParsers: Parser<string, ASTExpression>[] = [
   parentheticalExpression,
   arrayLiteralParser,
   doubleQuotedLiteralParser,
@@ -64,16 +58,26 @@ const listOfNonPipelineExpressionParsers: Parser<string, ASTExpression>[] = [
   numberLiteralParser,
   booleanParser,
   referenceParser,
-  applicationParser
 ];
 
-const nonPipelineExpressionParser: Parser<string, ASTExpression> =
-  listOfNonPipelineExpressionParsers.reduce((acc, cur) => either(acc, () => cur));
+const simpleExpressionParser: Parser<string, ASTExpression> =
+  listOfSimpleExpressionParsers.reduce((acc, cur) => either(acc, () => cur));
 
-const pipelineParser = map((stages: ASTExpression[]) => ({
+const compoundExpressionParser: Parser<string, ASTExpression> = map((simpleExpressions: ASTExpression[]) => {
+  if (simpleExpressions.length === 1) {
+    return simpleExpressions[0]
+  }
+  return {
+    type: "application" as "application",
+    function: simpleExpressions[0],
+    arguments: simpleExpressions.slice(1),
+  }
+})(sepBy1(char(' '), simpleExpressionParser))
+
+const pipelineExpressionParser = map((stages: ASTExpression[]) => ({
   type: "pipeline" as "pipeline",
   stages,
-}))(sepBy1(char('|'), nonPipelineExpressionParser));
+}))(sepBy1(char('|'), compoundExpressionParser));
 
 const expressionParser: Parser<string, ASTExpression> = map((node: ASTPipelineExpression) => {
   if (node.stages.length === 1) {
@@ -81,7 +85,7 @@ const expressionParser: Parser<string, ASTExpression> = map((node: ASTPipelineEx
   } else {
     return node;
   }
-})(pipelineParser);
+})(pipelineExpressionParser);
 
 const statementParser = apFirst<string, void>(eof())(expressionParser)
 
