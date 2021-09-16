@@ -12,7 +12,7 @@
   "scripts": {
     "buildts": "tsc",
     "test": "ts-mocha -p tsconfig.json ./**/*.spec.ts",
-    "bundle": "tsc && rollup --config rollup.config.js",
+    "bundle": "tsc && rollup --config rollup.config.js"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^20.0.0",
