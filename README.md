@@ -61,7 +61,7 @@ MilliEQL has 4 primitive types:
 MilliEQL also has 3 complex types:
 - `Struct`
 - `Array`
-- `Function<T, K>`
+- `Function`
 
 The interface of MilliEQL is restricted in that functions can neither be provided as data, nor returned as the result of a query -- they exist entirely within MilliEQL
 
