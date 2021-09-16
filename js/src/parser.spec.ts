@@ -62,8 +62,8 @@ describe('#parse', () => {
     });
   });
 
-  describe('pipelines', () => {
-    it("parses a simple pipeline", () => {
+  describe('pipes', () => {
+    it("parses a simple pipe", () => {
       assert.deepStrictEqual(parseOrThrow('hello|there'), {
         type: 'pipeline', stages: [
           { type: 'reference', path: ['hello'] },
@@ -72,7 +72,7 @@ describe('#parse', () => {
       });
     });
 
-    it("parses a pipeline with whitespace", () => {
+    it("parses a pipe with whitespace", () => {
       assert.deepStrictEqual(parseOrThrow('hello | there'), {
         type: 'pipeline', stages: [
           { type: 'reference', path: ['hello'] },
@@ -81,7 +81,7 @@ describe('#parse', () => {
       });
     });
 
-    it("parses a pipeline with a number of stages", () => {
+    it("parses a pipe with a number of stages", () => {
       assert.deepStrictEqual(parseOrThrow('hello | there | hi | whatup'), {
         type: 'pipeline', stages: [
           { type: 'reference', path: ['hello'] },
@@ -90,6 +90,58 @@ describe('#parse', () => {
           { type: 'reference', path: ['whatup'] }
         ]
       });
+    });
+  });
+
+  describe('parentheticals', () => {
+    it('handles a basic parenthetical statement', () => {
+      assert.deepStrictEqual(parseOrThrow('(hello)'),
+        { type: 'reference', path: ['hello'] });
+    });
+
+    it("interops with pipes", () => {
+      assert.deepStrictEqual(parseOrThrow('hello | (there) | hi | (whatup)'), {
+        type: 'pipeline', stages: [
+          { type: 'reference', path: ['hello'] },
+          { type: 'reference', path: ['there'] },
+          { type: 'reference', path: ['hi'] },
+          { type: 'reference', path: ['whatup'] }
+        ]
+      });
+    });
+
+    it('handles a heavily nested parenthetical', () => {
+      assert.deepStrictEqual(parseOrThrow('((((hello))))'),
+        { type: 'reference', path: ['hello'] });
+    });
+
+    it("allows nested pipe expressions", () => {
+      assert.deepStrictEqual(parseOrThrow('hello | (there | hi) | (whatup)'), {
+        type: 'pipeline', stages: [
+          { type: 'reference', path: ['hello'] },
+          {
+            type: "pipeline",
+            stages: [
+              { type: 'reference', path: ['there'] },
+              { type: 'reference', path: ['hi'] },]
+          },
+          { type: 'reference', path: ['whatup'] }
+        ]
+      });
+    });
+  });
+  describe('applications', () => {
+    it('parses a basic function application', () => {
+      assert.deepStrictEqual(parseOrThrow('sup nernd'),
+        {
+          type: 'application', function: [{
+            type: "reference",
+            path: ['sup']
+          }], arguments: [{
+            type: "reference",
+            path: ['nernd']
+          }]
+        });
     });
   });
 });
