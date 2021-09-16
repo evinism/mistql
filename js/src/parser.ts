@@ -1,8 +1,9 @@
 import { isLeft } from "fp-ts/lib/Either";
-import { either, map, Parser } from "parser-ts/lib/Parser";
+import { alphanum, char } from "parser-ts/lib/char";
+import { apFirst, either, eof, many1, map, Parser, sepBy, sepBy1 } from "parser-ts/lib/Parser";
 import { stream } from "parser-ts/lib/Stream";
 import { doubleQuotedString, float as floatParser, string as stringParser } from "parser-ts/lib/string";
-import { ASTExpression } from "./types";
+import { ASTExpression, ASTPipelineExpression } from "./types";
 
 const doubleQuotedLiteralParser = map((str: string) => ({
   type: "literal" as 'literal',
@@ -30,19 +31,56 @@ const booleanParser = map((bool: boolean) => ({
   value: bool
 }))(either(trueLiteralParser, () => falseLiteralParser));
 
+const reference = map((raw: string[][]) => {
+  const path = raw.map(nameArr => nameArr.join(''));
+  return {
+    type: "reference" as "reference",
+    path: path,
+  }
+})(sepBy(char('.'), either(many1(alphanum), () => map(() => ["@"])(char("@")))))
 
-const listOfExpressionParsers: Parser<string, ASTExpression>[] = [
+const listOfNonPipelineExpressionParsers: Parser<string, ASTExpression>[] = [
   doubleQuotedLiteralParser,
   nullLiteralParser,
   numberLiteralParser,
-  booleanParser
+  booleanParser,
+  reference,
 ];
 
-const expressionParser: Parser<string, ASTExpression> =
-  listOfExpressionParsers.reduce((acc, cur) => either(acc, () => cur));
+const nonPipelineExpressionParser: Parser<string, ASTExpression> =
+  listOfNonPipelineExpressionParsers.reduce((acc, cur) => either(acc, () => cur));
 
-export const parse = (raw: string) => expressionParser(stream(raw.split(''), 0));
+const pipelineParser = map((stages: ASTExpression[]) => ({
+  type: "pipeline" as "pipeline",
+  stages,
+}))(sepBy1(char('|'), nonPipelineExpressionParser));
 
+
+const expressionParser: Parser<string, ASTExpression> = map((node: ASTPipelineExpression) => {
+  if (node.stages.length === 1) {
+    return node.stages[0];
+  } else {
+    return node;
+  }
+})(pipelineParser);
+
+const statementParser = apFirst<string, void>(eof())(expressionParser)
+
+// Normalizes and removes unnecessary whitespace
+const whiteSpacealyzer = (str: string) => {
+  // TODO: Make these more solid.
+  return str
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\.\s*/g, '.')
+    .replace(/\s*\(\s*/g, '(')
+    .replace(/\s*\)\s*/g, ')')
+    .replace(/\s*\|\s*/g, '|')
+    .replace(/\s*==\s*/g, '==')
+    .replace(/\s*&&\s*/g, '&&')
+    .replace(/\s*\|\|\s*/g, '||');
+}
+
+export const parse = (raw: string) => statementParser(stream(whiteSpacealyzer(raw).split(''), 0));
 
 export const parseOrThrow = (raw: string): ASTExpression => {
   const result = parse(raw);

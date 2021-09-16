@@ -31,6 +31,11 @@ type ASTLiteral = {
   value: null
 }
 
+export type ASTPipelineExpression = {
+  type: "pipeline"
+  stages: ASTExpression[],
+}
+
 export type ASTExpression = {
   type: "function"
   function: ASTExpression,
@@ -38,9 +43,6 @@ export type ASTExpression = {
 } | {
   type: 'reference',
   path: string[],
-} | {
-  type: "pipeline"
-  stages: ASTExpression[],
-} | ASTLiteral;
+} | ASTPipelineExpression | ASTLiteral;
 
 export type ParseResult<Err> = Result<ASTExpression, Err>;
