@@ -11,7 +11,17 @@ describe("builtins", () => {
 
     it("correctly maps structy values", () => {
       assert.deepEqual(
-        execute(parseOrThrow('map (blah + 1) arr'), { arr: [{ blah: 1 }, { blah: 2 }, { blah: 3 }] }), [2, 3, 4]);
+        execute(parseOrThrow('map (feature + 1) arr'), { arr: [{ feature: 1 }, { feature: 2 }, { feature: 3 }] }), [2, 3, 4]);
+    });
+  });
+
+  describe('#filter', () => {
+    it("correctly filters events", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('filter type == "hi" events'),
+          { events: [{ type: "hi", foo: 1 }, { type: "there", foo: 2 }] }
+        ),
+        [{ type: "hi", foo: 1 }]);
     });
   });
 });
