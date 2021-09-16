@@ -1,4 +1,4 @@
-import { ASTExpression, ASTLiteralExpression, ASTReferenceExpression } from "./types"
+import { ASTExpression, ASTLiteralExpression, ASTReferenceExpression } from "./types";
 
 type RuntimeValue = any;
 
@@ -9,16 +9,15 @@ type Closure = {
 const defaultStack: Closure[] = [{}];
 
 export const execute = (node: ASTExpression, variables: Closure) => {
-  executeInner(node, defaultStack.concat(variables));
+  return executeInner(node, defaultStack.concat(variables));
 }
 
-const executeInner = (statement: ASTExpression, stack: Closure[]): RuntimeValue=> {
+const executeInner = (statement: ASTExpression, stack: Closure[]): RuntimeValue => {
   switch (statement.type) {
     case 'literal':
       return executeLiteral(statement, stack);
     case 'reference':
       return executeReference(statement, stack);
-      break;
     case 'pipeline': {
       let pipeStack = stack;
       for (let i = 0; i < statement.stages.length; i++) {
@@ -26,7 +25,6 @@ const executeInner = (statement: ASTExpression, stack: Closure[]): RuntimeValue=
       }
       break;
     }
-
   }
 }
 
@@ -54,4 +52,13 @@ const executeReference = (statement: ASTReferenceExpression, stack: Closure[]): 
   if (!referencedInStack) {
     throw new Error('Could not find referenced variable ' + statement.path[0]);
   }
+  let tail = statement.path.slice(1);
+  let retval = referencedInStack;
+  while (tail.length > 0) {
+    const nextProperty = tail.shift();
+    if (retval.hasOwnProperty(nextProperty)) {
+      retval = retval[nextProperty];
+    }
+  }
+  return retval;
 }

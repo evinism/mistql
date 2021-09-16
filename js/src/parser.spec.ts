@@ -1,6 +1,5 @@
 import assert from 'assert';
-import { string } from 'fp-ts';
-import { parseOrThrow, parse } from './parser';
+import { parseOrThrow } from './parser';
 import { ASTExpression } from './types';
 
 describe('#parse', () => {
@@ -148,7 +147,7 @@ describe('#parse', () => {
           type: 'application', function: {
             type: "reference",
             path: ['sup']
-          }, 
+          },
           arguments: [{
             type: "reference",
             path: ['nernd']
@@ -166,7 +165,7 @@ describe('#parse', () => {
           type: 'application', function: {
             type: "reference",
             path: ['sup']
-          }, 
+          },
           arguments: [{
             type: "reference",
             path: ['nernd']
@@ -180,13 +179,13 @@ describe('#parse', () => {
 
     it('doesnt capture over pipes', () => {
       assert.deepStrictEqual(parseOrThrow('sup nernd | hi there'),
-        { 
-          type:"pipeline", 
+        {
+          type: "pipeline",
           stages: [{
             type: 'application', function: {
               type: "reference",
               path: ['sup']
-            }, 
+            },
             arguments: [{
               type: "reference",
               path: ['nernd']
@@ -196,7 +195,7 @@ describe('#parse', () => {
             type: 'application', function: {
               type: "reference",
               path: ['hi']
-            }, 
+            },
             arguments: [{
               type: "reference",
               path: ['there']
@@ -213,7 +212,7 @@ describe('#parse', () => {
         type: 'application', function: {
           type: "reference",
           path: ['+']
-        }, 
+        },
         arguments: [{
           type: "reference",
           path: ['here']
@@ -236,7 +235,7 @@ describe('#parse', () => {
           type: 'application', function: {
             type: "reference",
             path: ['*']
-          }, 
+          },
           arguments: [{
             type: "reference",
             path: ['one']
@@ -250,7 +249,7 @@ describe('#parse', () => {
           type: 'application', function: {
             type: "reference",
             path: ['*']
-          }, 
+          },
           arguments: [{
             type: "reference",
             path: ['three']
@@ -271,25 +270,26 @@ describe('#parse', () => {
           path: ['-']
         },
         arguments: [
-        {
-          type: 'application', function: {
-            type: "reference",
-            path: ['-']
-          }, 
-          arguments: [{
-            type: "reference",
-            path: ['one']
+          {
+            type: 'application', function: {
+              type: "reference",
+              path: ['-']
+            },
+            arguments: [{
+              type: "reference",
+              path: ['one']
+            },
+            {
+              type: "reference",
+              path: ['two']
+            }]
           },
           {
             type: "reference",
-            path: ['two']
-          }]
-        },
-        {
-          type: "reference",
-          path: ['three']
-        }
-      ]};
+            path: ['three']
+          }
+        ]
+      };
       assert.deepStrictEqual(parseOrThrow('one - two - three'), expected);
     });
     it('respects all these associativity comparisons', () => {
