@@ -31,5 +31,6 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+        cache-dependency-path: js/yarn.lock
     - run: npm install --dev
     - run: npm test
