@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { string } from 'fp-ts';
 import { parseOrThrow, parse } from './parser';
 import { ASTExpression } from './types';
 
@@ -207,6 +208,101 @@ describe('#parse', () => {
   });
 
   describe('binary expressions', () => {
-    it("")
+    it("parses basic binary expressions", () => {
+      const expected = {
+        type: 'application', function: {
+          type: "reference",
+          path: ['+']
+        }, 
+        arguments: [{
+          type: "reference",
+          path: ['here']
+        },
+        {
+          type: "reference",
+          path: ['there']
+        }]
+      };
+      assert.deepStrictEqual(parseOrThrow('here + there'), expected);
+    });
+
+    it("respects operator precedence", () => {
+      const expected = {
+        type: 'application', function: {
+          type: "reference",
+          path: ['+']
+        },
+        arguments: [{
+          type: 'application', function: {
+            type: "reference",
+            path: ['*']
+          }, 
+          arguments: [{
+            type: "reference",
+            path: ['one']
+          },
+          {
+            type: "reference",
+            path: ['two']
+          }]
+        },
+        {
+          type: 'application', function: {
+            type: "reference",
+            path: ['*']
+          }, 
+          arguments: [{
+            type: "reference",
+            path: ['three']
+          },
+          {
+            type: "reference",
+            path: ['four']
+          }]
+        }]
+      };
+      assert.deepStrictEqual(parseOrThrow('one * two + three * four'), expected);
+    });
+
+    it("respects left associativity", () => {
+      const expected = {
+        type: 'application', function: {
+          type: "reference",
+          path: ['-']
+        },
+        arguments: [
+        {
+          type: 'application', function: {
+            type: "reference",
+            path: ['-']
+          }, 
+          arguments: [{
+            type: "reference",
+            path: ['one']
+          },
+          {
+            type: "reference",
+            path: ['two']
+          }]
+        },
+        {
+          type: "reference",
+          path: ['three']
+        }
+      ]};
+      assert.deepStrictEqual(parseOrThrow('one - two - three'), expected);
+    });
+    it('respects all these associativity comparisons', () => {
+      const comparisons: [string, string][] = [
+        ['one - two - three', '(one - two) - three'],
+        ['one - two * three', 'one - (two * three)'],
+        ['a == b * 5', 'a == (b * 5)'],
+        ['a / 3 + 2 == b * 5', '((a / 3) + 2) == (b * 5)'],
+        ['a / 3 + 2 == b * 5 d | c', '(((a / 3) + 2) == (b * 5)) d | c'],
+      ]
+      comparisons.forEach(([l, r]) => {
+        assert.deepStrictEqual(parseOrThrow(l), parseOrThrow(r));
+      });
+    })
   });
 });
