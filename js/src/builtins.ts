@@ -59,6 +59,10 @@ const filter: BuiltinFunction = (args, stack, exec) => {
   return newValue;
 }
 
+const find: BuiltinFunction = (args, stack, exec) => {
+  return filter(args, stack, exec)[0] || null;
+}
+
 const numericBinaryOperator = (op: (a: number, b: number) => number): BuiltinFunction => (args, stack, exec) => {
   if (args.length !== 2) {
     throw new Error("Expected 2 arguments");
@@ -123,16 +127,58 @@ const values: BuiltinFunction = (args, stack, exec) => {
   return results;
 }
 
+const index: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 2) {
+    throw new Error("Expected 2 arguments");
+  }
+  const idx = exec(args[0], stack);
+  const arr = exec(args[1], stack);
+  if (typeof idx !== "number") {
+    throw new Error("Expected number");
+  }
+  if (!Array.isArray(arr)) {
+    throw new Error("Expected array");
+  }
+  return arr[idx] || null;
+}
+
+const first: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 1) {
+    throw new Error("Expected 1 argument");
+  }
+  const arr = exec(args[0], stack);
+  if (!Array.isArray(arr)) {
+    throw new Error("Expected array");
+  }
+  return arr[0] || null;
+}
+
+const last: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 1) {
+    throw new Error("Expected 1 argument");
+  }
+  const arr = exec(args[0], stack);
+  if (!Array.isArray(arr)) {
+    throw new Error("Expected array");
+  }
+  return arr[arr.length - 1] || null;
+}
+
 export default {
   map,
   filter,
+  find,
   count,
   keys,
   values,
   groupby,
+  index,
+  first,
+  last,
   "+": numericBinaryOperator((a, b) => a + b),
   "-": numericBinaryOperator((a, b) => a - b),
   "*": numericBinaryOperator((a, b) => a * b),
   "/": numericBinaryOperator((a, b) => a / b),
+  "%": numericBinaryOperator((a, b) => a % b),
   "==": equal,
 };
