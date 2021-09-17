@@ -1,30 +1,30 @@
 // Parser Types
 export type ASTLiteralExpression =
   | {
-      type: "literal";
-      valueType: "string";
-      value: string;
-    }
+    type: "literal";
+    valueType: "string";
+    value: string;
+  }
   | {
-      type: "literal";
-      valueType: "number";
-      value: number;
-    }
+    type: "literal";
+    valueType: "number";
+    value: number;
+  }
   | {
-      type: "literal";
-      valueType: "boolean";
-      value: boolean;
-    }
+    type: "literal";
+    valueType: "boolean";
+    value: boolean;
+  }
   | {
-      type: "literal";
-      valueType: "array";
-      value: Array<ASTExpression>;
-    }
+    type: "literal";
+    valueType: "array";
+    value: Array<ASTExpression>;
+  }
   | {
-      type: "literal";
-      valueType: "null";
-      value: null;
-    };
+    type: "literal";
+    valueType: "null";
+    value: null;
+  };
 
 export type ASTPipelineExpression = {
   type: "pipeline";
@@ -64,3 +64,15 @@ export type BuiltinFunction = (
   stack: Stack,
   executeInner: ExecutionFunction
 ) => RuntimeValue;
+
+
+export type LexToken = {
+  token: 'value',
+  value: string | number | boolean | null
+} | {
+  token: 'ref',
+  value: string,
+} | {
+  token: 'special',
+  value: string
+}
