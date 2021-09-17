@@ -1,311 +1,452 @@
-import assert from 'assert';
-import { parseOrThrow } from './parser';
-import { ASTExpression } from './types';
+import assert from "assert";
+import { parseOrThrow } from "./parser";
+import { ASTExpression } from "./types";
 
 describe("parser", () => {
-  describe('#parse', () => {
-    describe('overall', () => {
+  describe("#parse", () => {
+    describe("overall", () => {
       it("fails to parse an empty statement", () => {
-        assert.throws(() => parseOrThrow(''));
-      })
+        assert.throws(() => parseOrThrow(""));
+      });
     });
 
-    describe('literals', () => {
+    describe("literals", () => {
       const lit = (type: any, value: any): ASTExpression => ({
-        type: 'literal',
+        type: "literal",
         valueType: type,
         value,
       });
 
-      it('parses numeric literals', () => {
-        assert.deepStrictEqual(parseOrThrow('1'), lit('number', 1));
-        assert.deepStrictEqual(parseOrThrow('2'), lit('number', 2));
-        assert.deepStrictEqual(parseOrThrow('3'), lit('number', 3));
-        assert.deepStrictEqual(parseOrThrow('349291'), lit('number', 349291));
-        assert.deepStrictEqual(parseOrThrow('-349291'), lit('number', -349291));
+      it("parses numeric literals", () => {
+        assert.deepStrictEqual(parseOrThrow("1"), lit("number", 1));
+        assert.deepStrictEqual(parseOrThrow("2"), lit("number", 2));
+        assert.deepStrictEqual(parseOrThrow("3"), lit("number", 3));
+        assert.deepStrictEqual(parseOrThrow("349291"), lit("number", 349291));
+        assert.deepStrictEqual(parseOrThrow("-349291"), lit("number", -349291));
       });
 
-      it('parses the null literal', () => {
-        assert.deepStrictEqual(parseOrThrow('null'), lit('null', null));
+      it("parses the null literal", () => {
+        assert.deepStrictEqual(parseOrThrow("null"), lit("null", null));
       });
 
-      it('parses string literals', () => {
-        assert.deepStrictEqual(parseOrThrow('"hi"'), lit('string', 'hi'));
-        assert.deepStrictEqual(parseOrThrow('"there"'), lit('string', 'there'));
-        assert.deepStrictEqual(parseOrThrow('"DOC OCK"'), lit('string', 'DOC OCK'));
-      });
-
-      it('parses array literals', () => {
+      it("parses string literals", () => {
+        assert.deepStrictEqual(parseOrThrow('"hi"'), lit("string", "hi"));
+        assert.deepStrictEqual(parseOrThrow('"there"'), lit("string", "there"));
         assert.deepStrictEqual(
-          parseOrThrow('[1, 2, 3]'),
-          lit('array', [lit('number', 1), lit('number', 2), lit('number', 3)]));
+          parseOrThrow('"DOC OCK"'),
+          lit("string", "DOC OCK")
+        );
+      });
+
+      it("parses array literals", () => {
+        assert.deepStrictEqual(
+          parseOrThrow("[1, 2, 3]"),
+          lit("array", [lit("number", 1), lit("number", 2), lit("number", 3)])
+        );
         assert.deepStrictEqual(
           parseOrThrow('["sup", "mr"]'),
-          lit('array', [lit('string', 'sup'), lit('string', 'mr')]));
+          lit("array", [lit("string", "sup"), lit("string", "mr")])
+        );
       });
 
-      it('parses boolean literals', () => {
-        assert.deepStrictEqual(parseOrThrow('true'), lit('boolean', true));
-        assert.deepStrictEqual(parseOrThrow('false'), lit('boolean', false));
+      it("parses boolean literals", () => {
+        assert.deepStrictEqual(parseOrThrow("true"), lit("boolean", true));
+        assert.deepStrictEqual(parseOrThrow("false"), lit("boolean", false));
       });
     });
 
-    describe('references', () => {
+    describe("references", () => {
       it("parses bare references", () => {
-        assert.deepStrictEqual(parseOrThrow('somefn'), { type: 'reference', path: ['somefn'] });
+        assert.deepStrictEqual(parseOrThrow("somefn"), {
+          type: "reference",
+          path: ["somefn"],
+        });
       });
 
       it("parses the root reference", () => {
-        assert.deepStrictEqual(parseOrThrow('@'), { type: 'reference', path: ['@'] });
+        assert.deepStrictEqual(parseOrThrow("@"), {
+          type: "reference",
+          path: ["@"],
+        });
       });
 
       it("parses a path based on the root reference ", () => {
-        assert.deepStrictEqual(parseOrThrow('@.hello.there'), { type: 'reference', path: ['@', 'hello', 'there'] });
+        const target = {
+          arguments: [
+            {
+              arguments: [
+                {
+                  path: ["@"],
+                  type: "reference",
+                },
+                {
+                  path: ["hello"],
+                  type: "reference",
+                },
+              ],
+              function: {
+                path: ["."],
+                type: "reference",
+              },
+              type: "application",
+            },
+            {
+              path: ["there"],
+              type: "reference",
+            },
+          ],
+          function: {
+            path: ["."],
+            type: "reference",
+          },
+          type: "application",
+        };
+
+        assert.deepStrictEqual(parseOrThrow("@.hello.there"), target);
       });
 
       it("parses a deep series of items", () => {
-        assert.deepStrictEqual(
-          parseOrThrow('there.is.much.to.learn'),
-          { type: 'reference', path: ['there', 'is', 'much', 'to', 'learn'] });
+        const target = {
+          type: "application",
+          function: {
+            type: "reference",
+            path: ["."],
+          },
+          arguments: [
+            {
+              type: "application",
+              function: {
+                type: "reference",
+                path: ["."],
+              },
+              arguments: [
+                {
+                  type: "application",
+                  function: {
+                    type: "reference",
+                    path: ["."],
+                  },
+                  arguments: [
+                    {
+                      type: "application",
+                      function: {
+                        type: "reference",
+                        path: ["."],
+                      },
+                      arguments: [
+                        {
+                          type: "reference",
+                          path: ["there"],
+                        },
+                        {
+                          type: "reference",
+                          path: ["is"],
+                        },
+                      ],
+                    },
+                    {
+                      type: "reference",
+                      path: ["much"],
+                    },
+                  ],
+                },
+                {
+                  type: "reference",
+                  path: ["to"],
+                },
+              ],
+            },
+            {
+              type: "reference",
+              path: ["learn"],
+            },
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow("there.is.much.to.learn"), target);
       });
     });
 
-    describe('pipes', () => {
+    describe("pipes", () => {
       it("parses a simple pipe", () => {
-        assert.deepStrictEqual(parseOrThrow('hello|there'), {
-          type: 'pipeline', stages: [
-            { type: 'reference', path: ['hello'] },
-            { type: 'reference', path: ['there'] }
-          ]
+        assert.deepStrictEqual(parseOrThrow("hello|there"), {
+          type: "pipeline",
+          stages: [
+            { type: "reference", path: ["hello"] },
+            { type: "reference", path: ["there"] },
+          ],
         });
       });
 
       it("parses a pipe with whitespace", () => {
-        assert.deepStrictEqual(parseOrThrow('hello | there'), {
-          type: 'pipeline', stages: [
-            { type: 'reference', path: ['hello'] },
-            { type: 'reference', path: ['there'] }
-          ]
+        assert.deepStrictEqual(parseOrThrow("hello | there"), {
+          type: "pipeline",
+          stages: [
+            { type: "reference", path: ["hello"] },
+            { type: "reference", path: ["there"] },
+          ],
         });
       });
 
       it("parses a pipe with a number of stages", () => {
-        assert.deepStrictEqual(parseOrThrow('hello | there | hi | whatup'), {
-          type: 'pipeline', stages: [
-            { type: 'reference', path: ['hello'] },
-            { type: 'reference', path: ['there'] },
-            { type: 'reference', path: ['hi'] },
-            { type: 'reference', path: ['whatup'] }
-          ]
+        assert.deepStrictEqual(parseOrThrow("hello | there | hi | whatup"), {
+          type: "pipeline",
+          stages: [
+            { type: "reference", path: ["hello"] },
+            { type: "reference", path: ["there"] },
+            { type: "reference", path: ["hi"] },
+            { type: "reference", path: ["whatup"] },
+          ],
         });
       });
     });
 
-    describe('parentheticals', () => {
-      it('handles a basic parenthetical statement', () => {
-        assert.deepStrictEqual(parseOrThrow('(hello)'),
-          { type: 'reference', path: ['hello'] });
+    describe("parentheticals", () => {
+      it("handles a basic parenthetical statement", () => {
+        assert.deepStrictEqual(parseOrThrow("(hello)"), {
+          type: "reference",
+          path: ["hello"],
+        });
       });
 
-      it('errors when parsing an empty parenthetical', () => {
-        assert.throws(() => parseOrThrow('()'));
+      it("errors when parsing an empty parenthetical", () => {
+        assert.throws(() => parseOrThrow("()"));
       });
 
       it("interops with pipes", () => {
-        assert.deepStrictEqual(parseOrThrow('hello | (there) | hi | (whatup)'), {
-          type: 'pipeline', stages: [
-            { type: 'reference', path: ['hello'] },
-            { type: 'reference', path: ['there'] },
-            { type: 'reference', path: ['hi'] },
-            { type: 'reference', path: ['whatup'] }
-          ]
-        });
+        assert.deepStrictEqual(
+          parseOrThrow("hello | (there) | hi | (whatup)"),
+          {
+            type: "pipeline",
+            stages: [
+              { type: "reference", path: ["hello"] },
+              { type: "reference", path: ["there"] },
+              { type: "reference", path: ["hi"] },
+              { type: "reference", path: ["whatup"] },
+            ],
+          }
+        );
       });
 
-      it('handles a heavily nested parenthetical', () => {
-        assert.deepStrictEqual(parseOrThrow('((((hello))))'),
-          { type: 'reference', path: ['hello'] });
+      it("handles a heavily nested parenthetical", () => {
+        assert.deepStrictEqual(parseOrThrow("((((hello))))"), {
+          type: "reference",
+          path: ["hello"],
+        });
       });
 
       it("allows nested pipe expressions", () => {
-        assert.deepStrictEqual(parseOrThrow('hello | (there | hi) | (whatup)'), {
-          type: 'pipeline', stages: [
-            { type: 'reference', path: ['hello'] },
-            {
-              type: "pipeline",
-              stages: [
-                { type: 'reference', path: ['there'] },
-                { type: 'reference', path: ['hi'] },]
-            },
-            { type: 'reference', path: ['whatup'] }
-          ]
-        });
-      });
-    });
-    describe('applications', () => {
-      it('parses a basic function application', () => {
-        assert.deepStrictEqual(parseOrThrow('sup nernd hi'),
-          {
-            type: 'application', function: {
-              type: "reference",
-              path: ['sup']
-            },
-            arguments: [{
-              type: "reference",
-              path: ['nernd']
-            },
-            {
-              type: "reference",
-              path: ['hi']
-            }]
-          });
-      });
-
-      it('parses function applications with parentheticals', () => {
-        assert.deepStrictEqual(parseOrThrow('(sup) (nernd) (hi)'),
-          {
-            type: 'application', function: {
-              type: "reference",
-              path: ['sup']
-            },
-            arguments: [{
-              type: "reference",
-              path: ['nernd']
-            },
-            {
-              type: "reference",
-              path: ['hi']
-            }]
-          });
-      });
-
-      it('doesnt capture over pipes', () => {
-        assert.deepStrictEqual(parseOrThrow('sup nernd | hi there'),
+        assert.deepStrictEqual(
+          parseOrThrow("hello | (there | hi) | (whatup)"),
           {
             type: "pipeline",
-            stages: [{
-              type: 'application', function: {
-                type: "reference",
-                path: ['sup']
+            stages: [
+              { type: "reference", path: ["hello"] },
+              {
+                type: "pipeline",
+                stages: [
+                  { type: "reference", path: ["there"] },
+                  { type: "reference", path: ["hi"] },
+                ],
               },
-              arguments: [{
-                type: "reference",
-                path: ['nernd']
-              }]
-            },
-            {
-              type: 'application', function: {
-                type: "reference",
-                path: ['hi']
-              },
-              arguments: [{
-                type: "reference",
-                path: ['there']
-              }]
-            }]
+              { type: "reference", path: ["whatup"] },
+            ],
           }
         );
       });
     });
+    describe("applications", () => {
+      it("parses a basic function application", () => {
+        assert.deepStrictEqual(parseOrThrow("sup nernd hi"), {
+          type: "application",
+          function: {
+            type: "reference",
+            path: ["sup"],
+          },
+          arguments: [
+            {
+              type: "reference",
+              path: ["nernd"],
+            },
+            {
+              type: "reference",
+              path: ["hi"],
+            },
+          ],
+        });
+      });
 
-    describe('binary expressions', () => {
+      it("parses function applications with parentheticals", () => {
+        assert.deepStrictEqual(parseOrThrow("(sup) (nernd) (hi)"), {
+          type: "application",
+          function: {
+            type: "reference",
+            path: ["sup"],
+          },
+          arguments: [
+            {
+              type: "reference",
+              path: ["nernd"],
+            },
+            {
+              type: "reference",
+              path: ["hi"],
+            },
+          ],
+        });
+      });
+
+      it("doesnt capture over pipes", () => {
+        assert.deepStrictEqual(parseOrThrow("sup nernd | hi there"), {
+          type: "pipeline",
+          stages: [
+            {
+              type: "application",
+              function: {
+                type: "reference",
+                path: ["sup"],
+              },
+              arguments: [
+                {
+                  type: "reference",
+                  path: ["nernd"],
+                },
+              ],
+            },
+            {
+              type: "application",
+              function: {
+                type: "reference",
+                path: ["hi"],
+              },
+              arguments: [
+                {
+                  type: "reference",
+                  path: ["there"],
+                },
+              ],
+            },
+          ],
+        });
+      });
+    });
+
+    describe("binary expressions", () => {
       it("parses basic binary expressions", () => {
         const expected = {
-          type: 'application', function: {
+          type: "application",
+          function: {
             type: "reference",
-            path: ['+']
+            path: ["+"],
           },
-          arguments: [{
-            type: "reference",
-            path: ['here']
-          },
-          {
-            type: "reference",
-            path: ['there']
-          }]
+          arguments: [
+            {
+              type: "reference",
+              path: ["here"],
+            },
+            {
+              type: "reference",
+              path: ["there"],
+            },
+          ],
         };
-        assert.deepStrictEqual(parseOrThrow('here + there'), expected);
+        assert.deepStrictEqual(parseOrThrow("here + there"), expected);
       });
 
       it("respects operator precedence", () => {
         const expected = {
-          type: 'application', function: {
+          type: "application",
+          function: {
             type: "reference",
-            path: ['+']
+            path: ["+"],
           },
-          arguments: [{
-            type: 'application', function: {
-              type: "reference",
-              path: ['*']
-            },
-            arguments: [{
-              type: "reference",
-              path: ['one']
+          arguments: [
+            {
+              type: "application",
+              function: {
+                type: "reference",
+                path: ["*"],
+              },
+              arguments: [
+                {
+                  type: "reference",
+                  path: ["one"],
+                },
+                {
+                  type: "reference",
+                  path: ["two"],
+                },
+              ],
             },
             {
-              type: "reference",
-              path: ['two']
-            }]
-          },
-          {
-            type: 'application', function: {
-              type: "reference",
-              path: ['*']
+              type: "application",
+              function: {
+                type: "reference",
+                path: ["*"],
+              },
+              arguments: [
+                {
+                  type: "reference",
+                  path: ["three"],
+                },
+                {
+                  type: "reference",
+                  path: ["four"],
+                },
+              ],
             },
-            arguments: [{
-              type: "reference",
-              path: ['three']
-            },
-            {
-              type: "reference",
-              path: ['four']
-            }]
-          }]
+          ],
         };
-        assert.deepStrictEqual(parseOrThrow('one * two + three * four'), expected);
+        assert.deepStrictEqual(
+          parseOrThrow("one * two + three * four"),
+          expected
+        );
       });
 
       it("respects left associativity", () => {
         const expected = {
-          type: 'application', function: {
+          type: "application",
+          function: {
             type: "reference",
-            path: ['-']
+            path: ["-"],
           },
           arguments: [
             {
-              type: 'application', function: {
+              type: "application",
+              function: {
                 type: "reference",
-                path: ['-']
+                path: ["-"],
               },
-              arguments: [{
-                type: "reference",
-                path: ['one']
-              },
-              {
-                type: "reference",
-                path: ['two']
-              }]
+              arguments: [
+                {
+                  type: "reference",
+                  path: ["one"],
+                },
+                {
+                  type: "reference",
+                  path: ["two"],
+                },
+              ],
             },
             {
               type: "reference",
-              path: ['three']
-            }
-          ]
+              path: ["three"],
+            },
+          ],
         };
-        assert.deepStrictEqual(parseOrThrow('one - two - three'), expected);
+        assert.deepStrictEqual(parseOrThrow("one - two - three"), expected);
       });
-      it('respects all these associativity comparisons', () => {
+      it("respects all these associativity comparisons", () => {
         const comparisons: [string, string][] = [
-          ['one - two - three', '(one - two) - three'],
-          ['one - two * three', 'one - (two * three)'],
-          ['a == b * 5', 'a == (b * 5)'],
-          ['a / 3 + 2 == b * 5', '((a / 3) + 2) == (b * 5)'],
-          ['a / 3 + 2 == b * 5 d | c', '(((a / 3) + 2) == (b * 5)) d | c'],
-        ]
+          ["one - two - three", "(one - two) - three"],
+          ["one - two * three", "one - (two * three)"],
+          ["a == b * 5", "a == (b * 5)"],
+          ["a / 3 + 2 == b * 5", "((a / 3) + 2) == (b * 5)"],
+          ["a / 3 + 2 == b * 5 d | c", "(((a / 3) + 2) == (b * 5)) d | c"],
+        ];
         comparisons.forEach(([l, r]) => {
           assert.deepStrictEqual(parseOrThrow(l), parseOrThrow(r));
         });
-      })
+      });
     });
   });
 });
