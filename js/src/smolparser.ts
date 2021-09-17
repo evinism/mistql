@@ -50,8 +50,6 @@ const binaryExpressionStrings = [
   "!=",
   "&&",
   "||",
-  " ",
-
 ];
 
 const specials = binaryExpressionStrings.concat([
@@ -60,7 +58,8 @@ const specials = binaryExpressionStrings.concat([
   '[',
   ']',
   ',',
-  "|"
+  "|",
+  " "
 ]);
 
 const builtinValues = {
@@ -151,8 +150,6 @@ const isBinExp = (token: LexToken) => {
 }
 
 const consumeParenthetical: Parser = (tokens: LexToken[]) => {
-  console.log('consumeParenthetical');
-  console.log(tokens);
   let current = tokens;
   if (!tmatch('special', '(', current[0])) {
     throw new Error("Parenthetical Issue");
@@ -270,7 +267,7 @@ const consumeExpression: Parser = (tokens) => {
   const joinerPushGuard = (token: LexToken) => {
     if (joiners.length + 1 !== items.length) {
       // Now parsing an item, so guard
-      throw new Error("Unexpected Token " + token.value);
+      throw new Error(" zzUnexpected Token " + token.value);
     }
   }
   while (current.length > 0) {
@@ -278,6 +275,7 @@ const consumeExpression: Parser = (tokens) => {
     if (isBinExp(next)) {
       joinerPushGuard(next);
       joiners.push(next);
+      current = current.slice(1);
     } else if (tmatch('special', '(', next)) {
       itemPushGuard(next);
       const { result, remaining } = consumeParenthetical(current);
