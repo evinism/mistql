@@ -1,3 +1,4 @@
+import { slice } from "fp-ts/lib/string";
 import { compare, truthy } from "./runtimeValues";
 import { pushRuntimeValueToStack } from "./stackManip";
 import { BuiltinFunction, RuntimeValue } from "./types";
@@ -162,6 +163,30 @@ const index: BuiltinFunction = (args, stack, exec) => {
   return arr[idx] || null;
 };
 
+const head: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 2) {
+    throw new Error("Expected 2 arguments");
+  }
+  const count = exec(args[0], stack);
+  const arr = exec(args[1], stack);
+  if (!Array.isArray(arr)) {
+    throw new Error("Expected array");
+  }
+  return arr.slice(0, count);
+};
+
+const tail: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 2) {
+    throw new Error("Expected 1 argument");
+  }
+  const count = exec(args[0], stack);
+  const arr = exec(args[1], stack);
+  if (!Array.isArray(arr)) {
+    throw new Error("Expected array");
+  }
+  return arr.slice(arr.length - count, arr.length);
+};
+
 const first: BuiltinFunction = (args, stack, exec) => {
   if (args.length !== 1) {
     throw new Error("Expected 1 argument");
@@ -252,6 +277,8 @@ export default {
   last,
   sort,
   reverse,
+  head,
+  tail,
   ".": dotAccessor,
   "+": numericBinaryOperator((a, b) => a + b),
   "-": numericBinaryOperator((a, b) => a - b),

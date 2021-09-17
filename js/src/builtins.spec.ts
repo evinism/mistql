@@ -240,6 +240,32 @@ describe("builtins", () => {
     });
   });
 
+  describe("#head", () => {
+    it("handles empty arrays", () => {
+      assert.deepEqual(execute(parseOrThrow("[] | head 3"), {}), []);
+    });
+
+    it("grabs the first n elements", () => {
+      assert.deepEqual(
+        execute(parseOrThrow("[1, 2, 3, 4, 5] | head 3"), {}),
+        [1, 2, 3]
+      );
+    });
+  });
+
+  describe("#tail", () => {
+    it("handles empty arrays", () => {
+      assert.deepEqual(execute(parseOrThrow("[] | head 3"), {}), []);
+    });
+
+    it("grabs the last n elements", () => {
+      assert.deepEqual(
+        execute(parseOrThrow("[1, 2, 3, 4, 5] | tail 3"), {}),
+        [3, 4, 5]
+      );
+    });
+  });
+
   describe("#dotaccessor", () => {
     it("correctly parses deep values", () => {
       assert.deepEqual(
