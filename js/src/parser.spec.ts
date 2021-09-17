@@ -22,6 +22,7 @@ describe("parser", () => {
         assert.deepStrictEqual(parseOrThrow('2'), lit('number', 2));
         assert.deepStrictEqual(parseOrThrow('3'), lit('number', 3));
         assert.deepStrictEqual(parseOrThrow('349291'), lit('number', 349291));
+        assert.deepStrictEqual(parseOrThrow('-349291'), lit('number', -349291));
       });
 
       it('parses the null literal', () => {

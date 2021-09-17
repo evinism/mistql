@@ -83,6 +83,7 @@ find
 index
 first
 last
+sequence
 summarize
 count
 ```
