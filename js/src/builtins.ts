@@ -1,4 +1,4 @@
-import { truthy } from "./runtimeValues";
+import { compare, truthy } from "./runtimeValues";
 import { pushRuntimeValueToStack } from "./stackManip";
 import { BuiltinFunction, RuntimeValue } from "./types";
 
@@ -20,7 +20,7 @@ const map: BuiltinFunction = (args, stack, exec) => {
 }
 
 // TODO: Make this work with non-string values
-const groupby = (args, stack, exec) => {
+const groupby: BuiltinFunction = (args, stack, exec) => {
   if (args.length !== 2) {
     throw new Error("Expected 2 arguments");
   }
@@ -75,6 +75,18 @@ const numericBinaryOperator = (op: (a: number, b: number) => number): BuiltinFun
   return op(a, b);
 }
 
+const booleanBinaryOperator = (op: (a: boolean, b: boolean) => boolean): BuiltinFunction => (args, stack, exec) => {
+  if (args.length !== 2) {
+    throw new Error("Expected 2 arguments");
+  }
+  const a = exec(args[0], stack);
+  const b = exec(args[1], stack);
+  if (typeof a !== "boolean" || typeof b !== "boolean") {
+    throw new Error("+ does not work with non-numbers");
+  }
+  return op(a, b);
+}
+
 const equal: BuiltinFunction = (args, stack, exec) => {
   if (args.length !== 2) {
     throw new Error("Expected 2 arguments");
@@ -86,6 +98,10 @@ const equal: BuiltinFunction = (args, stack, exec) => {
   }
   // TODO: Make equality work for arrays.
   return a === b;
+}
+
+const notequal: BuiltinFunction = (args, stack, exec) => {
+  return !equal(args, stack, exec);
 }
 
 const count: BuiltinFunction = (args, stack, exec) => {
@@ -164,6 +180,47 @@ const last: BuiltinFunction = (args, stack, exec) => {
   return arr[arr.length - 1] || null;
 }
 
+const binaryCompareFunction = (truthtable: [boolean, boolean, boolean]): BuiltinFunction => (args, stack, exec) => {
+  if (args.length !== 2) {
+    throw new Error("Expected 2 argument");
+  }
+  const a = exec(args[0], stack);
+  const b = exec(args[1], stack);
+  const comparison = compare(a, b);
+  if (comparison < 0) {
+    return truthtable[0];
+  }
+  if (comparison === 0) {
+    return truthtable[1];
+  }
+  if (comparison > 0) {
+    return truthtable[2];
+  }
+}
+
+const sort: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 1) {
+    throw new Error("Expected 1 argument");
+  }
+  const arg = exec(args[0], stack);
+  if (!Array.isArray(arg)) {
+    throw new Error("Expected array");
+  }
+  // default to ascending -- should really figure out something here.
+  return arg.slice().sort((a, b) => compare(b, a));
+}
+
+const reverse: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 1) {
+    throw new Error("Expected 1 argument");
+  }
+  const arg = exec(args[0], stack);
+  if (!Array.isArray(arg)) {
+    throw new Error("Expected array");
+  }
+  return arg.reverse();
+}
+
 export default {
   map,
   filter,
@@ -175,10 +232,19 @@ export default {
   index,
   first,
   last,
+  sort,
+  reverse,
   "+": numericBinaryOperator((a, b) => a + b),
   "-": numericBinaryOperator((a, b) => a - b),
   "*": numericBinaryOperator((a, b) => a * b),
   "/": numericBinaryOperator((a, b) => a / b),
   "%": numericBinaryOperator((a, b) => a % b),
+  "||": booleanBinaryOperator((a, b) => a || b),
+  "&&": booleanBinaryOperator((a, b) => a && b),
   "==": equal,
+  "!=": equal,
+  ">": binaryCompareFunction([true, false, false]),
+  "<": binaryCompareFunction([false, false, true]),
+  ">=": binaryCompareFunction([true, true, false]),
+  "<=": binaryCompareFunction([false, true, true]),
 };
