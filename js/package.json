@@ -1,6 +1,6 @@
 {
   "name": "millieql",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "description": "JS implementation of miniature query language",
   "main": "dist/index.js",
   "author": "Evin Sellin",
@@ -10,9 +10,10 @@
     "/dist"
   ],
   "scripts": {
-    "buildts": "tsc",
+    "build": "tsc",
     "test": "ts-mocha -p tsconfig.json ./**/*.spec.ts",
-    "bundle": "tsc && rollup --config rollup.config.js"
+    "bundle": "tsc && rollup --config rollup.config.js",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^20.0.0",

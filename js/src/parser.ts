@@ -1,57 +1,78 @@
 import { isLeft } from "fp-ts/lib/Either";
 import { alphanum, char } from "parser-ts/lib/char";
-import { apFirst, between, either, eof, many1, many, map, Parser, sepBy, sepBy1, seq, succeed, chain } from "parser-ts/lib/Parser";
+import {
+  apFirst,
+  between,
+  either,
+  eof,
+  many1,
+  many,
+  map,
+  Parser,
+  sepBy,
+  sepBy1,
+  seq,
+  succeed,
+} from "parser-ts/lib/Parser";
 import { stream } from "parser-ts/lib/Stream";
-import { doubleQuotedString, float as floatParser, string as stringParser } from "parser-ts/lib/string";
+import {
+  doubleQuotedString,
+  float as floatParser,
+  string as stringParser,
+} from "parser-ts/lib/string";
 import { ASTExpression, ASTPipelineExpression } from "./types";
 import { escapeRegExp } from "./util";
 
-// To help with circular refs. 
-const lazyRef: <A, B>(fn: () => Parser<A, B>) => Parser<A, B> = (fn) => seq(succeed(undefined), fn);
+// To help with circular refs.
+const lazyRef: <A, B>(fn: () => Parser<A, B>) => Parser<A, B> = (fn) =>
+  seq(succeed(undefined), fn);
 const lazyExpressionParser = lazyRef(() => expressionParser);
 
-
 const doubleQuotedLiteralParser = map((str: string) => ({
-  type: "literal" as 'literal',
-  valueType: "string" as 'string',
-  value: str
+  type: "literal" as "literal",
+  valueType: "string" as "string",
+  value: str,
 }))(doubleQuotedString);
 
 const nullLiteralParser = map(() => ({
-  type: 'literal' as 'literal',
-  valueType: 'null' as 'null',
+  type: "literal" as "literal",
+  valueType: "null" as "null",
   value: null,
-}))(stringParser('null'));
+}))(stringParser("null"));
 
 const numberLiteralParser = map((num: number) => ({
   type: "literal" as "literal",
   valueType: "number" as "number",
-  value: num
+  value: num,
 }))(floatParser);
 
-const arrayLiteralParser: Parser<string, ASTExpression> = map((expressions: ASTExpression[]) => ({
-  type: "literal" as "literal",
-  valueType: "array" as "array",
-  value: expressions,
-}))(between(char('['), char(']'))(sepBy(char(","), lazyExpressionParser)))
+const arrayLiteralParser: Parser<string, ASTExpression> = map(
+  (expressions: ASTExpression[]) => ({
+    type: "literal" as "literal",
+    valueType: "array" as "array",
+    value: expressions,
+  })
+)(between(char("["), char("]"))(sepBy(char(","), lazyExpressionParser)));
 
-const trueLiteralParser = map(() => true)(stringParser('true'));
-const falseLiteralParser = map(() => false)(stringParser('false'));
+const trueLiteralParser = map(() => true)(stringParser("true"));
+const falseLiteralParser = map(() => false)(stringParser("false"));
 const booleanParser = map((bool: boolean) => ({
   type: "literal" as "literal",
   valueType: "boolean" as "boolean",
-  value: bool
+  value: bool,
 }))(either(trueLiteralParser, () => falseLiteralParser));
 
-const referenceParser = map((raw: string[][]) => {
-  const path = raw.map(nameArr => nameArr.join(''));
+const referenceParser = map((raw: string[]) => {
   return {
     type: "reference" as "reference",
-    path: path,
-  }
-})(sepBy1(char('.'), either(many1(alphanum), () => map(() => ["@"])(char("@")))))
+    ref: raw.join(""),
+  };
+})(either(many1(alphanum), () => map(() => ["@"])(char("@"))));
 
-const parentheticalExpression = between(char('('), char(')'))(lazyExpressionParser);
+const parentheticalExpression = between(
+  char("("),
+  char(")")
+)(lazyExpressionParser);
 
 const listOfSimpleExpressionParsers: Parser<string, ASTExpression>[] = [
   parentheticalExpression,
@@ -71,42 +92,60 @@ const simpleExpressionParser: Parser<string, ASTExpression> =
 // Through complete luck, we're good with left-to-right associativity.
 // This could change with exponentiation
 const binaryExpressionStrings = [
-  '*',
-  '/',
-  '%',
-  '+',
-  '-',
-  '<=',
-  '>=',
-  '<',
-  '>',
-  '==',
-  '!=',
-  '&&',
-  '||',
+  ".",
+  "*",
+  "/",
+  "%",
+  "+",
+  "-",
+  "<=",
+  ">=",
+  "<",
+  ">",
+  "==",
+  "!=",
+  "&&",
+  "||",
 ];
 
-const matchBinExpParser = binaryExpressionStrings.map(stringParser).reduce((acc, cur) => either(acc, () => cur));
+const matchBinExpParser = binaryExpressionStrings
+  .map(stringParser)
+  .reduce((acc, cur) => either(acc, () => cur));
 
-type BinaryExpressionSequence = {items: ASTExpression[], joiners: string[]};
+type BinaryExpressionSequence = { items: ASTExpression[]; joiners: string[] };
 // Parser of type {items: ASTExpression[], joiners: string[]}
 
-const binaryExpressionSequenceParser: Parser<string, BinaryExpressionSequence> = seq(simpleExpressionParser, (head) => map((bexprecords: {
-  operator: string,
-  rhs: ASTExpression
-}[]) => {
-  return {
-    items: [head].concat(bexprecords.map(r => r.rhs)),
-    joiners: bexprecords.map(r => r.operator)
-  }
-})(many(seq(matchBinExpParser, (operator) => map((secondExp: ASTExpression) => ({
-  operator,
-  rhs: secondExp
-}))(simpleExpressionParser)))));
+const binaryExpressionSequenceParser: Parser<string, BinaryExpressionSequence> =
+  seq(simpleExpressionParser, (head) =>
+    map(
+      (
+        bexprecords: {
+          operator: string;
+          rhs: ASTExpression;
+        }[]
+      ) => {
+        return {
+          items: [head].concat(bexprecords.map((r) => r.rhs)),
+          joiners: bexprecords.map((r) => r.operator),
+        };
+      }
+    )(
+      many(
+        seq(matchBinExpParser, (operator) =>
+          map((secondExp: ASTExpression) => ({
+            operator,
+            rhs: secondExp,
+          }))(simpleExpressionParser)
+        )
+      )
+    )
+  );
 
 // This might be the worst function i've ever written.
 // But at least it's a contained transformation.
-const turnBinaryExpressionSequenceIntoASTExpression = (bexpseq: BinaryExpressionSequence): ASTExpression => {
+const turnBinaryExpressionSequenceIntoASTExpression = (
+  bexpseq: BinaryExpressionSequence
+): ASTExpression => {
   if (bexpseq.items.length === 1) {
     // this is the majority case by a long shot.
     return bexpseq.items[0];
@@ -126,72 +165,78 @@ const turnBinaryExpressionSequenceIntoASTExpression = (bexpseq: BinaryExpression
           type: "application",
           function: {
             type: "reference",
-            path: [currentExpression]
+            ref: currentExpression,
           },
-          arguments: [l, r]
-        }
+          arguments: [l, r],
+        };
         newItems.length = newItems.length - 1;
       } else {
-        newJoiners.push(current.joiners[j])
+        newJoiners.push(current.joiners[j]);
       }
     }
     current = {
       items: newItems,
       joiners: newJoiners,
-    }
+    };
   }
   return current.items[0];
-}
+};
 
-const binaryExpressionParser = map(turnBinaryExpressionSequenceIntoASTExpression)(binaryExpressionSequenceParser);
+const binaryExpressionParser = map(
+  turnBinaryExpressionSequenceIntoASTExpression
+)(binaryExpressionSequenceParser);
 /* END BINARY EXPRESSIONS */
 
-
-const compoundExpressionParser: Parser<string, ASTExpression> = map((simpleExpressions: ASTExpression[]) => {
-  if (simpleExpressions.length === 1) {
-    return simpleExpressions[0]
+const compoundExpressionParser: Parser<string, ASTExpression> = map(
+  (simpleExpressions: ASTExpression[]) => {
+    if (simpleExpressions.length === 1) {
+      return simpleExpressions[0];
+    }
+    return {
+      type: "application" as "application",
+      function: simpleExpressions[0],
+      arguments: simpleExpressions.slice(1),
+    };
   }
-  return {
-    type: "application" as "application",
-    function: simpleExpressions[0],
-    arguments: simpleExpressions.slice(1),
-  }
-})(sepBy1(char(' '), binaryExpressionParser))
+)(sepBy1(char(" "), binaryExpressionParser));
 
 const pipelineExpressionParser = map((stages: ASTExpression[]) => ({
   type: "pipeline" as "pipeline",
   stages,
-}))(sepBy1(char('|'), compoundExpressionParser));
+}))(sepBy1(char("|"), compoundExpressionParser));
 
-const expressionParser: Parser<string, ASTExpression> = map((node: ASTPipelineExpression) => {
-  if (node.stages.length === 1) {
-    return node.stages[0];
-  } else {
-    return node;
+const expressionParser: Parser<string, ASTExpression> = map(
+  (node: ASTPipelineExpression) => {
+    if (node.stages.length === 1) {
+      return node.stages[0];
+    } else {
+      return node;
+    }
   }
-})(pipelineExpressionParser);
+)(pipelineExpressionParser);
 
-const statementParser = apFirst<string, void>(eof())(expressionParser)
+const statementParser = apFirst<string, void>(eof())(expressionParser);
 
 // Normalizes and removes unnecessary whitespace
 const whiteSpacealyzer = (str: string) => {
   // TODO: Make these more solid.
   let retval = str
     .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/\s*\.\s*/g, '.')
-    .replace(/\(\s*/g, '(')
-    .replace(/\s*\)/g, ')')
-    .replace(/\s*\|\s*/g, '|')
-    .replace(/\s*,\s*/g, ',')
-    binaryExpressionStrings.forEach((binexp) => {
-      const re = new RegExp(`\\s*${escapeRegExp(binexp)}\\s*`, 'g');
-      retval = retval.replace(re, binexp);
-    })
-    return retval;
-}
+    .replace(/\s+/g, " ")
+    .replace(/\s*\.\s*/g, ".")
+    .replace(/\(\s*/g, "(")
+    .replace(/\s*\)/g, ")")
+    .replace(/\s*\|\s*/g, "|")
+    .replace(/\s*,\s*/g, ",");
+  binaryExpressionStrings.forEach((binexp) => {
+    const re = new RegExp(`\\s*${escapeRegExp(binexp)}\\s*`, "g");
+    retval = retval.replace(re, binexp);
+  });
+  return retval;
+};
 
-export const parse = (raw: string) => statementParser(stream(whiteSpacealyzer(raw).split(''), 0));
+export const parse = (raw: string) =>
+  statementParser(stream(whiteSpacealyzer(raw).split(""), 0));
 
 export const parseOrThrow = (raw: string): ASTExpression => {
   const result = parse(raw);
@@ -200,4 +245,4 @@ export const parseOrThrow = (raw: string): ASTExpression => {
   } else {
     return result.right.value;
   }
-}
+};
