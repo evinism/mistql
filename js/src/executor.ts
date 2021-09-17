@@ -77,12 +77,12 @@ const executeReference = (
   // first, find the appropriate referenced variable:
   let referencedInStack = undefined;
   for (let i = stack.length - 1; i >= 0; i--) {
-    if (stack[i][statement.ref]) {
+    if (stack[i][statement.ref] !== undefined) {
       referencedInStack = stack[i][statement.ref];
       break;
     }
   }
-  if (!referencedInStack) {
+  if (referencedInStack === undefined) {
     throw new Error("Could not find referenced variable " + statement.ref);
   }
   return referencedInStack;
