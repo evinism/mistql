@@ -1,6 +1,6 @@
 {
   "name": "millieql",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "JS implementation of miniature query language",
   "main": "dist/index.js",
   "author": "Evin Sellin",
