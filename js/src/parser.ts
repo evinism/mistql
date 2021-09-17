@@ -65,7 +65,7 @@ const booleanParser = map((bool: boolean) => ({
 const referenceParser = map((raw: string[]) => {
   return {
     type: "reference" as "reference",
-    path: [raw.join("")],
+    ref: raw.join(""),
   };
 })(either(many1(alphanum), () => map(() => ["@"])(char("@"))));
 
@@ -165,7 +165,7 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
           type: "application",
           function: {
             type: "reference",
-            path: [currentExpression],
+            ref: currentExpression,
           },
           arguments: [l, r],
         };

@@ -33,7 +33,7 @@ export type ASTPipelineExpression = {
 
 export type ASTReferenceExpression = {
   type: "reference";
-  path: string[];
+  ref: string;
 };
 
 export type ASTApplicationExpression = {

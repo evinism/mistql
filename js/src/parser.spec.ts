@@ -59,14 +59,14 @@ describe("parser", () => {
       it("parses bare references", () => {
         assert.deepStrictEqual(parseOrThrow("somefn"), {
           type: "reference",
-          path: ["somefn"],
+          ref: "somefn",
         });
       });
 
       it("parses the root reference", () => {
         assert.deepStrictEqual(parseOrThrow("@"), {
           type: "reference",
-          path: ["@"],
+          ref: "@",
         });
       });
 
@@ -76,27 +76,27 @@ describe("parser", () => {
             {
               arguments: [
                 {
-                  path: ["@"],
+                  ref: "@",
                   type: "reference",
                 },
                 {
-                  path: ["hello"],
+                  ref: "hello",
                   type: "reference",
                 },
               ],
               function: {
-                path: ["."],
+                ref: ".",
                 type: "reference",
               },
               type: "application",
             },
             {
-              path: ["there"],
+              ref: "there",
               type: "reference",
             },
           ],
           function: {
-            path: ["."],
+            ref: ".",
             type: "reference",
           },
           type: "application",
@@ -110,55 +110,55 @@ describe("parser", () => {
           type: "application",
           function: {
             type: "reference",
-            path: ["."],
+            ref: ".",
           },
           arguments: [
             {
               type: "application",
               function: {
                 type: "reference",
-                path: ["."],
+                ref: ".",
               },
               arguments: [
                 {
                   type: "application",
                   function: {
                     type: "reference",
-                    path: ["."],
+                    ref: ".",
                   },
                   arguments: [
                     {
                       type: "application",
                       function: {
                         type: "reference",
-                        path: ["."],
+                        ref: ".",
                       },
                       arguments: [
                         {
                           type: "reference",
-                          path: ["there"],
+                          ref: "there",
                         },
                         {
                           type: "reference",
-                          path: ["is"],
+                          ref: "is",
                         },
                       ],
                     },
                     {
                       type: "reference",
-                      path: ["much"],
+                      ref: "much",
                     },
                   ],
                 },
                 {
                   type: "reference",
-                  path: ["to"],
+                  ref: "to",
                 },
               ],
             },
             {
               type: "reference",
-              path: ["learn"],
+              ref: "learn",
             },
           ],
         };
@@ -171,8 +171,8 @@ describe("parser", () => {
         assert.deepStrictEqual(parseOrThrow("hello|there"), {
           type: "pipeline",
           stages: [
-            { type: "reference", path: ["hello"] },
-            { type: "reference", path: ["there"] },
+            { type: "reference", ref: "hello" },
+            { type: "reference", ref: "there" },
           ],
         });
       });
@@ -181,8 +181,8 @@ describe("parser", () => {
         assert.deepStrictEqual(parseOrThrow("hello | there"), {
           type: "pipeline",
           stages: [
-            { type: "reference", path: ["hello"] },
-            { type: "reference", path: ["there"] },
+            { type: "reference", ref: "hello" },
+            { type: "reference", ref: "there" },
           ],
         });
       });
@@ -191,10 +191,10 @@ describe("parser", () => {
         assert.deepStrictEqual(parseOrThrow("hello | there | hi | whatup"), {
           type: "pipeline",
           stages: [
-            { type: "reference", path: ["hello"] },
-            { type: "reference", path: ["there"] },
-            { type: "reference", path: ["hi"] },
-            { type: "reference", path: ["whatup"] },
+            { type: "reference", ref: "hello" },
+            { type: "reference", ref: "there" },
+            { type: "reference", ref: "hi" },
+            { type: "reference", ref: "whatup" },
           ],
         });
       });
@@ -204,7 +204,7 @@ describe("parser", () => {
       it("handles a basic parenthetical statement", () => {
         assert.deepStrictEqual(parseOrThrow("(hello)"), {
           type: "reference",
-          path: ["hello"],
+          ref: "hello",
         });
       });
 
@@ -218,10 +218,10 @@ describe("parser", () => {
           {
             type: "pipeline",
             stages: [
-              { type: "reference", path: ["hello"] },
-              { type: "reference", path: ["there"] },
-              { type: "reference", path: ["hi"] },
-              { type: "reference", path: ["whatup"] },
+              { type: "reference", ref: "hello" },
+              { type: "reference", ref: "there" },
+              { type: "reference", ref: "hi" },
+              { type: "reference", ref: "whatup" },
             ],
           }
         );
@@ -230,7 +230,7 @@ describe("parser", () => {
       it("handles a heavily nested parenthetical", () => {
         assert.deepStrictEqual(parseOrThrow("((((hello))))"), {
           type: "reference",
-          path: ["hello"],
+          ref: "hello",
         });
       });
 
@@ -240,15 +240,15 @@ describe("parser", () => {
           {
             type: "pipeline",
             stages: [
-              { type: "reference", path: ["hello"] },
+              { type: "reference", ref: "hello" },
               {
                 type: "pipeline",
                 stages: [
-                  { type: "reference", path: ["there"] },
-                  { type: "reference", path: ["hi"] },
+                  { type: "reference", ref: "there" },
+                  { type: "reference", ref: "hi" },
                 ],
               },
-              { type: "reference", path: ["whatup"] },
+              { type: "reference", ref: "whatup" },
             ],
           }
         );
@@ -260,16 +260,16 @@ describe("parser", () => {
           type: "application",
           function: {
             type: "reference",
-            path: ["sup"],
+            ref: "sup",
           },
           arguments: [
             {
               type: "reference",
-              path: ["nernd"],
+              ref: "nernd",
             },
             {
               type: "reference",
-              path: ["hi"],
+              ref: "hi",
             },
           ],
         });
@@ -280,16 +280,16 @@ describe("parser", () => {
           type: "application",
           function: {
             type: "reference",
-            path: ["sup"],
+            ref: "sup",
           },
           arguments: [
             {
               type: "reference",
-              path: ["nernd"],
+              ref: "nernd",
             },
             {
               type: "reference",
-              path: ["hi"],
+              ref: "hi",
             },
           ],
         });
@@ -303,12 +303,12 @@ describe("parser", () => {
               type: "application",
               function: {
                 type: "reference",
-                path: ["sup"],
+                ref: "sup",
               },
               arguments: [
                 {
                   type: "reference",
-                  path: ["nernd"],
+                  ref: "nernd",
                 },
               ],
             },
@@ -316,12 +316,12 @@ describe("parser", () => {
               type: "application",
               function: {
                 type: "reference",
-                path: ["hi"],
+                ref: "hi",
               },
               arguments: [
                 {
                   type: "reference",
-                  path: ["there"],
+                  ref: "there",
                 },
               ],
             },
@@ -336,16 +336,16 @@ describe("parser", () => {
           type: "application",
           function: {
             type: "reference",
-            path: ["+"],
+            ref: "+",
           },
           arguments: [
             {
               type: "reference",
-              path: ["here"],
+              ref: "here",
             },
             {
               type: "reference",
-              path: ["there"],
+              ref: "there",
             },
           ],
         };
@@ -357,23 +357,23 @@ describe("parser", () => {
           type: "application",
           function: {
             type: "reference",
-            path: ["+"],
+            ref: "+",
           },
           arguments: [
             {
               type: "application",
               function: {
                 type: "reference",
-                path: ["*"],
+                ref: "*",
               },
               arguments: [
                 {
                   type: "reference",
-                  path: ["one"],
+                  ref: "one",
                 },
                 {
                   type: "reference",
-                  path: ["two"],
+                  ref: "two",
                 },
               ],
             },
@@ -381,16 +381,16 @@ describe("parser", () => {
               type: "application",
               function: {
                 type: "reference",
-                path: ["*"],
+                ref: "*",
               },
               arguments: [
                 {
                   type: "reference",
-                  path: ["three"],
+                  ref: "three",
                 },
                 {
                   type: "reference",
-                  path: ["four"],
+                  ref: "four",
                 },
               ],
             },
@@ -407,29 +407,29 @@ describe("parser", () => {
           type: "application",
           function: {
             type: "reference",
-            path: ["-"],
+            ref: "-",
           },
           arguments: [
             {
               type: "application",
               function: {
                 type: "reference",
-                path: ["-"],
+                ref: "-",
               },
               arguments: [
                 {
                   type: "reference",
-                  path: ["one"],
+                  ref: "one",
                 },
                 {
                   type: "reference",
-                  path: ["two"],
+                  ref: "two",
                 },
               ],
             },
             {
               type: "reference",
-              path: ["three"],
+              ref: "three",
             },
           ],
         };
