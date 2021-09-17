@@ -35,22 +35,47 @@ const refStarter = /[a-zA-Z_]/;
 const refContinuer = /[a-zA-Z_0-9]/;
 const numStarter = /[0-9]/;
 const numContinuer = /[0-9\.]/;
-const binaryExpressionStrings = [
+
+// These binary expressions have definitions that span over
+// n consecutive items, e.g. function application. Could absolutely be extended
+// to all commutative operators, e.g. +, *, &&, and ||. For simplicity, though, pls no.
+const amalgamatingBinaryOperators = [
+  " ",
+  "|"
+];
+
+const amalgamationTechniques: {
+  [key: string]: (start: ASTExpression[]) => ASTExpression,
+} = {
+  ' ': (asts) => ({
+    type: 'application',
+    function: asts[0],
+    arguments: asts.slice(1),
+  }),
+  '|': (asts) => ({
+    type: 'pipeline',
+    stages: asts,
+  })
+};
+
+const simpleBinaryOperators = [
   ".",
   "*",
   "/",
   "%",
   "+",
   "-",
-  "<=",
-  ">=",
   "<",
   ">",
+  "<=",
+  ">=",
   "==",
   "!=",
   "&&",
   "||",
-];
+]
+
+const binaryExpressionStrings = [].concat(simpleBinaryOperators, amalgamatingBinaryOperators);
 
 const specials = binaryExpressionStrings.concat([
   '(',
@@ -58,8 +83,6 @@ const specials = binaryExpressionStrings.concat([
   '[',
   ']',
   ',',
-  "|",
-  " "
 ]);
 
 const builtinValues = {
@@ -90,7 +113,13 @@ export function lexer(raw: string): LexToken[] {
   const split = whiteSpacealyzer(raw).split('');
   for (let i = 0; i < split.length; i++) {
     let buffer = split[i];
-    if (specials.filter(operator => operator.startsWith(buffer)).length > 0) {
+    if (numStarter.test(buffer || '')) {
+      while (numContinuer.test(split[i + 1] || '')) {
+        i++;
+        buffer += split[i];
+      }
+      tokens.push({ token: 'value', value: parseFloat(buffer) });
+    } else if (specials.filter(operator => operator.startsWith(buffer)).length > 0) {
       while (specials.filter(operator => operator.startsWith(buffer + split[i + 1])).length > 0) {
         i++;
         buffer += split[i];
@@ -108,12 +137,6 @@ export function lexer(raw: string): LexToken[] {
       }
     } else if (buffer === '@') {
       tokens.push({ token: 'ref', value: '@' });
-    } else if (numStarter.test(buffer || '')) {
-      while (numContinuer.test(split[i + 1] || '')) {
-        i++;
-        buffer += split[i];
-      }
-      tokens.push({ token: 'value', value: parseFloat(buffer) });
     } else if (buffer === '"') {
       buffer = '';
       while (split[i + 1] !== '"') {
@@ -221,8 +244,11 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
     return bexpseq.items[0];
   }
   let current = bexpseq;
-  for (let i = 0; i < binaryExpressionStrings.length; i++) {
-    const currentExpression = binaryExpressionStrings[i];
+
+
+  // First Stage: Simple Binary Expressions -> Applications
+  for (let i = 0; i < simpleBinaryOperators.length; i++) {
+    const currentExpression = simpleBinaryOperators[i];
     const newItems = [current.items[0]];
     const newJoiners = [];
 
@@ -248,6 +274,40 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
       items: newItems,
       joiners: newJoiners,
     };
+  }
+
+  // Second Stage: Amalgamating Binary Expressions
+  for (let i = 0; i < amalgamatingBinaryOperators.length; i++) {
+    const currentExpression = amalgamatingBinaryOperators[i];
+    const newItems = [current.items[0]];
+    const newJoiners = [];
+    const amalgamationTechnique = amalgamationTechniques[currentExpression]!;
+    let streak: ASTExpression[] = [];
+    const flushStreak = () => {
+      if (streak.length > 0) {
+        newItems.push(amalgamationTechnique(streak));
+        streak = [];
+      }
+    }
+    for (let j = 0; j < current.joiners.length; j++) {
+      if (current.joiners[j] === currentExpression) {
+        if (streak.length === 0) {
+          streak.push(current.items[j]);
+          newItems.pop();
+        }
+        streak.push(current.items[j + 1])
+      } else {
+        // Flush the current streak.
+        flushStreak();
+        newItems.push(current.items[j + 1]);
+        newJoiners.push(current.joiners[j]);
+      }
+    }
+    flushStreak();
+    current = {
+      items: newItems,
+      joiners: newJoiners,
+    }
   }
   return current.items[0];
 };
