@@ -46,6 +46,33 @@ describe("builtins", () => {
     });
   });
 
+
+  describe("#[comparators]", () => {
+    it("satisfies truth tables for >", () => {
+      assert.strictEqual(execute(parseOrThrow('2 > 1'), {}), true);
+      assert.strictEqual(execute(parseOrThrow('1 > 2'), {}), false);
+      assert.strictEqual(execute(parseOrThrow('1 > 1'), {}), false);
+    });
+
+    it("satisfies truth tables for >=", () => {
+      assert.strictEqual(execute(parseOrThrow('2 >= 1'), {}), true);
+      assert.strictEqual(execute(parseOrThrow('1 >= 2'), {}), false);
+      assert.strictEqual(execute(parseOrThrow('1 >= 1'), {}), true);
+    });
+
+    it("satisfies truth tables for <", () => {
+      assert.strictEqual(execute(parseOrThrow('2 < 1'), {}), false);
+      assert.strictEqual(execute(parseOrThrow('1 < 2'), {}), true);
+      assert.strictEqual(execute(parseOrThrow('1 < 1'), {}), false);
+    });
+
+    it("satisfies truth tables for <=", () => {
+      assert.strictEqual(execute(parseOrThrow('2 <= 1'), {}), false);
+      assert.strictEqual(execute(parseOrThrow('1 <= 2'), {}), true);
+      assert.strictEqual(execute(parseOrThrow('1 <= 1'), {}), true);
+    });
+  });
+
   describe('#find', () => {
     it("correctly finds events", () => {
       assert.deepEqual(
@@ -156,6 +183,40 @@ describe("builtins", () => {
           { events }
         ),
         expected);
+    });
+  });
+
+  describe('#sort', () => {
+    it("sensibly sorts numbers", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('[11, 2, 32, 104, 5] | sort'), {}), [2, 5, 11, 32, 104]);
+    });
+
+    it("sensibly sorts strings", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('["banana", "apple", "carrot", "cabbage"] | sort'), {}), [
+          "apple",
+          "banana",
+          "cabbage",
+          "carrot"
+        ]);
+    });
+
+    it("sensibly sorts booleans", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('[true, false, true, false] | sort'), {}), [false, false, true, true]);
+    });
+  });
+
+  describe('#reverse', () => {
+    it("handles empty arrays", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('[] | reverse'), {}), []);
+    });
+
+    it("reverses arrays", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('[1, 2, 3, 4, 5] | reverse'), {}), [5, 4, 3, 2, 1]);
     });
   });
 });
