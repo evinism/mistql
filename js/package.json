@@ -10,9 +10,10 @@
     "/dist"
   ],
   "scripts": {
-    "buildts": "tsc",
+    "build": "tsc",
     "test": "ts-mocha -p tsconfig.json ./**/*.spec.ts",
-    "bundle": "tsc && rollup --config rollup.config.js"
+    "bundle": "tsc && rollup --config rollup.config.js",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^20.0.0",
