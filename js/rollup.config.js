@@ -1,5 +1,6 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
+import analyze from 'rollup-plugin-analyzer';
 import { terser } from "rollup-plugin-terser";
 
 export default {
@@ -9,5 +10,5 @@ export default {
     format: 'umd',
     name: "millieql"
   },
-  plugins: [nodeResolve(), commonjs(), terser()]
+  plugins: [nodeResolve(), commonjs(), terser(), analyze()]
 };
