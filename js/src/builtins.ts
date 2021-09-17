@@ -1,4 +1,3 @@
-import { slice } from "fp-ts/lib/string";
 import { compare, truthy } from "./runtimeValues";
 import { pushRuntimeValueToStack } from "./stackManip";
 import { BuiltinFunction, RuntimeValue } from "./types";
@@ -60,8 +59,27 @@ const filter: BuiltinFunction = (args, stack, exec) => {
   return newValue;
 };
 
+const reduce: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 3) {
+    throw new Error("Expected 3 arguments");
+  }
+  const fnExp = args[0];
+  const startExp = args[1];
+  const targetExp = args[2];
+  const target = exec(targetExp, stack);
+  if (!Array.isArray(target)) {
+    throw new Error("Expected array");
+  }
+  const newValue = target.reduce((acc: RuntimeValue, cur: RuntimeValue) => {
+    const accCurPair: RuntimeValue = [acc, cur];
+    const newStack = pushRuntimeValueToStack(accCurPair, stack);
+    return exec(fnExp, newStack);
+  }, exec(startExp, stack));
+  return newValue;
+};
+
 const find: BuiltinFunction = (args, stack, exec) => {
-  return filter(args, stack, exec)[0] || null;
+  return filter(args, stack, exec)[0] ?? null;
 };
 
 const numericBinaryOperator =
@@ -160,7 +178,7 @@ const index: BuiltinFunction = (args, stack, exec) => {
   if (!Array.isArray(arr)) {
     throw new Error("Expected array");
   }
-  return arr[idx] || null;
+  return arr[idx] ?? null;
 };
 
 const head: BuiltinFunction = (args, stack, exec) => {
@@ -195,7 +213,7 @@ const first: BuiltinFunction = (args, stack, exec) => {
   if (!Array.isArray(arr)) {
     throw new Error("Expected array");
   }
-  return arr[0] || null;
+  return arr[0] ?? null;
 };
 
 const last: BuiltinFunction = (args, stack, exec) => {
@@ -206,7 +224,7 @@ const last: BuiltinFunction = (args, stack, exec) => {
   if (!Array.isArray(arr)) {
     throw new Error("Expected array");
   }
-  return arr[arr.length - 1] || null;
+  return arr[arr.length - 1] ?? null;
 };
 
 const binaryCompareFunction =
@@ -264,13 +282,39 @@ const dotAccessor: BuiltinFunction = (args, stack, exec) => {
   return latter;
 };
 
+const sum: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 1) {
+    throw new Error("Expected 1 argument");
+  }
+  const arg: RuntimeValue = exec(args[0], stack);
+  if (!Array.isArray(arg)) {
+    throw new Error("Expected array");
+  }
+  return arg.reduce((a, b) => a + b, 0);
+};
+
+const ifFunction: BuiltinFunction = (args, stack, exec) => {
+  if (args.length !== 3) {
+    throw new Error("Expected 3 argument");
+  }
+  const first = exec(args[0], stack);
+  if (truthy(first)) {
+    return exec(args[1], stack);
+  } else {
+    return exec(args[2], stack);
+  }
+};
+
 export default {
+  if: ifFunction,
   map,
   filter,
+  reduce,
   find,
   count,
   keys,
   values,
+  sum,
   groupby,
   index,
   first,

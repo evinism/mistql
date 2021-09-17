@@ -35,6 +35,18 @@ describe("builtins", () => {
     });
   });
 
+  describe("#reduce", () => {
+    it("can sum", () => {
+      assert.strictEqual(
+        execute(
+          parseOrThrow("reduce (first @) + (last @) 0 @"),
+          [1, 4, 5, 7, 8]
+        ),
+        1 + 4 + 5 + 7 + 8
+      );
+    });
+  });
+
   describe("#[numerical binary operators]", () => {
     it("works for +", () => {
       assert.strictEqual(execute(parseOrThrow("1 + 2"), {}), 3);
@@ -262,6 +274,43 @@ describe("builtins", () => {
       assert.deepEqual(
         execute(parseOrThrow("[1, 2, 3, 4, 5] | tail 3"), {}),
         [3, 4, 5]
+      );
+    });
+  });
+
+  describe("#sum", () => {
+    it("makes empty arrays sum to zero", () => {
+      assert.strictEqual(execute(parseOrThrow("[] | sum"), {}), 0);
+    });
+
+    it("grabs the first n elements", () => {
+      assert.strictEqual(
+        execute(parseOrThrow("[1, 2, 3, 4, 5] | sum"), {}),
+        15
+      );
+    });
+  });
+
+  describe("#if", () => {
+    it("chooses the first on truthy values", () => {
+      assert.strictEqual(
+        execute(parseOrThrow("if arg left right"), {
+          arg: 1,
+          left: 2,
+          right: 3,
+        }),
+        2
+      );
+    });
+
+    it("chooses the second on falsy values", () => {
+      assert.strictEqual(
+        execute(parseOrThrow("if argz left right"), {
+          argz: 0,
+          left: 2,
+          right: 3,
+        }),
+        3
       );
     });
   });
