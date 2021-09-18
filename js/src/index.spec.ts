@@ -10,5 +10,12 @@ describe("index", () => {
     it("supports being passed falsy values for keys", () => {
       assert.deepStrictEqual(query("key + 1", { key: 0 }), 1);
     });
+
+    it("allows a bunch unary operators in a row", () => {
+      assert.deepStrictEqual(query("!!!!true", {}), true);
+      assert.deepStrictEqual(query("!!!!!true", {}), false);
+      assert.deepStrictEqual(query("-5", {}), -5);
+      assert.deepStrictEqual(query("--5", {}), 5);
+    });
   });
 });
