@@ -1,5 +1,5 @@
 {
-  "name": "millieql",
+  "name": "beakerql",
   "version": "0.2.0",
   "description": "JS implementation of miniature query language",
   "main": "dist/index.js",
