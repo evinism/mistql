@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"@babel/code-frame@^7.0.0", "@babel/code-frame@^7.10.4", "@babel/code-frame@^7.12.13":
+"@babel/code-frame@^7.10.4", "@babel/code-frame@^7.12.13":
   version "7.14.5"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.14.5.tgz#23b08d740e83f49c5e59945fbf1b43e80bbf4edb"
   integrity sha512-9pzDqyc6OLDaqe+zbACgFkb6fKMNG6CObKpnYXChRsvYGyEdc7CA2BaqeOM+vOtCS5ndmJicPJhKAwYRI6UfFw==
@@ -424,11 +424,6 @@ flat@^5.0.2:
   resolved "https://registry.yarnpkg.com/flat/-/flat-5.0.2.tgz#8ca6fe332069ffa9d324c327198c598259ceb241"
   integrity sha512-b6suED+5/3rTpUBdG1gupIl8MPFCAMA0QXwmljLhvCUKcUvdE4gWky9zpuGCcXHOsz4J9wPGNWq6OKpmIzz3hQ==
 
-fp-ts@^2.11.2:
-  version "2.11.2"
-  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.11.2.tgz#a3f5f74ac56f16c412044470a5fe3b51b94816dc"
-  integrity sha512-G1rD89nmbbgTNRBKohjB3Qv4IxOHQ5KV3ZvYfpaQZyrGt+ZQUFrcnCqE567bcEdvwoAUKDQM7isOcv7xcM/qAQ==
-
 fs.realpath@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/fs.realpath/-/fs.realpath-1.0.0.tgz#1504ad2523158caa40db4a2787cb01411994ea4f"
@@ -790,13 +785,6 @@ p-locate@^5.0.0:
   integrity sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==
   dependencies:
     p-limit "^3.0.2"
-
-parser-ts@^0.6.15:
-  version "0.6.15"
-  resolved "https://registry.yarnpkg.com/parser-ts/-/parser-ts-0.6.15.tgz#2bbe6f0522b4fd5435644e0f1881cb90f59adae1"
-  integrity sha512-VhoEKmGOR7jLLNKoBBcVWKUkB8U13Uy4FsdXWQSiLmbiJAq3S8OHB1Ev9pyBpyh0MDF3opPC9DmikZOvw/5hZQ==
-  dependencies:
-    "@babel/code-frame" "^7.0.0"
 
 path-exists@^4.0.0:
   version "4.0.0"
