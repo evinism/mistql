@@ -1,46 +1,6 @@
 import assert from "assert";
-import { lexer, parseOrThrow } from "./parser";
+import { parseOrThrow } from "./parser";
 import { ASTExpression } from "./types";
-
-describe("smolparser", () => {
-  describe("#lexer", () => {
-    it("should lex a basic expression", () => {
-      assert.deepEqual(lexer("hello + there"), [
-        { token: "ref", value: "hello" },
-        { token: "special", value: "+" },
-        { token: "ref", value: "there" },
-      ]);
-    });
-
-    it("should lex an expression with an initially ambiguous operator", () => {
-      assert.deepEqual(lexer("hello || there"), [
-        { token: "ref", value: "hello" },
-        { token: "special", value: "||" },
-        { token: "ref", value: "there" },
-      ]);
-    });
-    it("should lex a string", () => {
-      assert.deepEqual(lexer('"sup" && there'), [
-        { token: "value", value: "sup" },
-        { token: "special", value: "&&" },
-        { token: "ref", value: "there" },
-      ]);
-    });
-
-    it("handles escaped strings", () => {
-      assert.deepEqual(lexer('"sup\\"" && there'), [
-        { token: "value", value: 'sup"' },
-        { token: "special", value: "&&" },
-        { token: "ref", value: "there" },
-      ]);
-      assert.deepEqual(lexer('"sup\\\\"   there'), [
-        { token: "value", value: "sup\\" },
-        { token: "special", value: " " },
-        { token: "ref", value: "there" },
-      ]);
-    });
-  });
-});
 
 describe("parser", () => {
   describe("#parse", () => {
@@ -62,6 +22,7 @@ describe("parser", () => {
         assert.deepStrictEqual(parseOrThrow("2"), lit("number", 2));
         assert.deepStrictEqual(parseOrThrow("3"), lit("number", 3));
         assert.deepStrictEqual(parseOrThrow("349291"), lit("number", 349291));
+        assert.deepStrictEqual(parseOrThrow("0.05"), lit("number", 0.05));
       });
 
       it("parses the null literal", () => {
