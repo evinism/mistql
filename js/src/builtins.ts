@@ -146,6 +146,64 @@ const values: BuiltinFunction = arity(1, (args, stack, exec) => {
   return results;
 });
 
+const mapvalues: BuiltinFunction = arity(2, (args, stack, exec) => {
+  const fnExp = args[0];
+  const evaluated = exec(args[1], stack);
+  const results = {};
+  for (let i in evaluated) {
+    if (evaluated.hasOwnProperty(i)) {
+      results[i] = exec(fnExp, pushRuntimeValueToStack(evaluated[i], stack));
+    }
+  }
+  return results;
+});
+
+const filtervalues: BuiltinFunction = arity(2, (args, stack, exec) => {
+  const fnExp = args[0];
+  const evaluated = exec(args[1], stack);
+  const results = {};
+  for (let i in evaluated) {
+    if (
+      evaluated.hasOwnProperty(i) &&
+      truthy(exec(fnExp, pushRuntimeValueToStack(evaluated[i], stack)))
+    ) {
+      results[i] = evaluated[i];
+    }
+  }
+  return results;
+});
+
+// mapkeys isn't good until we've got string manip, or alt types on keys
+/*
+const mapkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
+  const fnExp = args[0];
+  const evaluated = exec(args[1], stack);
+  const results = {};
+  for (let i in evaluated) {
+    if (evaluated.hasOwnProperty(i)) {
+      const newKey = exec(fnExp, pushRuntimeValueToStack(i, stack));
+      results[newKey] = evaluated[i];
+    }
+  }
+  return results;
+});
+*/
+
+const filterkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
+  const fnExp = args[0];
+  const evaluated = exec(args[1], stack);
+  const results = {};
+  for (let i in evaluated) {
+    if (
+      evaluated.hasOwnProperty(i) &&
+      truthy(exec(fnExp, pushRuntimeValueToStack(i, stack)))
+    ) {
+      results[i] = evaluated[i];
+    }
+  }
+  return results;
+});
+
 const index: BuiltinFunction = arity(2, (args, stack, exec) => {
   const idx = validateType("number", exec(args[0], stack));
   const arr = validateType("array", exec(args[1], stack));
@@ -231,6 +289,10 @@ export default {
   map,
   filter,
   reduce,
+  mapvalues,
+  filtervalues,
+  //mapkeys,
+  filterkeys,
   find,
   count,
   keys,

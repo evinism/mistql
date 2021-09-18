@@ -47,6 +47,53 @@ describe("builtins", () => {
     });
   });
 
+  describe("#mapvalues", () => {
+    it("correctly changes the values of each", () => {
+      assert.deepEqual(
+        execute(parseOrThrow("@ | mapvalues @ + 2"), {
+          one: 1,
+          two: 2,
+          three: 3,
+          four: 4,
+        }),
+        {
+          one: 3,
+          two: 4,
+          three: 5,
+          four: 6,
+        }
+      );
+    });
+  });
+
+  describe("#filtervalues", () => {
+    it("correctly filters values", () => {
+      assert.deepEqual(
+        execute(parseOrThrow("@ | filtervalues @ > 2"), {
+          one: 1,
+          two: 2,
+          three: 3,
+          four: 4,
+        }),
+        { three: 3, four: 4 }
+      );
+    });
+  });
+
+  describe("#filterkeys", () => {
+    it("correctly filters values", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('@ | filterkeys @ > "one"'), {
+          one: 1,
+          two: 2,
+          three: 3,
+          four: 4,
+        }),
+        { two: 2, three: 3 }
+      );
+    });
+  });
+
   describe("#[numerical binary operators]", () => {
     it("works for +", () => {
       assert.strictEqual(execute(parseOrThrow("1 + 2"), {}), 3);
