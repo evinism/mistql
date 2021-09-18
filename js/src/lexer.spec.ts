@@ -1,7 +1,7 @@
 import assert from "assert";
 import { lex } from "./lexer";
 
-describe("lex", () => {
+describe("lexer", () => {
   describe("#lex", () => {
     it("should lex a basic expression", () => {
       assert.deepEqual(lex("hello + there"), [
