@@ -2,19 +2,26 @@ import { compare, getType, RuntimeValueType, truthy } from "./runtimeValues";
 import { pushRuntimeValueToStack } from "./stackManip";
 import { BuiltinFunction, RuntimeValue } from "./types";
 
-const arity = (arityCount: number, fn: BuiltinFunction): BuiltinFunction => (args, stack, exec) => {
-  if (args.length !== arityCount) {
-    throw new Error("Expected " + arityCount + " arguments, got " + args.length);
-  }
-  return fn(args, stack, exec);
-}
+const arity =
+  (arityCount: number, fn: BuiltinFunction): BuiltinFunction =>
+  (args, stack, exec) => {
+    if (args.length !== arityCount) {
+      throw new Error(
+        "Expected " + arityCount + " arguments, got " + args.length
+      );
+    }
+    return fn(args, stack, exec);
+  };
 
-const validateType = (type: RuntimeValueType, value: RuntimeValue): RuntimeValue => {
+const validateType = (
+  type: RuntimeValueType,
+  value: RuntimeValue
+): RuntimeValue => {
   if (getType(value) !== type) {
     throw new Error("Expected type " + type + ", got " + getType(value));
   }
   return value;
-}
+};
 
 const map: BuiltinFunction = arity(2, (args, stack, exec) => {
   const fnExp = args[0];
@@ -34,11 +41,11 @@ const map: BuiltinFunction = arity(2, (args, stack, exec) => {
 const groupby: BuiltinFunction = arity(2, (args, stack, exec) => {
   const fnExp = args[0];
   const targetExp = args[1];
-  const target = validateType('array', exec(targetExp, stack));
+  const target = validateType("array", exec(targetExp, stack));
   const groupings: { [key: string]: RuntimeValue } = {};
   target.forEach((innerValue) => {
     const newStack = pushRuntimeValueToStack(innerValue, stack);
-    const group = validateType('string', exec(fnExp, newStack));
+    const group = validateType("string", exec(fnExp, newStack));
     groupings[group] = (groupings[group] || []).concat([innerValue]);
   });
   return groupings;
@@ -47,7 +54,7 @@ const groupby: BuiltinFunction = arity(2, (args, stack, exec) => {
 const filter: BuiltinFunction = arity(2, (args, stack, exec) => {
   const fnExp = args[0];
   const targetExp = args[1];
-  const target = validateType('array', exec(targetExp, stack));
+  const target = validateType("array", exec(targetExp, stack));
   const newValue = target.filter((innerValue) => {
     const newStack = pushRuntimeValueToStack(innerValue, stack);
     return truthy(exec(fnExp, newStack));
@@ -59,7 +66,7 @@ const reduce: BuiltinFunction = arity(3, (args, stack, exec) => {
   const fnExp = args[0];
   const startExp = args[1];
   const targetExp = args[2];
-  const target = validateType('array', exec(targetExp, stack));
+  const target = validateType("array", exec(targetExp, stack));
   const newValue = target.reduce((acc: RuntimeValue, cur: RuntimeValue) => {
     const accCurPair: RuntimeValue = [acc, cur];
     const newStack = pushRuntimeValueToStack(accCurPair, stack);
@@ -72,21 +79,31 @@ const find: BuiltinFunction = (args, stack, exec) => {
   return filter(args, stack, exec)[0] ?? null;
 };
 
-const numericBinaryOperator =
-  (op: (a: number, b: number) => number): BuiltinFunction =>
-    arity(2, (args, stack, exec) => {
-      const a = validateType('number', exec(args[0], stack));
-      const b = validateType('number', exec(args[1], stack));
-      return op(a, b);
-    });
+const unaryMinus: BuiltinFunction = arity(1, (args, stack, exec) => {
+  return -validateType("number", exec(args[0], stack));
+});
 
-const booleanBinaryOperator =
-  (op: (a: boolean, b: boolean) => boolean): BuiltinFunction =>
-    arity(2, (args, stack, exec) => {
-      const a = validateType('boolean', exec(args[0], stack));
-      const b = validateType('boolean', exec(args[1], stack));
-      return op(a, b);
-    });
+const notOp: BuiltinFunction = arity(1, (args, stack, exec) => {
+  return !truthy(validateType("boolean", exec(args[0], stack)));
+});
+
+const numericBinaryOperator = (
+  op: (a: number, b: number) => number
+): BuiltinFunction =>
+  arity(2, (args, stack, exec) => {
+    const a = validateType("number", exec(args[0], stack));
+    const b = validateType("number", exec(args[1], stack));
+    return op(a, b);
+  });
+
+const booleanBinaryOperator = (
+  op: (a: boolean, b: boolean) => boolean
+): BuiltinFunction =>
+  arity(2, (args, stack, exec) => {
+    const a = validateType("boolean", exec(args[0], stack));
+    const b = validateType("boolean", exec(args[1], stack));
+    return op(a, b);
+  });
 
 const equal: BuiltinFunction = arity(2, (args, stack, exec) => {
   const a = exec(args[0], stack);
@@ -103,7 +120,7 @@ const notequal: BuiltinFunction = (args, stack, exec) => {
 };
 
 const count: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const result = validateType('array', exec(args[0], stack));
+  const result = validateType("array", exec(args[0], stack));
   return result.length;
 });
 
@@ -125,29 +142,30 @@ const values: BuiltinFunction = arity(1, (args, stack, exec) => {
     if (evaluated.hasOwnProperty(i)) {
       results.push(evaluated[i]);
     }
-  } return results;
+  }
+  return results;
 });
 
 const index: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const idx = validateType('number', exec(args[0], stack));
-  const arr = validateType('array', exec(args[1], stack));
+  const idx = validateType("number", exec(args[0], stack));
+  const arr = validateType("array", exec(args[1], stack));
   return arr[idx] ?? null;
 });
 
 const head: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const count = validateType('number', exec(args[0], stack));
-  const arr = validateType('array', exec(args[1], stack));
+  const count = validateType("number", exec(args[0], stack));
+  const arr = validateType("array", exec(args[1], stack));
   return arr.slice(0, count);
 });
 
 const tail: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const count = validateType('number', exec(args[0], stack));
-  const arr = validateType('array', exec(args[1], stack));
+  const count = validateType("number", exec(args[0], stack));
+  const arr = validateType("array", exec(args[1], stack));
   return arr.slice(arr.length - count, arr.length);
 });
 
 const first: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const arr = validateType('array', exec(args[0], stack));
+  const arr = validateType("array", exec(args[0], stack));
   return arr[0] ?? null;
 });
 
@@ -159,31 +177,32 @@ const last: BuiltinFunction = arity(1, (args, stack, exec) => {
   return arr[arr.length - 1] ?? null;
 });
 
-const binaryCompareFunction =
-  (truthtable: [boolean, boolean, boolean]): BuiltinFunction =>
-    arity(2, (args, stack, exec) => {
-      const a = exec(args[0], stack);
-      const b = exec(args[1], stack);
-      const comparison = compare(a, b);
-      if (comparison < 0) {
-        return truthtable[0];
-      }
-      if (comparison === 0) {
-        return truthtable[1];
-      }
-      if (comparison > 0) {
-        return truthtable[2];
-      }
-    });
+const binaryCompareFunction = (
+  truthtable: [boolean, boolean, boolean]
+): BuiltinFunction =>
+  arity(2, (args, stack, exec) => {
+    const a = exec(args[0], stack);
+    const b = exec(args[1], stack);
+    const comparison = compare(a, b);
+    if (comparison < 0) {
+      return truthtable[0];
+    }
+    if (comparison === 0) {
+      return truthtable[1];
+    }
+    if (comparison > 0) {
+      return truthtable[2];
+    }
+  });
 
 const sort: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const arg = validateType('array', exec(args[0], stack));
+  const arg = validateType("array", exec(args[0], stack));
   // default to ascending -- should really figure out something here.
   return arg.slice().sort((a, b) => compare(b, a));
 });
 
 const reverse: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const arg = validateType('array', exec(args[0], stack));
+  const arg = validateType("array", exec(args[0], stack));
   return arg.reverse();
 });
 
@@ -197,12 +216,14 @@ const dotAccessor: BuiltinFunction = arity(2, (args, stack, exec) => {
 });
 
 const sum: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const arg: RuntimeValue = validateType('array', exec(args[0], stack));
+  const arg: RuntimeValue = validateType("array", exec(args[0], stack));
   return arg.reduce((a, b) => a + b, 0);
 });
 
 const ifFunction: BuiltinFunction = arity(3, (args, stack, exec) => {
-  return truthy(exec(args[0], stack)) ? exec(args[1], stack) : exec(args[2], stack);
+  return truthy(exec(args[0], stack))
+    ? exec(args[1], stack)
+    : exec(args[2], stack);
 });
 
 export default {
@@ -223,6 +244,8 @@ export default {
   reverse,
   head,
   tail,
+  "!/unary": notOp,
+  "-/unary": unaryMinus,
   ".": dotAccessor,
   "+": numericBinaryOperator((a, b) => a + b),
   "-": numericBinaryOperator((a, b) => a - b),
