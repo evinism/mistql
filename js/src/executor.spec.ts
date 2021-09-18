@@ -1,8 +1,51 @@
 import assert from "assert";
-import { execute } from "./executor";
+import { execute, inputGardenWall, outputGardenWall } from "./executor";
 import { parseOrThrow } from "./parser";
 
 describe("executor", () => {
+  describe("#inputGardenWall", () => {
+    it("can handle any valid input type", () => {
+      [
+        "hello",
+        null,
+        true,
+        false,
+        0,
+        1,
+        2,
+        0.5,
+        -0.5,
+        [],
+        ["cat"],
+        ["cat", 5],
+        { cat: "dog", dog: { eagle: "bat", hi: true } },
+        [[[[[[["doug"]]]]]]],
+      ].forEach((item) => {
+        assert.deepEqual(inputGardenWall(item), item);
+      });
+    });
+
+    it("coerces non-plain objects to plain objects", () => {
+      assert.deepEqual(inputGardenWall(Promise.resolve(5)), {});
+      assert.deepEqual(
+        inputGardenWall(function () {}),
+        {}
+      );
+    });
+
+    it("coerces own properties", () => {
+      function foo() {}
+      foo.hi = "doc";
+      assert.deepEqual(inputGardenWall(foo), { hi: "doc" });
+    });
+  });
+
+  describe("#outputGardenWall", () => {
+    it("errors on function out", () => {
+      assert.throws(() => outputGardenWall(function () {}));
+    });
+  });
+
   describe("#execute", () => {
     describe("references", () => {
       it("handles a simple reference", () => {

@@ -18,5 +18,9 @@ describe("index", () => {
       assert.deepStrictEqual(query("-5", {}), -5);
       assert.deepStrictEqual(query("--5", {}), 5);
     });
+
+    it("doesn't allow object access of inherited properties", () => {
+      assert.throws(() => query("([1, 2, 3]).length", {}));
+    });
   });
 });

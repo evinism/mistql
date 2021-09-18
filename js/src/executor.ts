@@ -13,8 +13,38 @@ import {
 
 const defaultStack: Stack = [builtins];
 
+export const inputGardenWall = (data: unknown) => {
+  if (["number", "boolean", "string"].indexOf(typeof data) > -1) {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return null;
+  }
+  if (Array.isArray(data)) {
+    return data.map((datum) => inputGardenWall(datum));
+  }
+  const output: { [str: string]: any } = {};
+  for (let i in data as any) {
+    if (data.hasOwnProperty(i)) {
+      output[i] = inputGardenWall(data[i]);
+    }
+  }
+  return output;
+};
+
+export const outputGardenWall = (data: unknown) => {
+  if (typeof data === "function") {
+    throw new Error("Return value of query is a function, aborting!");
+  }
+  return inputGardenWall(data);
+};
+
 export const execute = (node: ASTExpression, variables: Closure) => {
-  return executeInner(node, pushRuntimeValueToStack(variables, defaultStack));
+  const result = executeInner(
+    node,
+    pushRuntimeValueToStack(inputGardenWall(variables), defaultStack)
+  );
+  return outputGardenWall(result);
 };
 
 const executeInner: ExecutionFunction = (
