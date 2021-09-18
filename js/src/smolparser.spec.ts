@@ -1,47 +1,46 @@
-import assert from 'assert';
-import { lexer, parseOrThrow } from './smolparser';
+import assert from "assert";
+import { lexer, parseOrThrow } from "./smolparser";
 import { ASTExpression } from "./types";
 
 describe("smolparser", () => {
   describe("#lexer", () => {
     it("should lex a basic expression", () => {
-      assert.deepEqual(lexer('hello + there'), [
-        { token: 'ref', value: 'hello' },
-        { token: 'special', value: '+' },
-        { token: 'ref', value: 'there' }
+      assert.deepEqual(lexer("hello + there"), [
+        { token: "ref", value: "hello" },
+        { token: "special", value: "+" },
+        { token: "ref", value: "there" },
       ]);
     });
 
     it("should lex an expression with an initially ambiguous operator", () => {
-      assert.deepEqual(lexer('hello || there'), [
-        { token: 'ref', value: 'hello' },
-        { token: 'special', value: '||' },
-        { token: 'ref', value: 'there' }
+      assert.deepEqual(lexer("hello || there"), [
+        { token: "ref", value: "hello" },
+        { token: "special", value: "||" },
+        { token: "ref", value: "there" },
       ]);
     });
     it("should lex a string", () => {
       assert.deepEqual(lexer('"sup" && there'), [
-        { token: 'value', value: 'sup' },
-        { token: 'special', value: '&&' },
-        { token: 'ref', value: 'there' }
+        { token: "value", value: "sup" },
+        { token: "special", value: "&&" },
+        { token: "ref", value: "there" },
       ]);
     });
 
     it("handles escaped strings", () => {
       assert.deepEqual(lexer('"sup\\"" && there'), [
-        { token: 'value', value: 'sup"' },
-        { token: 'special', value: '&&' },
-        { token: 'ref', value: 'there' }
+        { token: "value", value: 'sup"' },
+        { token: "special", value: "&&" },
+        { token: "ref", value: "there" },
       ]);
       assert.deepEqual(lexer('"sup\\\\"   there'), [
-        { token: 'value', value: 'sup\\' },
-        { token: 'special', value: ' ' },
-        { token: 'ref', value: 'there' }
+        { token: "value", value: "sup\\" },
+        { token: "special", value: " " },
+        { token: "ref", value: "there" },
       ]);
     });
   });
 });
-
 
 describe("parser", () => {
   describe("#parse", () => {
@@ -367,6 +366,55 @@ describe("parser", () => {
             },
           ],
         });
+      });
+    });
+
+    describe("unary expressions", () => {
+      it("parses basic binary expressions", () => {
+        const expected = {
+          type: "application",
+          function: {
+            type: "reference",
+            ref: "-",
+          },
+          arguments: [
+            {
+              type: "reference",
+              ref: "here",
+            },
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow("-here"), expected);
+      });
+
+      it("parses mixing binary and unary expressions", () => {
+        const expected = {
+          type: "application",
+          function: {
+            type: "reference",
+            ref: "+",
+          },
+          arguments: [
+            {
+              type: "reference",
+              ref: "there",
+            },
+            {
+              type: "application",
+              function: {
+                type: "reference",
+                ref: "-",
+              },
+              arguments: [
+                {
+                  type: "reference",
+                  ref: "here",
+                },
+              ],
+            },
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow("there + -here"), expected);
       });
     });
 
