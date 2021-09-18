@@ -1,45 +1,11 @@
+import {
+  amalgamatingBinaryOperators,
+  binaryExpressionStrings,
+  simpleBinaryOperators,
+  unaryExpressions,
+} from "./constants";
+import { lex } from "./lexer";
 import { ASTExpression, LexToken } from "./types";
-import { escapeRegExp } from "./util";
-/*
-type Update = {
-  append: boolean,
-  token: LexToken,
-};
-
-type TokenDomain = 'alphaunder' | 'number';
-
-const reserved = [
-
-];
-
-const domain = (char: string): TokenDomain => {
-  if (/[a-zA-Z]/.test(char)) {
-    return 'alphaunder';
-  }
-  if (/[0-9]/.test(char)) {
-    return 'number';
-  }
-  if () {
-
-  }
-  throw new Error("Lexing Error");
-}
-
-const combiner = (prevToken?: LexToken, char: string): Update => {
-  const 
-  for (let i = 0; )
-}
-*/
-
-const refStarter = /[a-zA-Z_]/;
-const refContinuer = /[a-zA-Z_0-9]/;
-const numStarter = /[0-9]/;
-const numContinuer = /[0-9\.]/;
-
-// These binary expressions have definitions that span over
-// n consecutive items, e.g. function application. Could absolutely be extended
-// to all commutative operators, e.g. +, *, &&, and ||. For simplicity, though, pls no.
-const amalgamatingBinaryOperators = [" ", "|"];
 
 const amalgamationTechniques: {
   [key: string]: (start: ASTExpression[]) => ASTExpression;
@@ -54,108 +20,6 @@ const amalgamationTechniques: {
     stages: asts,
   }),
 };
-
-const simpleBinaryOperators = [
-  ".",
-  "*",
-  "/",
-  "%",
-  "+",
-  "-",
-  "<",
-  ">",
-  "<=",
-  ">=",
-  "==",
-  "!=",
-  "&&",
-  "||",
-];
-
-const binaryExpressionStrings = [].concat(
-  simpleBinaryOperators,
-  amalgamatingBinaryOperators
-);
-
-const specials = binaryExpressionStrings.concat(["(", ")", "[", "]", ","]);
-
-const unaryExpressions = ["-", "!"];
-
-const builtinValues = {
-  true: true,
-  false: false,
-  null: null,
-};
-
-const whiteSpacealyzer = (str: string) => {
-  // TODO: Make these more solid.
-  let retval = str
-    .trim()
-    .replace(/\s+/g, " ")
-    .replace(/\s*\.\s*/g, ".")
-    .replace(/\(\s*/g, "(")
-    .replace(/\s*\)/g, ")")
-    .replace(/\s*\|\s*/g, "|")
-    .replace(/\s*,\s*/g, ",");
-  binaryExpressionStrings.forEach((binexp) => {
-    const re = new RegExp(`\\s*${escapeRegExp(binexp)}\\s*`, "g");
-    retval = retval.replace(re, binexp);
-  });
-  return retval;
-};
-
-export function lexer(raw: string): LexToken[] {
-  const tokens: LexToken[] = [];
-  const split = whiteSpacealyzer(raw).split("");
-  for (let i = 0; i < split.length; i++) {
-    let buffer = split[i];
-    if (numStarter.test(buffer || "")) {
-      while (numContinuer.test(split[i + 1] || "")) {
-        i++;
-        buffer += split[i];
-      }
-      tokens.push({ token: "value", value: parseFloat(buffer) });
-    } else if (
-      specials.filter((operator) => operator.startsWith(buffer)).length > 0
-    ) {
-      while (
-        specials.filter((operator) =>
-          operator.startsWith(buffer + split[i + 1])
-        ).length > 0
-      ) {
-        i++;
-        buffer += split[i];
-      }
-      tokens.push({ token: "special", value: buffer });
-    } else if (refStarter.test(buffer || "")) {
-      while (refContinuer.test(split[i + 1] || "")) {
-        i++;
-        buffer += split[i];
-      }
-      if (builtinValues[buffer] !== undefined) {
-        tokens.push({ token: "value", value: builtinValues[buffer] });
-      } else {
-        tokens.push({ token: "ref", value: buffer });
-      }
-    } else if (buffer === "@") {
-      tokens.push({ token: "ref", value: "@" });
-    } else if (buffer === '"') {
-      buffer = "";
-      while (split[i + 1] !== '"') {
-        i++;
-        if (split[i] === "\\") {
-          i++;
-        }
-        buffer += split[i];
-      }
-      tokens.push({ token: "value", value: buffer });
-      i++;
-    } else {
-      throw new Error("Lexer Error");
-    }
-  }
-  return tokens;
-}
 
 type ParseResult = {
   result: ASTExpression;
@@ -433,7 +297,7 @@ function parseQuery(tokens: LexToken[]): ASTExpression {
 }
 
 function parse(raw: string): ASTExpression {
-  const lexed = lexer(raw);
+  const lexed = lex(raw);
   const parsed = parseQuery(lexed);
   return parsed;
 }
