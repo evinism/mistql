@@ -39,7 +39,7 @@ export const outputGardenWall = (data: unknown) => {
   return inputGardenWall(data);
 };
 
-export const execute = (node: ASTExpression, variables: Closure) => {
+export const execute = (node: ASTExpression, variables: unknown) => {
   const result = executeInner(
     node,
     pushRuntimeValueToStack(inputGardenWall(variables), defaultStack)
