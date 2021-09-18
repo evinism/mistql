@@ -1,11 +1,11 @@
-# MilliEQL
+# beakerql
 
 ## A miniature embeddable query language for JSON-like structures
 
-MilliEQL is a miniature query language built for embedding within applications. It supports
+`beakerql` is a miniature query language built for embedding within applications. It supports
 logic for querying and manipulating JSON-like data in a simple manner.
 
-MilliEQL is built from the ground up to be extremely lightweight. At ~3.5kb gzipped, it can
+Beaker is built from the ground up to be extremely lightweight. At ~3.5kb gzipped, it can
 be included in even extremely size-sensitive frontends.
 
 ## Motivation
@@ -25,24 +25,18 @@ In the past, I've used JSON Logic for such tasks, but JSON logic leaves a bit to
 
 ```js
 // JavaScript
-import millieql from 'millieql';
+import beakerql from 'beakerql';
 
-millieql.query(query, { events: [...] })
-```
-
-```py
-# Python
-import millieql
-millieql.query(query, {"events": [...]})
+beakerql.query(query, { events: [...] })
 ```
 
 ## Example usage:
 
-The following are simple examples of how MilliEQL could be used.
+The following are simple examples of how Beaker could be used.
 
 ### Get count of a specific event
 
-`events | filter type="submit" | count`
+`events | filter type=="submit" | count`
 
 ### Get count of all event types
 
@@ -62,26 +56,26 @@ The following are simple examples of how MilliEQL could be used.
 
 ## Builtin Types
 
-MilliEQL's types correspond closely to JSON types, for interoperability between different languages.
+Beaker's types correspond closely to JSON types, for interoperability between different languages.
 
-MilliEQL has 4 primitive types:
+Beaker has 4 primitive types:
 
 - `string`
 - `number`
 - `null`
 - `boolean`
 
-MilliEQL also has 3 complex types:
+Beaker also has 3 complex types:
 
-- `Struct`
-- `Array`
-- `Function`
+- `struct`
+- `array`
+- `function`
 
-The interface of MilliEQL is restricted in that functions can neither be provided as data, nor returned as the result of a query -- they exist entirely within MilliEQL
+The interface of beaker is restricted in that functions can neither be provided as data, nor returned as the result of a query -- they exist entirely within Beaker
 
 # Reference
 
-The following is a reference of the builtin functions of MilliEQL
+The following is a reference of the builtin functions of beakerql
 
 ```
 keys
