@@ -4,24 +4,32 @@ import { parseOrThrow } from "./parser";
 
 describe("executor", () => {
   describe("#inputGardenWall", () => {
+    const validInputs = [
+      "hello",
+      null,
+      true,
+      false,
+      0,
+      1,
+      2,
+      0.5,
+      -0.5,
+      [],
+      ["cat"],
+      ["cat", 5],
+      { cat: "dog", dog: { eagle: "bat", hi: true } },
+      [[[[[[["doug"]]]]]]],
+    ];
+
     it("can handle any valid input type", () => {
-      [
-        "hello",
-        null,
-        true,
-        false,
-        0,
-        1,
-        2,
-        0.5,
-        -0.5,
-        [],
-        ["cat"],
-        ["cat", 5],
-        { cat: "dog", dog: { eagle: "bat", hi: true } },
-        [[[[[[["doug"]]]]]]],
-      ].forEach((item) => {
+      validInputs.forEach((item) => {
         assert.deepEqual(inputGardenWall(item), item);
+      });
+    });
+
+    it("passes any valid input straight through", () => {
+      validInputs.forEach((item) => {
+        assert.deepEqual(execute(parseOrThrow("@"), item), item);
       });
     });
 
