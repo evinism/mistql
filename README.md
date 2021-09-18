@@ -1,9 +1,12 @@
 # MilliEQL
 
-## A miniature embeddable query language
+## A miniature embeddable query language for JSON-like structures
 
 MilliEQL is a miniature query language built for embedding within applications. It supports
-logic for querying and manipulating data in a simple, typesafe manner.
+logic for querying and manipulating JSON-like data in a simple manner.
+
+MilliEQL is built from the ground up to be extremely lightweight. At ~3.5kb gzipped, it can
+be included in even extremely size-sensitive frontends.
 
 ## Motivation
 
@@ -55,7 +58,7 @@ The following are simple examples of how MilliEQL could be used.
 
 ### Get usernames of all users who purchased before signing up
 
-`events | sort timestamp | groupby email | mapvalues (sequence type == "purchase", type == "signup") | filtervalues count > 0 | keys`
+`events | sort timestamp | groupby email | mapvalues (sequence type == "purchase", type == "signup") | filtervalues count @ > 0 | keys`
 
 ## Builtin Types
 
@@ -98,11 +101,3 @@ sequence
 summarize
 count
 ```
-
-### Things I want to support
-
-Dot operators as a binary operator, rather than a random consequence of references.
-`(lines | index 0).materialAdvantage + (lines | index 1).materialAdvantage + (lines | index 2).materialAdvantage`
-
-If/Then/Else syntax.
-Short Circuiting, maybe???
