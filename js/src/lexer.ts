@@ -1,4 +1,5 @@
 import { binaryExpressionStrings, builtinValues, specials } from "./constants";
+import { LexError } from "./errors";
 import { LexToken } from "./types";
 import { escapeRegExp } from "./util";
 
@@ -67,14 +68,14 @@ export function lex(raw: string): LexToken[] {
           i++;
         }
         if (split[i] === undefined) {
-          throw new Error("Unterminated string literal");
+          throw new LexError("Unterminated string literal");
         }
         buffer += split[i];
       }
       tokens.push({ token: "value", value: buffer });
       i++;
     } else {
-      throw new Error("Lexer Error");
+      throw new LexError("Unexpected token " + split[i]);
     }
   }
   return tokens;
