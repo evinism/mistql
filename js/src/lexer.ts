@@ -66,6 +66,9 @@ export function lex(raw: string): LexToken[] {
         if (split[i] === "\\") {
           i++;
         }
+        if (split[i] === undefined) {
+          throw new Error("Unterminated string literal");
+        }
         buffer += split[i];
       }
       tokens.push({ token: "value", value: buffer });
