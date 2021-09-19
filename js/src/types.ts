@@ -24,7 +24,12 @@ export type ASTLiteralExpression =
     type: "literal";
     valueType: "null";
     value: null;
-  };
+  }
+  | {
+    type: "literal";
+    valueType: "struct";
+    value: { [key: string]: ASTExpression };
+  }
 
 export type ASTPipelineExpression = {
   type: "pipeline";

@@ -97,6 +97,15 @@ const executeLiteral = (
       return statement.value.map((exp: ASTExpression) =>
         executeInner(exp, stack)
       );
+    case "struct": {
+      const result = {};
+      for (let i in statement.value) {
+        if (statement.value.hasOwnProperty(i)) {
+          result[i] = executeInner(statement.value[i], stack);
+        }
+      }
+      return result;
+    }
   }
 };
 

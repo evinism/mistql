@@ -11,6 +11,9 @@ const whiteSpacealyzer = (str: string) => {
     .replace(/\s*\.\s*/g, ".")
     .replace(/\(\s*/g, "(")
     .replace(/\s*\)/g, ")")
+    .replace(/\{\s*/g, "{")
+    .replace(/\s*\}/g, "}")
+    .replace(/\s*:\s*/g, ":")
     .replace(/\s*\|\s*/g, "|")
     .replace(/\s*,\s*/g, ",");
   binaryExpressionStrings.forEach((binexp) => {

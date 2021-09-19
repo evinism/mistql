@@ -111,6 +111,11 @@ describe("executor", () => {
         });
         assert.deepStrictEqual(result, [[5], 6]);
       });
+
+      it("handles struct literals", () => {
+        const result = execute(parseOrThrow('{foo: "bar"}'), {});
+        assert.deepStrictEqual(result, {foo: "bar"});
+      });
     });
 
     describe("pipe", () => {
