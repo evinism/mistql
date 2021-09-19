@@ -38,5 +38,9 @@ describe("lexer", () => {
         { token: "ref", value: "there" },
       ]);
     });
+
+    it("should error with unterminated strings", () => {
+      assert.throws( () => lex('"sup'));
+    });
   });
 });
