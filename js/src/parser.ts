@@ -30,7 +30,7 @@ type ParseResult = {
 type Parser = (tokens: LexToken[]) => ParseResult;
 
 const tmatch = (token: string, value: unknown, root: LexToken) => {
-  return root.token === token && root.value === value;
+  return (root !== undefined) && root.token === token && root.value === value;
 };
 
 const isBinExp = (token: LexToken) => {
@@ -74,28 +74,77 @@ const consumeArray: Parser = (tokens) => {
   let current = tokens.slice(1);
   let entries: ASTExpression[] = [];
   // dirty explicit check for an empty array -- should be fixed up
-  if (!(current[0] && tmatch("special", "]", current[0]))) {
-    while (true) {
-      const { result, remaining } = consumeExpression(current);
-      entries.push(result);
-      current = remaining;
-      if (tmatch("special", ",", current[0])) {
-        current = current.slice(1);
-        continue;
-      } else if (tmatch("special", "]", current[0])) {
-        current = current.slice(1);
-        break;
-      } else {
-        throw new ParseError("Unexpected Token " + current[0].value);
-      }
+  while (true) {
+    if (tmatch("special", "]", current[0])) {
+      current = current.slice(1);
+      break;
     }
-  } else {
-    current = current.slice(1);
+    const { result, remaining } = consumeExpression(current);
+    entries.push(result);
+    current = remaining;
+    if (tmatch("special", ",", current[0])) {
+      current = current.slice(1);
+      continue;
+    } else if (tmatch("special", "]", current[0])) {
+      current = current.slice(1);
+      break;
+    } else {
+      throw new ParseError("Unexpected token " + current[0].value)
+    }
   }
   return {
     result: {
       type: "literal",
       valueType: "array",
+      value: entries,
+    },
+    remaining: current,
+  };
+};
+
+const consumeStruct: Parser = (tokens) => {
+  if (!tmatch("special", "{", tokens[0])) {
+    throw new OpenAnIssueIfThisOccursError("BracketStart Issue");
+  }
+  let current = tokens.slice(1);
+  let entries: {[key: string]: ASTExpression} = {};
+  while (true) {
+    if (tmatch("special", "}", current[0])) {
+      current = current.slice(1);
+      break;
+    }
+    if (current[0] === undefined){
+      throw new ParseError("Unexpected EOF");
+    }
+    let key: string;
+    if (current[0].token === 'ref' || current[0].token === 'value') {
+      key = current[0].value.toString();
+      current = current.slice(1);
+    } else {
+      throw new ParseError("Unexpected token " + current[0].value);
+    }
+    if (tmatch("special", ":", current[0])) {
+      current = current.slice(1);
+    } else {
+      throw new ParseError("Unexpected token " + current[0].value + ", expected :")
+    }
+    const { result, remaining } = consumeExpression(current);
+    entries[key] = result;
+    current = remaining;
+    if (tmatch("special", ",", current[0])) {
+      current = current.slice(1);
+      continue;
+    } else if (tmatch("special", "}", current[0])) {
+      current = current.slice(1);
+      break;
+    } else {
+      throw new ParseError("Unexpected token " + current[0].value)
+    }
+  }
+  return {
+    result: {
+      type: "literal",
+      valueType: "struct",
       value: entries,
     },
     remaining: current,
@@ -252,6 +301,11 @@ const consumeExpression: Parser = (tokens) => {
     } else if (tmatch("special", "[", next)) {
       itemPushGuard(next);
       const { result, remaining } = consumeArray(current);
+      items.push(result);
+      current = remaining;
+    }else if (tmatch("special", "{", next)) {
+      itemPushGuard(next);
+      const { result, remaining } = consumeStruct(current);
       items.push(result);
       current = remaining;
     } else if (next.token === "value") {

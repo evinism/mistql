@@ -53,6 +53,19 @@ describe("parser", () => {
         assert.deepStrictEqual(parseOrThrow("true"), lit("boolean", true));
         assert.deepStrictEqual(parseOrThrow("false"), lit("boolean", false));
       });
+
+
+      it("parses object literals", () => {
+        assert.deepStrictEqual(
+          parseOrThrow("{one: 1, two: 2, three: 3}"),
+          lit("struct", {
+            one: lit("number", 1),
+            two: lit("number", 2),
+            three: lit("number", 3)
+          })
+        );
+      });
+
     });
 
     describe("references", () => {

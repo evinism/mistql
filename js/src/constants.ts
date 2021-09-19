@@ -30,6 +30,9 @@ export const specials = binaryExpressionStrings.concat([
   ")",
   "[",
   "]",
+  "{",
+  "}",
+  ":",
   ",",
 ]);
 
