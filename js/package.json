@@ -13,6 +13,7 @@
     "build": "tsc",
     "test": "ts-mocha -p tsconfig.json ./**/*.spec.ts",
     "bundle": "tsc && rollup --config rollup.config.js",
+    "bundlesize": "npm run bundle && echo \"Bundle Size (bytes):\" $(gzip -c ./dist/bundle.js | wc -c)",
     "prepare": "npm run build"
   },
   "devDependencies": {
