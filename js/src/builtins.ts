@@ -306,6 +306,12 @@ const ifFunction: BuiltinFunction = arity(3, (args, stack, exec) => {
     : exec(args[2], stack);
 });
 
+const log: BuiltinFunction = arity(1, (args, stack, exec) => {
+  const res = exec(args[0], stack);
+  console.log("BeakerQL: " + JSON.stringify(res, null, 2));
+  return res;
+});
+
 export default {
   if: ifFunction,
   map,
@@ -329,6 +335,7 @@ export default {
   reverse,
   head,
   tail,
+  log,
   "!/unary": notOp,
   "-/unary": unaryMinus,
   ".": dotAccessor,

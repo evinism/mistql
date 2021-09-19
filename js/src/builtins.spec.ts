@@ -425,4 +425,14 @@ describe("builtins", () => {
       );
     });
   });
+
+
+  describe("#log", () => {
+    it("passes values through", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('log {bleep: "hi"}'), null),
+        {bleep: "hi"}
+      );
+    });
+  });
 });
