@@ -286,6 +286,29 @@ describe("builtins", () => {
     });
   });
 
+  describe("#sortby", () => {
+    it("sensibly sorts items based on the specified expression", () => {
+      assert.deepEqual(
+        execute(parseOrThrow("items | sortby sk"), {
+          items: [
+            {sk: 11}, 
+            {sk: 2}, 
+            {sk: 32}, 
+            {sk: 104}, 
+            {sk: 5}
+          ]
+        }),
+        [
+          {sk: 2},
+          {sk: 5},
+          {sk: 11},
+          {sk: 32},
+          {sk: 104},
+        ]
+      );
+    });
+  });
+
   describe("#reverse", () => {
     it("handles empty arrays", () => {
       assert.deepEqual(execute(parseOrThrow("[] | reverse"), {}), []);

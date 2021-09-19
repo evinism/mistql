@@ -44,7 +44,7 @@ The following are simple examples of how Beaker could be used.
 
 ### Get the worst chess line possible.
 
-`lines | sort -overallScore | first`
+`lines | sortby (-overallScore) | first`
 
 ### Get emails of all users that use the Chat feature
 

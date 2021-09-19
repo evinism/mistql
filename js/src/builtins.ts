@@ -255,8 +255,17 @@ const binaryCompareFunction = (
 
 const sort: BuiltinFunction = arity(1, (args, stack, exec) => {
   const arg = validateType("array", exec(args[0], stack));
-  // default to ascending -- should really figure out something here.
-  return arg.slice().sort((a, b) => compare(b, a));
+  // default to ascending
+  return arg.slice().sort((b, a) => compare(a, b));
+});
+
+const sortby: BuiltinFunction = arity(2, (args, stack, exec) => {
+  const fnExp = args[0];
+  const arg = validateType("array", exec(args[1], stack));
+  return arg.slice().map((item) => {
+    const sortValue = exec(fnExp, pushRuntimeValueToStack(item, stack))
+    return ({sortValue, item})
+  }).sort(({sortValue: a}, {sortValue: b}) => compare(b, a)).map(({item}) => item) ;
 });
 
 const reverse: BuiltinFunction = arity(1, (args, stack, exec) => {
@@ -303,6 +312,7 @@ export default {
   first,
   last,
   sort,
+  sortby,
   reverse,
   head,
   tail,
