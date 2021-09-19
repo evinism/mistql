@@ -94,6 +94,16 @@ describe("builtins", () => {
     });
   });
 
+  describe("#plus", () => {
+    it("works for numbers", () => {
+      assert.strictEqual(execute(parseOrThrow("1 + -2"), {}), -1);
+    });
+    
+    it("works for strings", () => {
+      assert.strictEqual(execute(parseOrThrow('"sup "+ "bro"'), {}), "sup bro");
+    });
+  });
+
   describe("#[numerical binary operators]", () => {
     it("works for +", () => {
       assert.strictEqual(execute(parseOrThrow("1 + 2"), {}), 3);

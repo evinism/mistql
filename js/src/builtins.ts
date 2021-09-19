@@ -87,6 +87,19 @@ const notOp: BuiltinFunction = arity(1, (args, stack, exec) => {
   return !truthy(validateType("boolean", exec(args[0], stack)));
 });
 
+const plus: BuiltinFunction = arity(2, (args, stack, exec) => {
+  const a = exec(args[0], stack);
+  const b = exec(args[1], stack);
+  const type = getType(a);
+  if (type !== getType(b)) {
+    throw new Error("Cannot add values of different types");
+  }
+  if (type !== 'string' && type !== 'number') {
+    throw new Error("Cannot add values of type " + type)
+  }
+  return a + b;
+});
+
 const numericBinaryOperator = (
   op: (a: number, b: number) => number
 ): BuiltinFunction =>
@@ -319,7 +332,7 @@ export default {
   "!/unary": notOp,
   "-/unary": unaryMinus,
   ".": dotAccessor,
-  "+": numericBinaryOperator((a, b) => a + b),
+  "+": plus,
   "-": numericBinaryOperator((a, b) => a - b),
   "*": numericBinaryOperator((a, b) => a * b),
   "/": numericBinaryOperator((a, b) => a / b),
