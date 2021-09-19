@@ -5,7 +5,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 (module.exports = {
   title: 'BeakerQL',
-  tagline: 'A miniature embeddable language for querying JSON-like structures',
+  tagline: 'A miniature language for querying JSON-like structures',
   url: 'https://beakerql.com',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -23,12 +23,6 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
           editUrl: 'https://github.com/evinism/beakerql/edit/docs/',
-        },
-        blog: {
-          showReadingTime: true,
-          // Please change this to your repo.
-          editUrl:
-            'https://github.com/evinism/beakerql/edit/main/website/blog/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -53,7 +47,6 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
             position: 'left',
             label: 'Tutorial',
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
           {
             href: 'https://github.com/evinism/beakerql',
             label: 'GitHub',
@@ -81,7 +74,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
                 href: 'https://stackoverflow.com/questions/tagged/beakerql',
               },
               {
-                label: 'Author Twitter',
+                label: 'Evin\'s Twitter',
                 href: 'https://twitter.com/evinism',
               },
             ],
@@ -90,12 +83,8 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
             title: 'More',
             items: [
               {
-                label: 'Blog',
-                to: '/blog',
-              },
-              {
                 label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
+                href: 'https://github.com/evinism/beakerql',
               },
             ],
           },
