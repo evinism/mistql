@@ -4,6 +4,7 @@ import {
   simpleBinaryOperators,
   unaryExpressions,
 } from "./constants";
+import { OpenAnIssueIfThisOccursError, ParseError } from "./errors";
 import { lex } from "./lexer";
 import { ASTExpression, LexToken } from "./types";
 
@@ -48,16 +49,16 @@ const isUnExp = (token: LexToken) => {
 const consumeParenthetical: Parser = (tokens: LexToken[]) => {
   let current = tokens;
   if (!tmatch("special", "(", current[0])) {
-    throw new Error("Parenthetical Issue");
+    throw new OpenAnIssueIfThisOccursError("Parenthetical Issue");
   }
   current = current.slice(1);
   const { result, remaining } = consumeExpression(current);
   current = remaining;
   if (!current[0]) {
-    throw new Error("Unexpected EOF");
+    throw new ParseError("Unexpected EOF");
   }
   if (!tmatch("special", ")", current[0])) {
-    throw new Error("Expected )");
+    throw new ParseError("Expected )");
   }
   current = current.slice(1);
   return {
@@ -68,7 +69,7 @@ const consumeParenthetical: Parser = (tokens: LexToken[]) => {
 
 const consumeArray: Parser = (tokens) => {
   if (!tmatch("special", "[", tokens[0])) {
-    throw new Error("ParenStart Issue");
+    throw new OpenAnIssueIfThisOccursError("BracketStart Issue");
   }
   let current = tokens.slice(1);
   let entries: ASTExpression[] = [];
@@ -85,7 +86,7 @@ const consumeArray: Parser = (tokens) => {
         current = current.slice(1);
         break;
       } else {
-        throw new Error("Unexpected Token " + current[0].value);
+        throw new ParseError("Unexpected Token " + current[0].value);
       }
     }
   } else {
@@ -109,7 +110,7 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
   bexpseq: BinaryExpressionSequence
 ): ASTExpression => {
   if (bexpseq.items.length === 0) {
-    throw new Error("Can't join 0 items!");
+    throw new ParseError("Tried to parse empty expression!");
   }
   if (bexpseq.items.length === 1) {
     // this is the majority case by a long shot.
@@ -191,7 +192,7 @@ const consumeExpression: Parser = (tokens) => {
   const itemPushGuard = (token: LexToken) => {
     if (joiners.length !== items.length) {
       // Now parsing an item, so guard
-      throw new Error("Unexpected Token " + token.value);
+      throw new ParseError("Unexpected Token " + token.value);
     }
   };
 
@@ -202,7 +203,7 @@ const consumeExpression: Parser = (tokens) => {
   const joinerPushGuard = (token: LexToken) => {
     if (binExpDoesntMakeSense()) {
       // Now parsing an item, so guard
-      throw new Error(" zzUnexpected Token " + token.value);
+      throw new ParseError("Unexpected Token " + token.value);
     }
   };
   while (current.length > 0) {
@@ -291,7 +292,7 @@ const consumeExpression: Parser = (tokens) => {
 function parseQuery(tokens: LexToken[]): ASTExpression {
   const { result, remaining } = consumeExpression(tokens);
   if (remaining.length !== 0) {
-    throw new Error("Unexpected token " + remaining[0].value);
+    throw new ParseError("Unexpected token " + remaining[0].value + ", expected EOF");
   }
   return result;
 }
