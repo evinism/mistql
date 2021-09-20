@@ -1,19 +1,17 @@
 {
   "compilerOptions": {
-    "module": "esnext",
+    "module": "commonjs",
     "target": "es2015",
     "declaration": true,
     "outDir": "./dist/esm",
     "esModuleInterop": true,
     "types": [
+      "@types/mocha",
       "node"
     ],
     "moduleResolution": "node"
   },
   "include": [
     "src/**/*"
-  ],
-  "exclude": [
-    "src/**/*.spec.ts"
   ]
 }
