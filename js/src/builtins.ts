@@ -306,7 +306,7 @@ const ifFunction: BuiltinFunction = arity(3, (args, stack, exec) => {
 
 const log: BuiltinFunction = arity(1, (args, stack, exec) => {
   const res = exec(args[0], stack);
-  console.log("BeakerQL: " + JSON.stringify(res, null, 2));
+  console.log("MistQL: " + JSON.stringify(res, null, 2));
   return res;
 });
 

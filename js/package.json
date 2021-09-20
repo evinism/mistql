@@ -1,5 +1,5 @@
 {
-  "name": "beakerql",
+  "name": "mistql",
   "version": "0.3.2",
   "description": "JS implementation of miniature query language",
   "main": "dist/index.js",
