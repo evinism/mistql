@@ -22,5 +22,11 @@ describe("index", () => {
     it("doesn't allow object access of inherited properties", () => {
       assert.throws(() => query("([1, 2, 3]).length", {}));
     });
+
+    it("allows complex expressions as part of object and array literals", () => {
+      assert.deepStrictEqual(query('([-1, { isSpot: dog == "spot"}])', { dog: "spot" }),
+        [-1, { isSpot: true }]
+      );
+    });
   });
 });
