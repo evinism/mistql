@@ -1,11 +1,11 @@
-# beakerql
+# MistQL
 
 ## A miniature embeddable query language for JSON-like structures
 
-`beakerql` is a miniature query language built for embedding within applications. It supports
+`mistql` is a miniature query language built for embedding within applications. It supports
 logic for querying and manipulating JSON-like data in a simple manner.
 
-Beaker is built from the ground up to be lightweight. At ~4.5kb gzipped with no dependencies, it can
+MistQL is built from the ground up to be lightweight. At ~4.5kb gzipped with no dependencies, it can
 be included in size-sensitive frontends.
 
 ## Motivation
@@ -25,14 +25,14 @@ In the past, I've used JSON Logic for such tasks, but JSON logic leaves a bit to
 
 ```js
 // JavaScript
-import beakerql from 'beakerql';
+import mistql from 'mistql';
 
-beakerql.query(query, { events: [...] })
+mistql.query(query, { events: [...] })
 ```
 
 ## Example usage:
 
-The following are simple examples of how Beaker could be used.
+The following are simple examples of how MistQL could be used.
 
 ### Get count of a specific event
 
@@ -56,19 +56,19 @@ The following are simple examples of how Beaker could be used.
 
 ## Builtin Types
 
-Beaker's types correspond closely to JSON types, for interoperability between different languages.
+MistQL's types correspond closely to JSON types, for interoperability between different languages.
 
-Beaker has 4 primitive types:
+MistQL has 4 primitive types:
 
 - `string`
 - `number`
 - `null`
 - `boolean`
 
-Beaker also has 3 complex types:
+MistQL also has 3 complex types:
 
 - `struct`
 - `array`
 - `function`
 
-The interface of beaker is restricted in that functions can neither be provided as data, nor returned as the result of a query -- they exist entirely within Beaker
+The interface of MistQL is restricted in that functions can neither be provided as data, nor returned as the result of a query -- they exist entirely within MistQL
