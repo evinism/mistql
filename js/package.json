@@ -2,7 +2,8 @@
   "name": "mistql",
   "version": "0.3.3",
   "description": "JS implementation of miniature query language",
-  "main": "dist/index.js",
+  "main": "dist/umd/index.js",
+  "module": "dist/esm/index.js",
   "author": "Evin Sellin",
   "license": "MIT",
   "types": "dist/index.d.ts",
@@ -10,10 +11,9 @@
     "/dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist/ && tsc && rollup --config rollup.config.js",
     "test": "ts-mocha -p tsconfig.json ./**/*.spec.ts",
-    "bundle": "tsc && rollup --config rollup.config.js",
-    "bundlesize": "npm run bundle && echo \"Bundle Size (bytes):\" $(gzip -c ./dist/bundle.js | wc -c)",
+    "bundlesize": "npm run build && echo \"Bundle Size (bytes):\" $(gzip -c ./dist/umd/index.js | wc -c)",
     "prepare": "npm run build"
   },
   "devDependencies": {
