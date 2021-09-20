@@ -38,7 +38,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
         title: 'BeakerQL',
         logo: {
           alt: 'BeakerQL logo',
-          src: 'img/logo.svg',
+          src: 'img/logo.png',
         },
         items: [
           {

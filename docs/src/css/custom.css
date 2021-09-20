@@ -4,8 +4,8 @@
  * work well for content-centric websites.
  */
 
-/* You can override the default Infima variables here. */
-:root {
+/*
+old: 
   --ifm-color-primary: #25c2a0;
   --ifm-color-primary-dark: rgb(33, 175, 144);
   --ifm-color-primary-darker: rgb(31, 165, 136);
@@ -13,6 +13,18 @@
   --ifm-color-primary-light: rgb(70, 203, 174);
   --ifm-color-primary-lighter: rgb(102, 212, 189);
   --ifm-color-primary-lightest: rgb(146, 224, 208);
+  --ifm-code-font-size: 95%;
+*/
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #9625c2;
+  --ifm-color-primary-dark: rgb(106, 33, 175);
+  --ifm-color-primary-darker: rgb(100, 31, 165);
+  --ifm-color-primary-darkest: rgb(68, 26, 136);
+  --ifm-color-primary-light: rgb(154, 70, 203);
+  --ifm-color-primary-lighter: rgb(159, 102, 212);
+  --ifm-color-primary-lightest: rgb(217, 146, 224);
   --ifm-code-font-size: 95%;
 }
 
