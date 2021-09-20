@@ -36,7 +36,7 @@ The following are simple examples of how Beaker could be used.
 
 ### Get count of a specific event
 
-`events | filter type=="submit" | count`
+`events | filter type == "submit" | count`
 
 ### Get count of all event types
 
@@ -48,11 +48,11 @@ The following are simple examples of how Beaker could be used.
 
 ### Get emails of all users that use the Chat feature
 
-`events | filter type="send_message" | groupby email | keys`
+`events | filter type == "send_message" | groupby email | keys`
 
 ### Get usernames of all users who purchased before signing up
 
-`events | sort timestamp | groupby email | mapvalues (sequence type == "purchase", type == "signup") | filtervalues count @ > 0 | keys`
+`events | sort timestamp | groupby email | mapvalues (sequence type == "purchase", type == "signup") | filtervalues (count @ > 0) | keys`
 
 ## Builtin Types
 
@@ -72,26 +72,3 @@ Beaker also has 3 complex types:
 - `function`
 
 The interface of beaker is restricted in that functions can neither be provided as data, nor returned as the result of a query -- they exist entirely within Beaker
-
-# Reference
-
-The following is a reference of the builtin functions of beakerql
-
-```
-keys
-values
-map
-filter
-mapvalues
-filtervalues
-mapkeys
-filterkeys
-groupby
-find
-index
-first
-last
-sequence
-summarize
-count
-```
