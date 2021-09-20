@@ -435,4 +435,20 @@ describe("builtins", () => {
       );
     });
   });
+
+  describe("#summarize", () => {
+    it("summarizes values", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('@ | summarize'), [1, 2, 5, 10, 12]),
+        {
+          min: 1,
+          max: 12,
+          mean: 6,
+          median: 5,
+          stddev: 4.33589667773576,
+          variance: 18.8
+        }
+      );
+    });
+  });
 });
