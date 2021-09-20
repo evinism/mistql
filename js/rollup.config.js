@@ -4,9 +4,9 @@ import analyze from "rollup-plugin-analyzer";
 import { terser } from "rollup-plugin-terser";
 
 export default {
-  input: "dist/index.js",
+  input: "dist/esm/nodefault.js",
   output: {
-    file: "dist/bundle.js",
+    file: "dist/umd/index.js",
     format: "umd",
     name: "mistql",
   },

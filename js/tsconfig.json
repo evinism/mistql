@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "esnext",
     "target": "es2015",
     "declaration": true,
-    "outDir": "./dist",
+    "outDir": "./dist/esm",
     "esModuleInterop": true,
     "types": [
       "@types/mocha",
