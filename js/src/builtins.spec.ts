@@ -94,6 +94,25 @@ describe("builtins", () => {
     });
   });
 
+  describe("#mapkeys", () => {
+    it("correctly filters values", () => {
+      assert.deepEqual(
+        execute(parseOrThrow('@ | mapkeys @ + "_old"'), {
+          one: 1,
+          two: 2,
+          three: 3,
+          four: 4,
+        }),
+        {
+          one_old: 1,
+          two_old: 2,
+          three_old: 3,
+          four_old: 4,
+        }
+      );
+    });
+  });
+
   describe("#plus", () => {
     it("works for numbers", () => {
       assert.strictEqual(execute(parseOrThrow("1 + -2"), {}), -1);
