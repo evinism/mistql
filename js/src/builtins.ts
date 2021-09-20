@@ -186,8 +186,6 @@ const filtervalues: BuiltinFunction = arity(2, (args, stack, exec) => {
   return results;
 });
 
-// mapkeys isn't good until we've got string manip, or alt types on keys
-/*
 const mapkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
   const fnExp = args[0];
   const evaluated = exec(args[1], stack);
@@ -200,7 +198,6 @@ const mapkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
   }
   return results;
 });
-*/
 
 const filterkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
   const fnExp = args[0];
@@ -347,9 +344,7 @@ const summarize: BuiltinFunction = arity(1, (args, stack, exec) => {
   };
 });
 
-
 export default {
-  //mapkeys,
   count,
   filter,
   filterkeys,
@@ -364,6 +359,7 @@ export default {
   last,
   log,
   map,
+  mapkeys,
   mapvalues,
   reduce,
   reverse,
