@@ -4,15 +4,15 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 // With JSDoc @type annotations, IDEs can provide config autocompletion
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 (module.exports = {
-  title: 'BeakerQL',
+  title: 'MistQL',
   tagline: 'A miniature language for querying JSON-like structures',
-  url: 'https://beakerql.com',
+  url: 'https://mistql.com',
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'evinism', // Usually your GitHub org/user name.
-  projectName: 'beakerql', // Usually your repo name.
+  projectName: 'mistql', // Usually your repo name.
 
   presets: [
     [
@@ -22,7 +22,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
-          editUrl: 'https://github.com/evinism/beakerql/edit/docs/',
+          editUrl: 'https://github.com/evinism/mistql/edit/docs/',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -35,9 +35,9 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: 'BeakerQL',
+        title: 'MistQL',
         logo: {
-          alt: 'BeakerQL logo',
+          alt: 'MistQL logo',
           src: 'img/logo.png',
         },
         items: [
@@ -48,7 +48,13 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
             label: 'Tutorial',
           },
           {
-            href: 'https://github.com/evinism/beakerql',
+            type: 'doc',
+            docId: 'reference/overview',
+            position: 'left',
+            label: 'Reference',
+          },
+          {
+            href: 'https://github.com/evinism/mistql',
             label: 'GitHub',
             position: 'right',
           },
@@ -71,7 +77,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
             items: [
               {
                 label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/beakerql',
+                href: 'https://stackoverflow.com/questions/tagged/mistql',
               },
               {
                 label: 'Evin\'s Twitter',
@@ -84,7 +90,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/evinism/beakerql',
+                href: 'https://github.com/evinism/mistql',
               },
             ],
           },

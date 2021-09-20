@@ -17,7 +17,7 @@ function HomepageHeader() {
           <Link
             className="button button--secondary button--lg"
             to="/docs/intro">
-            BeakerQL Tutorial
+            MistQL Tutorial
           </Link>
         </div>
       </div>
@@ -30,7 +30,7 @@ export default function Home() {
   return (
     <Layout
       title={`${siteConfig.title}`}
-      description="BeakerQL: A miniature language for querying JSON-like structures">
+      description="MistQL: A miniature language for querying JSON-like structures">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

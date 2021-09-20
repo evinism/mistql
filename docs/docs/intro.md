@@ -2,34 +2,27 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# Getting Started
 
-Let's discover **Docusaurus in less than 5 minutes**.
+MistQL is a miniature language for querying JSON-like structures.
 
-## Getting Started
+MistQL's JavaScript implementation is built from the ground up to be included in clientside browser applications. It has no dependencies and has a total footprint of 4.5kB gzipped, making it suitable for size-sensitive frontends. 
 
-Get started by **creating a new site**.
+## Installation
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
-
-## Generate a new site
-
-Generate a new Docusaurus site using the **classic template**:
+The JavaScript implementation of MistQL is installed via the following:
 
 ```shell
-npx @docusaurus/init@latest init my-website classic
+npm install --save mistql
 ```
 
-## Start your site
+## Code usage
 
-Run the development server:
+MistQL can be interacted with programatically:
 
-```shell
-cd my-website
+```js
+import mistql from 'mistql';
 
-npx docusaurus start
+const query = 'events | filter type == "purchase" | groupby email | keys';
+const purchaserEmails = mistql.query(query, data);
 ```
-
-Your site starts at `http://localhost:3000`.
-
-Open `docs/intro.md` and edit some lines: the site **reloads automatically** and display your changes.
