@@ -1,6 +1,7 @@
 import { compare, getType, RuntimeValueType, truthy } from "./runtimeValues";
 import { pushRuntimeValueToStack } from "./stackManip";
 import { BuiltinFunction, RuntimeValue } from "./types";
+import { seqHelper } from "./util";
 
 const arity =
   (arityCount: number, fn: BuiltinFunction): BuiltinFunction =>
@@ -344,6 +345,19 @@ const summarize: BuiltinFunction = arity(1, (args, stack, exec) => {
   };
 });
 
+const sequence: BuiltinFunction = (args, stack, exec) => {
+  if (args.length < 3 ){
+    throw new Error("Expected at least 3 arguments, got " + args.length);
+  }
+  const target: RuntimeValue[] = validateType("array", exec(args[args.length - 1], stack));
+  const fns = args.slice(0, args.length - 1);
+  const booleanMap = fns.map((fn) => 
+    target.map(value => truthy(exec(fn, pushRuntimeValueToStack(value, stack))))
+  );
+  const seq = seqHelper(booleanMap);
+  return seq.map((inner) => inner.map(idx => target[idx]));
+}
+
 export default {
   count,
   filter,
@@ -363,6 +377,7 @@ export default {
   mapvalues,
   reduce,
   reverse,
+  sequence,
   sort,
   sortby,
   sum,
