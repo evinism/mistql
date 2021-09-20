@@ -5,16 +5,16 @@
 `beakerql` is a miniature query language built for embedding within applications. It supports
 logic for querying and manipulating JSON-like data in a simple manner.
 
-Beaker is built from the ground up to be extremely lightweight. At ~3.5kb gzipped, it can
-be included in even extremely size-sensitive frontends.
+Beaker is built from the ground up to be lightweight. At ~4.5kb gzipped with no dependencies, it can
+be included in size-sensitive frontends.
 
 ## Motivation
 
-Having a simple query language allows
+Having a simple JSON query language allows
 
+- Cross-language serializable functions
 - Shared frontend / backend logic for form validation or price calculation.
 - User-submitted logic
-- Cross-language serializable functions
 
 In the past, I've used JSON Logic for such tasks, but JSON logic leaves a bit to be desired:
 
