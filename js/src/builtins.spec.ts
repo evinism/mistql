@@ -470,4 +470,38 @@ describe("builtins", () => {
       );
     });
   });
+
+  describe("#sequence", () => {
+    it("summarizes values", () => {
+      const e = (type: string, data: string) => ({type, data})
+      assert.deepEqual(
+        execute(parseOrThrow('@ | sequence type=="chat" type == "convert"'), [
+          e("convert", "one"),
+          e("chat", "two"),
+          e("convert", "three"),
+          e("convert", "four"),
+          e("chat", "five"),
+          e("convert", "six")
+        ]),
+        [
+          [
+            e("chat", "two"),
+            e("convert", "three"),
+          ],
+          [
+            e("chat", "two"),
+            e("convert", "four"),
+          ],
+          [
+            e("chat", "two"),
+            e("convert", "six"),
+          ],
+          [
+            e("chat", "five"),
+            e("convert", "six"),
+          ],
+        ]
+      );
+    });
+  });
 });
