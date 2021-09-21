@@ -10,7 +10,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/icon128.png',
   organizationName: 'evinism', // Usually your GitHub org/user name.
   projectName: 'mistql', // Usually your repo name.
 
