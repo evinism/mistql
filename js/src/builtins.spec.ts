@@ -117,7 +117,7 @@ describe("builtins", () => {
     it("works for numbers", () => {
       assert.strictEqual(execute(parseOrThrow("1 + -2"), {}), -1);
     });
-    
+
     it("works for strings", () => {
       assert.strictEqual(execute(parseOrThrow('"sup "+ "bro"'), {}), "sup bro");
     });
@@ -320,19 +320,19 @@ describe("builtins", () => {
       assert.deepEqual(
         execute(parseOrThrow("items | sortby sk"), {
           items: [
-            {sk: 11}, 
-            {sk: 2}, 
-            {sk: 32}, 
-            {sk: 104}, 
-            {sk: 5}
+            { sk: 11 },
+            { sk: 2 },
+            { sk: 32 },
+            { sk: 104 },
+            { sk: 5 }
           ]
         }),
         [
-          {sk: 2},
-          {sk: 5},
-          {sk: 11},
-          {sk: 32},
-          {sk: 104},
+          { sk: 2 },
+          { sk: 5 },
+          { sk: 11 },
+          { sk: 32 },
+          { sk: 104 },
         ]
       );
     });
@@ -416,7 +416,7 @@ describe("builtins", () => {
 
   describe("#dotaccessor", () => {
     it("correctly parses deep values", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("hello.over.there"), {
           hello: { over: { there: "hi" } },
         }),
@@ -443,6 +443,24 @@ describe("builtins", () => {
         "hi"
       );
     });
+
+    it("returns null on unknown value", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("@.hi"), {
+          hello: { there: {} },
+        }),
+        null
+      );
+    });
+
+    it("has automatic null coalescing", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("hello.there.hows.it.going"), {
+          hello: { there: {} },
+        }),
+        null
+      );
+    });
   });
 
 
@@ -450,7 +468,7 @@ describe("builtins", () => {
     it("passes values through", () => {
       assert.deepEqual(
         execute(parseOrThrow('log {bleep: "hi"}'), null),
-        {bleep: "hi"}
+        { bleep: "hi" }
       );
     });
   });
@@ -473,7 +491,7 @@ describe("builtins", () => {
 
   describe("#sequence", () => {
     it("summarizes values", () => {
-      const e = (type: string, data: string) => ({type, data})
+      const e = (type: string, data: string) => ({ type, data })
       assert.deepEqual(
         execute(parseOrThrow('@ | sequence type=="chat" type == "convert"'), [
           e("convert", "one"),

@@ -34,15 +34,15 @@ describe("executor", () => {
     });
 
     it("coerces non-plain objects to plain objects", () => {
-      assert.deepEqual(inputGardenWall(Promise.resolve(5)), {});
-      assert.deepEqual(
-        inputGardenWall(function () {}),
+      assert.deepStrictEqual(inputGardenWall(Promise.resolve(5)), {});
+      assert.deepStrictEqual(
+        inputGardenWall(function () { }),
         {}
       );
     });
 
     it("coerces own properties", () => {
-      function foo() {}
+      function foo() { }
       foo.hi = "doc";
       assert.deepEqual(inputGardenWall(foo), { hi: "doc" });
     });
@@ -50,7 +50,7 @@ describe("executor", () => {
 
   describe("#outputGardenWall", () => {
     it("errors on function out", () => {
-      assert.throws(() => outputGardenWall(function () {}));
+      assert.throws(() => outputGardenWall(function () { }));
     });
   });
 
@@ -72,6 +72,10 @@ describe("executor", () => {
         execute(parseOrThrow("foo.bar.baz"), {
           foo: { bar: { baz: 1 }, bleep: 2 },
         });
+      });
+
+      it("throws on a bare missing reference", () => {
+        assert.throws(() => execute(parseOrThrow("bar"), { foo: 1 }));
       });
     });
 
@@ -114,7 +118,7 @@ describe("executor", () => {
 
       it("handles struct literals", () => {
         const result = execute(parseOrThrow('{foo: "bar"}'), {});
-        assert.deepStrictEqual(result, {foo: "bar"});
+        assert.deepStrictEqual(result, { foo: "bar" });
       });
     });
 

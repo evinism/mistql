@@ -5,14 +5,14 @@ import { seqHelper } from "./util";
 
 const arity =
   (arityCount: number, fn: BuiltinFunction): BuiltinFunction =>
-  (args, stack, exec) => {
-    if (args.length !== arityCount) {
-      throw new Error(
-        "Expected " + arityCount + " arguments, got " + args.length
-      );
-    }
-    return fn(args, stack, exec);
-  };
+    (args, stack, exec) => {
+      if (args.length !== arityCount) {
+        throw new Error(
+          "Expected " + arityCount + " arguments, got " + args.length
+        );
+      }
+      return fn(args, stack, exec);
+    };
 
 const validateType = (
   type: RuntimeValueType,
@@ -275,8 +275,8 @@ const sortby: BuiltinFunction = arity(2, (args, stack, exec) => {
   const arg = validateType("array", exec(args[1], stack));
   return arg.slice().map((item) => {
     const sortValue = exec(fnExp, pushRuntimeValueToStack(item, stack))
-    return ({sortValue, item})
-  }).sort(({sortValue: a}, {sortValue: b}) => compare(b, a)).map(({item}) => item) ;
+    return ({ sortValue, item })
+  }).sort(({ sortValue: a }, { sortValue: b }) => compare(b, a)).map(({ item }) => item);
 });
 
 const reverse: BuiltinFunction = arity(1, (args, stack, exec) => {
@@ -286,11 +286,19 @@ const reverse: BuiltinFunction = arity(1, (args, stack, exec) => {
 
 const dotAccessor: BuiltinFunction = arity(2, (args, stack, exec) => {
   const former = exec(args[0], stack);
-  if (args[1].type !== "reference") {
+  const ref = args[1];
+  if (ref.type !== "reference") {
     throw new Error("Only references are allowed as rhs to dot access");
   }
-  const latter = exec(args[1], pushRuntimeValueToStack(former, []));
-  return latter;
+  // Arrays and strings have ownProperties that shouldn't be accessible.
+  // TODO: Abstract this logic out.
+  if (Array.isArray(former) || typeof former === 'string' || former === null) {
+    return null;
+  }
+  if (former.hasOwnProperty(ref.ref)) {
+    return former[ref.ref];
+  }
+  return null;
 });
 
 const sum: BuiltinFunction = arity(1, (args, stack, exec) => {
@@ -323,7 +331,7 @@ const _getMedian = (array: number[]) => {
 
 const _getVariance = (array: number[]) => {
   var mean = _getMean(array);
-  return _getMean(array.map(function(num) {
+  return _getMean(array.map(function (num) {
     return Math.pow(num - mean, 2);
   }));
 };
@@ -346,12 +354,12 @@ const summarize: BuiltinFunction = arity(1, (args, stack, exec) => {
 });
 
 const sequence: BuiltinFunction = (args, stack, exec) => {
-  if (args.length < 3 ){
+  if (args.length < 3) {
     throw new Error("Expected at least 3 arguments, got " + args.length);
   }
   const target: RuntimeValue[] = validateType("array", exec(args[args.length - 1], stack));
   const fns = args.slice(0, args.length - 1);
-  const booleanMap = fns.map((fn) => 
+  const booleanMap = fns.map((fn) =>
     target.map(value => truthy(exec(fn, pushRuntimeValueToStack(value, stack))))
   );
   const seq = seqHelper(booleanMap);
