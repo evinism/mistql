@@ -20,7 +20,8 @@ describe("index", () => {
     });
 
     it("doesn't allow object access of inherited properties", () => {
-      assert.throws(() => query("([1, 2, 3]).length", {}));
+      assert.strictEqual(query("@.length", [1, 2, 3]), null);
+      assert.strictEqual(query("@.map", [1, 2, 3]), null);
     });
 
     it("allows complex expressions as part of object and array literals", () => {
