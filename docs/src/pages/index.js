@@ -4,7 +4,7 @@ import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import styles from './index.module.css';
-import HomepageFeatures from '../components/HomepageFeatures';
+import TryItOut from '../components/TryItOut';
 
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
@@ -33,7 +33,7 @@ export default function Home() {
       description="MistQL: A miniature language for querying JSON-like structures">
       <HomepageHeader />
       <main>
-        <HomepageFeatures />
+        <TryItOut />
       </main>
     </Layout>
   );

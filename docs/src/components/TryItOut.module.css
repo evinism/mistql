@@ -1,0 +1,35 @@
+.tryitout {
+  width: 100%;
+}
+
+.tryitoutinner {
+  max-width: 800px;
+  padding: 2rem;
+  margin: auto;
+}
+
+.tryitoutinner h2 {
+  text-align: center;
+}
+
+.queryinput {
+  width: 100%;
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  border-style: solid;
+}
+
+.datafield {
+  width: 100%;
+  height: 10rem;
+  resize: vertical;
+}
+
+.datawrapper {
+  padding-bottom: 1.5rem;
+}
+
+.querywrapper {
+  padding-bottom: 1.5rem;
+}

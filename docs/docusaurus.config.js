@@ -60,6 +60,9 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
           },
         ],
       },
+      colorMode: {
+        defaultMode: 'dark',
+      },
       footer: {
         style: 'dark',
         links: [
