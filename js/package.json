@@ -10,6 +10,12 @@
   "files": [
     "/dist"
   ],
+  "exports": {
+    ".": {
+      "require": "./dist/umd/index.js",
+      "default": "./dist/esm/index.js"
+    }
+  },
   "scripts": {
     "build": "rm -rf dist/ && tsc && rollup --config rollup.config.js",
     "test": "ts-mocha -p tsconfig.tests.json ./**/*.spec.ts",
