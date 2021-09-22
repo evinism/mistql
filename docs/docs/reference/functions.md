@@ -348,7 +348,7 @@ Query:
   bestInShow: {animal: "cat", name: "Millie"},
   bestBehaved: {animal: "dog", name: "Alfred"},
   coolest: {animal: "cat", name: "Mulberry"},
- } | map name + " the " + animal
+ } | mapvalues name + " the " + animal
 ```
 
 Result:
