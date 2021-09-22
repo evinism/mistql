@@ -6,7 +6,7 @@
   "module": "dist/esm/index.js",
   "author": "Evin Sellin",
   "license": "MIT",
-  "types": "dist/index.d.ts",
+  "types": "dist/esm/index.d.ts",
   "files": [
     "/dist"
   ],
