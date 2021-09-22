@@ -320,21 +320,18 @@ Maps every key in an expression.
 Query: 
 ```
 {
-  bestInShow: {animal: "cat", name: "Millie"},
-  bestBehaved: {animal: "dog", name: "Alfred"},
-  coolest: {animal: "cat", name: "Mulberry"},
- } | mapvalues name + " the " + animal
+  abhik: true,
+  evin: false,
+ } | mapkeys  @ + "@example.com"
 ```
 
 Result:
 ```
 {
-  bestInShow: "Millie the cat",
-  bestBehaved: "Alfred the dog",
-  coolest: "Mulberry the cat"
+  "abhik@example.com": true,
+  "evin@example.com": false,
 }
 ```
-
 
 ### `mapvalues`
 
@@ -366,7 +363,7 @@ Result:
 ### `reduce`
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Parameter 3 Type | Return Type |
-|---|---|---|---|
+|---|---|---|---|---|
 | 3 | `any` | `b` | `array<a>` | `b` |
 
 Runs a `reduce` operation on every value of an array
@@ -384,7 +381,7 @@ Result:
 ### `reverse`
 
 | Arity | Parameter 1 Type | Return Type |
-|---|---|---|---|
+|---|---|---|
 | 1 | `array` | `array` |
 
 Reverses an array
@@ -392,6 +389,7 @@ Reverses an array
 Query: 
 ```
 [1, 2, 3] | reverse
+```
 
 Result:
 ```
@@ -405,7 +403,7 @@ TODO: Explain Sequence
 ### `sort`
 
 | Arity | Parameter 1 Type | Return Type |
-|---|---|---|---|
+|---|---|---|
 | 1 | `array` | `array` |
 
 Sorts an array into ascending order.
@@ -414,6 +412,7 @@ Sorts an array into ascending order.
 Query: 
 ```
 [3, 1, 2] | sort
+```
 
 Result:
 ```
@@ -424,7 +423,7 @@ Result:
 
 
 | Arity | Parameter 1 Type | Return Type |
-|---|---|---|---|
+|---|---|---|
 | 1 | `array` | `array` |
 
 Sorts an array into ascending order by some expression
@@ -433,6 +432,7 @@ Sorts an array into ascending order by some expression
 Query: 
 ```
 [3, 1, 2, 8] | sortby @ % 4
+```
 
 Result:
 ```
@@ -442,7 +442,7 @@ Result:
 ### `sum`
 
 | Arity | Parameter 1 Type  | Return Type |
-|---|---|---|---|
+|---|---|---|
 | 1 | `array<number>` | `number` |
 
 Adds all numbers in an array together
@@ -461,7 +461,7 @@ Result:
 ### `summarize`
 
 | Arity | Parameter 1 Type  | Return Type |
-|---|---|---|---|
+|---|---|---|
 | 1 | `array<number>` | `struct` |
 
 Gives a struct containing a statistical summary of an array of numbers
@@ -511,6 +511,7 @@ Result:
 
 Returns an array of all values of a given struct.
 
+Query:
 ```
 {bleep: "bloop", zap: [4, 5, 6]} | values
 ```
