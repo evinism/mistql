@@ -33,3 +33,13 @@
 .querywrapper {
   padding-bottom: 1.5rem;
 }
+
+.labelblock {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.labelblock select {
+  margin-left: 0.5rem;
+}

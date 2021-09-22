@@ -5,7 +5,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 (module.exports = {
   title: 'MistQL',
-  tagline: 'A miniature language for querying JSON-like structures',
+  tagline: 'A miniature embeddable language for querying JSON-like structures',
   url: 'https://mistql.com',
   baseUrl: '/',
   onBrokenLinks: 'throw',
@@ -54,6 +54,12 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
             label: 'Reference',
           },
           {
+            type: 'doc',
+            docId: 'reference/overview',
+            position: 'left',
+            label: 'Try it Out!',
+          },
+          {
             href: 'https://github.com/evinism/mistql',
             label: 'GitHub',
             position: 'right',
@@ -61,7 +67,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
         ],
       },
       colorMode: {
-        defaultMode: 'dark',
+        defaultMode: 'light',
       },
       footer: {
         style: 'dark',

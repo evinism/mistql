@@ -4,32 +4,32 @@ import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
   {
-    title: 'Easy to Use',
-    Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
-    description: (
-      <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
-      </>
-    ),
-  },
-  {
-    title: 'Focus on What Matters',
+    title: 'Simple Syntax',
     Svg: require('../../static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        MistQL uses a simple syntax to chain together complicated expressions in a fluent,
+        easy to read manner. Readability is a major goal of MistQL.
       </>
     ),
   },
   {
-    title: 'Powered by React',
-    Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
+    title: 'Lightweight',
+    Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        MistQL has 0 dependencies and is custom-tuned for size. At 4.0kB gzipped, MistQL is able to fit on heavily size-restricted frontends. 
+      </>
+    ),
+  },
+  {
+    title: 'Built for Browsers',
+    Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
+    
+    description: (
+      <>
+        MistQL is is purpose-built to be embedded on browserside JavaScript in an isometric manner.
+        Serverside implementations include NodeJS and (soon) Python.
       </>
     ),
   },
