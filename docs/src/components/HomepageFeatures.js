@@ -14,11 +14,11 @@ const FeatureList = [
     ),
   },
   {
-    title: 'Lightweight',
+    title: 'Extremely Lightweight',
     Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        MistQL has 0 dependencies and is custom-tuned for size. At 4.0kB gzipped, MistQL is able to fit on heavily size-restricted frontends. 
+        MistQL has 0 dependencies and is hand-tuned for size. At 4.0kB gzipped, MistQL is able to fit on heavily size-restricted frontends. 
       </>
     ),
   },
@@ -28,7 +28,7 @@ const FeatureList = [
     
     description: (
       <>
-        MistQL is is purpose-built to be embedded on browserside JavaScript in an isometric manner.
+        MistQL is is purpose-built to be embedded in both browserside and serverside JavaScript.
         Serverside implementations include NodeJS and (soon) Python.
       </>
     ),
