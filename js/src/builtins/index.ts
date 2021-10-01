@@ -1,28 +1,8 @@
-import { compare, getType, RuntimeValueType, truthy } from "./runtimeValues";
-import { pushRuntimeValueToStack } from "./stackManip";
-import { BuiltinFunction, RuntimeValue } from "./types";
-import { seqHelper } from "./util";
-
-const arity =
-  (arityCount: number, fn: BuiltinFunction): BuiltinFunction =>
-    (args, stack, exec) => {
-      if (args.length !== arityCount) {
-        throw new Error(
-          "Expected " + arityCount + " arguments, got " + args.length
-        );
-      }
-      return fn(args, stack, exec);
-    };
-
-const validateType = (
-  type: RuntimeValueType,
-  value: RuntimeValue
-): RuntimeValue => {
-  if (getType(value) !== type) {
-    throw new Error("Expected type " + type + ", got " + getType(value));
-  }
-  return value;
-};
+import { compare, getType, truthy } from "../runtimeValues";
+import { pushRuntimeValueToStack } from "../stackManip";
+import { BuiltinFunction, RuntimeValue } from "../types";
+import { seqHelper } from "../util";
+import { arity, validateType } from "./util";
 
 const map: BuiltinFunction = arity(2, (args, stack, exec) => {
   const fnExp = args[0];

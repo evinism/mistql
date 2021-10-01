@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "rm -rf dist/ && tsc && rollup --config rollup.config.js",
-    "test": "ts-mocha -p tsconfig.tests.json ./**/*.spec.ts",
+    "test": "ts-mocha -p tsconfig.tests.json ./**/*.spec.ts ./**/**/*.spec.ts",
     "bundlesize": "npm run build && echo \"Bundle Size (bytes):\" $(gzip -c ./dist/umd/index.js | wc -c)",
     "prepare": "npm run build"
   },

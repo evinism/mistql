@@ -1,6 +1,6 @@
 import assert from "assert";
-import { execute } from "./executor";
-import { parseOrThrow } from "./parser";
+import { execute } from "../executor";
+import { parseOrThrow } from "../parser";
 
 describe("builtins", () => {
   describe("#map", () => {
