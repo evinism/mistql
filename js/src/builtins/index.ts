@@ -5,54 +5,45 @@ import { seqHelper } from "../util";
 import { arity, validateType } from "./util";
 
 const map: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const fnExp = args[0];
-  const targetExp = args[1];
-  const target = exec(targetExp, stack);
+  const target = exec(args[1], stack);
   if (!Array.isArray(target)) {
     throw new Error("Expected array");
   }
   const newValue = target.map((innerValue) => {
     const newStack = pushRuntimeValueToStack(innerValue, stack);
-    return exec(fnExp, newStack);
+    return exec(args[0], newStack);
   });
   return newValue;
 });
 
 // TODO: Make this work with non-string values
 const groupby: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const fnExp = args[0];
-  const targetExp = args[1];
-  const target = validateType("array", exec(targetExp, stack));
+  const target = validateType("array", exec(args[1], stack));
   const groupings: { [key: string]: RuntimeValue } = {};
   target.forEach((innerValue) => {
     const newStack = pushRuntimeValueToStack(innerValue, stack);
-    const group = validateType("string", exec(fnExp, newStack));
+    const group = validateType("string", exec(args[0], newStack));
     groupings[group] = (groupings[group] || []).concat([innerValue]);
   });
   return groupings;
 });
 
 const filter: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const fnExp = args[0];
-  const targetExp = args[1];
-  const target = validateType("array", exec(targetExp, stack));
+  const target = validateType("array", exec(args[1], stack));
   const newValue = target.filter((innerValue) => {
     const newStack = pushRuntimeValueToStack(innerValue, stack);
-    return truthy(exec(fnExp, newStack));
+    return truthy(exec(args[0], newStack));
   });
   return newValue;
 });
 
 const reduce: BuiltinFunction = arity(3, (args, stack, exec) => {
-  const fnExp = args[0];
-  const startExp = args[1];
-  const targetExp = args[2];
-  const target = validateType("array", exec(targetExp, stack));
+  const target = validateType("array", exec(args[2], stack));
   const newValue = target.reduce((acc: RuntimeValue, cur: RuntimeValue) => {
     const accCurPair: RuntimeValue = [acc, cur];
     const newStack = pushRuntimeValueToStack(accCurPair, stack);
-    return exec(fnExp, newStack);
-  }, exec(startExp, stack));
+    return exec(args[0], newStack);
+  }, exec(args[1], stack));
   return newValue;
 });
 
@@ -141,25 +132,23 @@ const values: BuiltinFunction = arity(1, (args, stack, exec) => {
 });
 
 const mapvalues: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const fnExp = args[0];
   const evaluated = exec(args[1], stack);
   const results = {};
   for (let i in evaluated) {
     if (evaluated.hasOwnProperty(i)) {
-      results[i] = exec(fnExp, pushRuntimeValueToStack(evaluated[i], stack));
+      results[i] = exec(args[0], pushRuntimeValueToStack(evaluated[i], stack));
     }
   }
   return results;
 });
 
 const filtervalues: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const fnExp = args[0];
   const evaluated = exec(args[1], stack);
   const results = {};
   for (let i in evaluated) {
     if (
       evaluated.hasOwnProperty(i) &&
-      truthy(exec(fnExp, pushRuntimeValueToStack(evaluated[i], stack)))
+      truthy(exec(args[0], pushRuntimeValueToStack(evaluated[i], stack)))
     ) {
       results[i] = evaluated[i];
     }
@@ -168,12 +157,11 @@ const filtervalues: BuiltinFunction = arity(2, (args, stack, exec) => {
 });
 
 const mapkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const fnExp = args[0];
   const evaluated = exec(args[1], stack);
   const results = {};
   for (let i in evaluated) {
     if (evaluated.hasOwnProperty(i)) {
-      const newKey = exec(fnExp, pushRuntimeValueToStack(i, stack));
+      const newKey = exec(args[0], pushRuntimeValueToStack(i, stack));
       results[newKey] = evaluated[i];
     }
   }
@@ -181,13 +169,12 @@ const mapkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
 });
 
 const filterkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const fnExp = args[0];
   const evaluated = exec(args[1], stack);
   const results = {};
   for (let i in evaluated) {
     if (
       evaluated.hasOwnProperty(i) &&
-      truthy(exec(fnExp, pushRuntimeValueToStack(i, stack)))
+      truthy(exec(args[0], pushRuntimeValueToStack(i, stack)))
     ) {
       results[i] = evaluated[i];
     }
@@ -251,10 +238,9 @@ const sort: BuiltinFunction = arity(1, (args, stack, exec) => {
 });
 
 const sortby: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const fnExp = args[0];
   const arg = validateType("array", exec(args[1], stack));
   return arg.slice().map((item) => {
-    const sortValue = exec(fnExp, pushRuntimeValueToStack(item, stack))
+    const sortValue = exec(args[0], pushRuntimeValueToStack(item, stack))
     return ({ sortValue, item })
   }).sort(({ sortValue: a }, { sortValue: b }) => compare(b, a)).map(({ item }) => item);
 });
