@@ -88,13 +88,13 @@ For example, the following adds 3 numbers together via the `+` binary operator.
 
 The `@` symbol refers to the current context variable. At the top level, the context variable is set to the data input.
 
-```
+```js
 mistql.query("@", [1, 2, 3]); // evaluates to [1, 2, 3]
 ```
 
 Certain functions change the context variable, depending on usage.
 
-```
+```js
 mistql.query("@ | map @ + 1 ", [1, 2, 3]); // evaluates to [2, 3, 4]
 ```
 
