@@ -26,3 +26,16 @@ import mistql from 'mistql';
 const query = 'events | filter type == "purchase" | groupby email | keys';
 const purchaserEmails = mistql.query(query, data);
 ```
+
+## Command line usage
+
+MistQL exposes a command line interface under the name `mq`. `mq` can be installed globally via `npm install -g mistql`.
+
+The CLI can be used via `mq <query> [file]`
+
+If file is not provided, `mq` defaults to `stdin`. An example usage might be the following:
+
+```sh
+$ echo "[]" | mq "count @"
+> 0
+````
