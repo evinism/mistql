@@ -8,8 +8,12 @@
   "license": "MIT",
   "types": "dist/esm/index.d.ts",
   "files": [
-    "/dist"
+    "dist",
+    "bin"
   ],
+  "bin": {
+    "mq": "./bin/mq.js"
+  },
   "exports": {
     ".": {
       "require": "./dist/umd/index.js",
