@@ -54,21 +54,35 @@ export type ASTExpression =
   | ASTLiteralExpression;
 
 /* Runtime types */
-export type RuntimeValue = any;
-export type Closure = {
-  [varname: string]: RuntimeValue;
-};
-export type Stack = Closure[];
-
 export type ExecutionFunction = (
   exp: ASTExpression,
   stack: Stack
 ) => RuntimeValue;
-export type BuiltinFunction = (
+
+export type RuntimeArrayValue = Array<RuntimeValue>;
+export type RuntimeObjectValue = {
+  [key: string]: RuntimeValue;
+};
+export type RuntimeFunctionValue = (
   args: ASTExpression[],
   stack: Stack,
   executeInner: ExecutionFunction
 ) => RuntimeValue;
+
+export type RuntimeValue =
+  | null
+  | boolean
+  | number
+  | string
+  | RuntimeArrayValue
+  | RuntimeObjectValue
+  | RuntimeFunctionValue;
+
+export type Closure = {
+  [varname: string]: RuntimeValue;
+};
+export type Stack = Closure[];
+export type BuiltinFunction = RuntimeFunctionValue;
 
 
 export type LexToken = {
