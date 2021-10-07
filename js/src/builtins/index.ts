@@ -1,76 +1,24 @@
-import { compare, getType, truthy } from "../runtimeValues";
+import { compare, truthy } from "../runtimeValues";
 import { pushRuntimeValueToStack } from "../stackManip";
 import { BuiltinFunction, RuntimeValue } from "../types";
-import { seqHelper } from "../util";
-import { arity, validateType } from "./util";
-
-const map: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const target = exec(args[1], stack);
-  if (!Array.isArray(target)) {
-    throw new Error("Expected array");
-  }
-  const newValue = target.map((innerValue) => {
-    const newStack = pushRuntimeValueToStack(innerValue, stack);
-    return exec(args[0], newStack);
-  });
-  return newValue;
-});
-
-// TODO: Make this work with non-string values
-const groupby: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const target = validateType("array", exec(args[1], stack));
-  const groupings: { [key: string]: RuntimeValue } = {};
-  target.forEach((innerValue) => {
-    const newStack = pushRuntimeValueToStack(innerValue, stack);
-    const group = validateType("string", exec(args[0], newStack));
-    groupings[group] = (groupings[group] || []).concat([innerValue]);
-  });
-  return groupings;
-});
-
-const filter: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const target = validateType("array", exec(args[1], stack));
-  const newValue = target.filter((innerValue) => {
-    const newStack = pushRuntimeValueToStack(innerValue, stack);
-    return truthy(exec(args[0], newStack));
-  });
-  return newValue;
-});
-
-const reduce: BuiltinFunction = arity(3, (args, stack, exec) => {
-  const target = validateType("array", exec(args[2], stack));
-  const newValue = target.reduce((acc: RuntimeValue, cur: RuntimeValue) => {
-    const accCurPair: RuntimeValue = [acc, cur];
-    const newStack = pushRuntimeValueToStack(accCurPair, stack);
-    return exec(args[0], newStack);
-  }, exec(args[1], stack));
-  return newValue;
-});
-
-const find: BuiltinFunction = (args, stack, exec) => {
-  return filter(args, stack, exec)[0] ?? null;
-};
-
-const unaryMinus: BuiltinFunction = arity(1, (args, stack, exec) => {
-  return -validateType("number", exec(args[0], stack));
-});
-
-const notOp: BuiltinFunction = arity(1, (args, stack, exec) => {
-  return !truthy(validateType("boolean", exec(args[0], stack)));
-});
-
-const plus: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const a = exec(args[0], stack);
-  const b = exec(args[1], stack);
-  const type = getType(a);
-  if (type !== getType(b)) {
-    throw new Error("Cannot add values of different types");
-  }
-  if (type !== 'string' && type !== 'number') {
-    throw new Error("Cannot add values of type " + type)
-  }
-  return a + b;
-});
+import { arity, seqHelper, validateType } from "../util";
+import count from './count';
+import equal from './equal';
+import filter from './filter';
+import filterkeys from './filterkeys';
+import filtervalues from './filtervalues';
+import find from './find';
+import groupby from './groupby';
+import keys from './keys';
+import map from './map';
+import mapvalues from './mapvalues';
+import not from './not';
+import notequal from './notequal';
+import plus from './plus';
+import reduce from './reduce';
+import summarize from './summarize';
+import unaryMinus from './unaryMinus';
+import values from './values';
 
 const numericBinaryOperator = (
   op: (a: number, b: number) => number
@@ -90,72 +38,6 @@ const booleanBinaryOperator = (
     return op(a, b);
   });
 
-const equal: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const a = exec(args[0], stack);
-  const b = exec(args[1], stack);
-  if (getType(a) !== getType(b)) {
-    return false;
-  }
-  // TODO: Make equality work for arrays.
-  return a === b;
-});
-
-const notequal: BuiltinFunction = (args, stack, exec) => {
-  return !equal(args, stack, exec);
-};
-
-const count: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const result = validateType("array", exec(args[0], stack));
-  return result.length;
-});
-
-const keys: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const evaluated = exec(args[0], stack);
-  const results = [];
-  for (let i in evaluated) {
-    if (evaluated.hasOwnProperty(i)) {
-      results.push(i);
-    }
-  }
-  return results;
-});
-
-const values: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const evaluated = exec(args[0], stack);
-  const results = [];
-  for (let i in evaluated) {
-    if (evaluated.hasOwnProperty(i)) {
-      results.push(evaluated[i]);
-    }
-  }
-  return results;
-});
-
-const mapvalues: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const evaluated = exec(args[1], stack);
-  const results = {};
-  for (let i in evaluated) {
-    if (evaluated.hasOwnProperty(i)) {
-      results[i] = exec(args[0], pushRuntimeValueToStack(evaluated[i], stack));
-    }
-  }
-  return results;
-});
-
-const filtervalues: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const evaluated = exec(args[1], stack);
-  const results = {};
-  for (let i in evaluated) {
-    if (
-      evaluated.hasOwnProperty(i) &&
-      truthy(exec(args[0], pushRuntimeValueToStack(evaluated[i], stack)))
-    ) {
-      results[i] = evaluated[i];
-    }
-  }
-  return results;
-});
-
 const mapkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
   const evaluated = exec(args[1], stack);
   const results = {};
@@ -163,20 +45,6 @@ const mapkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
     if (evaluated.hasOwnProperty(i)) {
       const newKey = exec(args[0], pushRuntimeValueToStack(i, stack));
       results[newKey] = evaluated[i];
-    }
-  }
-  return results;
-});
-
-const filterkeys: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const evaluated = exec(args[1], stack);
-  const results = {};
-  for (let i in evaluated) {
-    if (
-      evaluated.hasOwnProperty(i) &&
-      truthy(exec(args[0], pushRuntimeValueToStack(i, stack)))
-    ) {
-      results[i] = evaluated[i];
     }
   }
   return results;
@@ -284,41 +152,6 @@ const log: BuiltinFunction = arity(1, (args, stack, exec) => {
   return res;
 });
 
-// For Summary
-const _getMean = (array: number[]) => {
-  return array.reduce((a, b) => a + b, 0) / array.length;
-}
-
-const _getMedian = (array: number[]) => {
-  const midpoint = array.length / 2;
-  const median = midpoint % 1 ? array[midpoint - 0.5] : (array[midpoint - 1] + array[midpoint]) / 2;
-  return median;
-}
-
-const _getVariance = (array: number[]) => {
-  var mean = _getMean(array);
-  return _getMean(array.map(function (num) {
-    return Math.pow(num - mean, 2);
-  }));
-};
-
-const _getStandardDeviation = (array: number[]) => Math.sqrt(_getVariance(array));
-
-const summarize: BuiltinFunction = arity(1, (args, stack, exec) => {
-  const array = validateType("array", exec(args[0], stack));
-  array.sort((a, b) => a - b);
-  array.forEach(value => validateType("number", value));
-
-  return {
-    max: Math.max.apply(null, array),
-    min: Math.min.apply(null, array),
-    mean: _getMean(array),
-    median: _getMedian(array),
-    variance: _getVariance(array),
-    stddev: _getStandardDeviation(array),
-  };
-});
-
 const sequence: BuiltinFunction = (args, stack, exec) => {
   if (args.length < 3) {
     throw new Error("Expected at least 3 arguments, got " + args.length);
@@ -358,7 +191,7 @@ export default {
   summarize,
   tail,
   values,
-  "!/unary": notOp,
+  "!/unary": not,
   "-/unary": unaryMinus,
   ".": dotAccessor,
   "+": plus,
