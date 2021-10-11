@@ -19,11 +19,11 @@ const runQuery = (query, data) => {
 }
 
 const getDefaultExample = () => {
-  if (location.hash.startsWith('#data:')) {
+  if (window.location.hash.startsWith('#data:')) {
     return {
       name: 'custom',
       query: '@',
-      data: JSON.parse(atob(location.hash.substr(6)))
+      data: JSON.parse(atob(window.location.hash.substr(6)))
     }
   }
   return examples['usersWithAMessageEvent'];
