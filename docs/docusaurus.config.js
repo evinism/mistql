@@ -7,7 +7,7 @@ const darkCodeTheme = require("prism-react-renderer/themes/dracula");
   module.exports = {
     title: "MistQL",
     tagline:
-      "A miniature embeddable language for querying JSON-like structures",
+      "A miniature embeddable language for performing computations on JSON-like structures",
     url: "https://mistql.com",
     baseUrl: "/",
     onBrokenLinks: "throw",
@@ -105,7 +105,7 @@ const darkCodeTheme = require("prism-react-renderer/themes/dracula");
               ],
             },
           ],
-          copyright: `Copyright © ${new Date().getFullYear()} Evin Sellin. Built with Docusaurus.`,
+          copyright: `Copyright © ${new Date().getFullYear()} Evin Sellin and Vidora. Built with Docusaurus.`,
         },
         prism: {
           theme: lightCodeTheme,
