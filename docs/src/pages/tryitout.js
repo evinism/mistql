@@ -10,7 +10,7 @@ export default function TryItOutPage() {
   return (
     <Layout
       title={`Try It Out`}
-      description="MistQL: A miniature language for querying JSON-like structures">
+      description="MistQL: A miniature language for performing computations on JSON-like structures">
       <main>
         <BrowserOnly>
           {() => <TryItOut />}

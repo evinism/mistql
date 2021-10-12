@@ -1,15 +1,15 @@
-import React from 'react';
-import clsx from 'clsx';
-import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import styles from './index.module.css';
-import HomepageFeatures from '../components/HomepageFeatures';
 import LogoUrl from '@site/static/img/icon128.png';
+import Layout from '@theme/Layout';
+import clsx from 'clsx';
+import React from 'react';
+import HomepageFeatures from '../components/HomepageFeatures';
+import styles from './index.module.css';
 
 
 function HomepageHeader() {
-  const {siteConfig} = useDocusaurusContext();
+  const { siteConfig } = useDocusaurusContext();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
@@ -34,11 +34,11 @@ function HomepageHeader() {
 }
 
 export default function Home() {
-  const {siteConfig} = useDocusaurusContext();
+  const { siteConfig } = useDocusaurusContext();
   return (
     <Layout
       title={`${siteConfig.title}`}
-      description="MistQL: A miniature language for querying JSON-like structures">
+      description="MistQL: A miniature language for performing computations on JSON-like structures">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
