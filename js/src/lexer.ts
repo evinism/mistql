@@ -3,23 +3,26 @@ import { LexError } from "./errors";
 import { LexToken } from "./types";
 import { escapeRegExp } from "./util";
 
+// This defines how various tokens capture whitespace
+const whitespaceBehavior = {
+  l: ')}]'.split(''),
+  r: '({['.split(''),
+  rl: ('.:|,' + binaryExpressionStrings.join('')).split(''),
+}
+
 const whiteSpacealyzer = (str: string) => {
   // TODO: Make these more solid.
-  let retval = str
-    .trim()
-    .replace(/\s+/g, " ")
-    .replace(/\s*\.\s*/g, ".")
-    .replace(/\(\s*/g, "(")
-    .replace(/\s*\)/g, ")")
-    .replace(/\{\s*/g, "{")
-    .replace(/\s*\}/g, "}")
-    .replace(/\s*:\s*/g, ":")
-    .replace(/\s*\|\s*/g, "|")
-    .replace(/\s*,\s*/g, ",");
-  binaryExpressionStrings.forEach((binexp) => {
-    const re = new RegExp(`\\s*${escapeRegExp(binexp)}\\s*`, "g");
-    retval = retval.replace(re, binexp);
-  });
+  let retval = str.trim().replace(/\s+/g, ' ');
+
+  const whitespacer = (fn: (token: string) => string) => (token: string) => {
+    const re = new RegExp(fn(escapeRegExp(token)), "g");
+    retval = retval.replace(re, token);
+  }
+
+  whitespaceBehavior.r.forEach(whitespacer((token: string) => `${token}\\s*`));
+  whitespaceBehavior.l.forEach(whitespacer((token: string) => `\\s*${token}`));
+  whitespaceBehavior.rl.forEach(whitespacer((token: string) => `\\s*${token}\\s*`));
+
   return retval;
 };
 
