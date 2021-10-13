@@ -74,10 +74,13 @@ export type BuiltinFunction = (
 export type LexToken = {
   token: 'value',
   value: string | number | boolean | null
+  position: number,
 } | {
   token: 'ref',
   value: string,
+  position: number,
 } | {
   token: 'special',
-  value: string
+  value: string,
+  position: number,
 }
