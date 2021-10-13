@@ -1,7 +1,6 @@
 import { binaryExpressionStrings, builtinValues, specials } from "./constants";
 import { LexError } from "./errors";
 import { LexToken } from "./types";
-import { escapeRegExp } from "./util";
 
 // This defines how various tokens capture whitespace
 const whitespaceBehavior = {
@@ -10,22 +9,16 @@ const whitespaceBehavior = {
   rl: '.:|,'.split('').concat(binaryExpressionStrings),
 }
 
-const whiteSpacealyzer = (str: string) => {
-  // TODO: Make these more solid.
-  let retval = str.trim();
-
-  const whitespacer = (fn: (token: string) => string) => (token: string) => {
-    const re = new RegExp(fn(escapeRegExp(token)), "g");
-    retval = retval.replace(re, token);
+// TODO: Make this not n squared
+const vaccumsWhitespace = (token: string, direction: 'l' | 'r') => {
+  if (whitespaceBehavior.rl.indexOf(token) > -1) {
+    return true;
   }
-
-  whitespaceBehavior.r.forEach(whitespacer((token: string) => `${token}\\s*`));
-  whitespaceBehavior.l.forEach(whitespacer((token: string) => `\\s*${token}`));
-  whitespaceBehavior.rl.forEach(whitespacer((token: string) => `\\s*${token}\\s*`));
-
-  return retval;
-};
-
+  if (whitespaceBehavior[direction].indexOf(token) > -1) {
+    return true;
+  };
+  return false;
+}
 const refStarter = /[a-zA-Z_]/;
 const refContinuer = /[a-zA-Z_0-9]/;
 const numStarter = /[0-9]/;
@@ -34,7 +27,7 @@ const whitespace = /\s/;
 
 export function lex(raw: string): LexToken[] {
   const tokens: LexToken[] = [];
-  const split = whiteSpacealyzer(raw).split("");
+  const split = raw.split("");
   for (let i = 0; i < split.length; i++) {
     let buffer = split[i];
     if (numStarter.test(buffer || "")) {
@@ -58,6 +51,18 @@ export function lex(raw: string): LexToken[] {
       ) {
         i++;
         buffer += split[i];
+      }
+      if (vaccumsWhitespace(buffer, 'r')) {
+        while (whitespace.test(split[i + 1])) {
+          i++;
+        }
+      }
+      if (
+        vaccumsWhitespace(buffer, 'l')
+        && tokens.length > 0
+        && tokens[tokens.length - 1].token === 'special'
+        && tokens[tokens.length - 1].value === ' ') {
+        tokens.pop();
       }
       tokens.push({ token: "special", value: buffer });
     } else if (refStarter.test(buffer || "")) {
@@ -90,5 +95,17 @@ export function lex(raw: string): LexToken[] {
       throw new LexError("Unexpected token " + split[i]);
     }
   }
+
+  // Trim whitespace as a post-lex step
+  const firstToken = tokens[0];
+  if (firstToken && firstToken.token === "special" && firstToken.value === ' ') {
+    tokens.shift();
+  }
+
+  const lastToken = tokens[tokens.length - 1];
+  if (lastToken && lastToken.token === "special" && lastToken.value === ' ') {
+    tokens.pop();
+  }
+
   return tokens;
 }
