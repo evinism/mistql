@@ -7,12 +7,12 @@ import { escapeRegExp } from "./util";
 const whitespaceBehavior = {
   l: ')}]'.split(''),
   r: '({['.split(''),
-  rl: ('.:|,' + binaryExpressionStrings.join('')).split(''),
+  rl: '.:|,'.split('').concat(binaryExpressionStrings),
 }
 
 const whiteSpacealyzer = (str: string) => {
   // TODO: Make these more solid.
-  let retval = str.trim().replace(/\s+/g, ' ');
+  let retval = str.trim();
 
   const whitespacer = (fn: (token: string) => string) => (token: string) => {
     const re = new RegExp(fn(escapeRegExp(token)), "g");
@@ -30,6 +30,7 @@ const refStarter = /[a-zA-Z_]/;
 const refContinuer = /[a-zA-Z_0-9]/;
 const numStarter = /[0-9]/;
 const numContinuer = /[0-9\.]/;
+const whitespace = /\s/;
 
 export function lex(raw: string): LexToken[] {
   const tokens: LexToken[] = [];
@@ -42,6 +43,11 @@ export function lex(raw: string): LexToken[] {
         buffer += split[i];
       }
       tokens.push({ token: "value", value: parseFloat(buffer) });
+    } else if (whitespace.test(buffer || '')) {
+      while (whitespace.test(split[i + 1])) {
+        i++;
+      }
+      tokens.push({ token: "special", value: " " });
     } else if (
       specials.filter((operator) => operator.startsWith(buffer)).length > 0
     ) {
