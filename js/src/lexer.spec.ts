@@ -43,6 +43,12 @@ describe("lexer", () => {
       assert.throws(() => lex('"sup'));
     });
 
+    it("trims whitespace", () => {
+      assert.deepStrictEqual(lex('  @  '), [
+        { token: "ref", value: "@" },
+      ]);
+    });
+
     it("parses any sequence of whitespace as a single space", () => {
       const cases = [
         '@ @',
