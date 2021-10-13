@@ -4,7 +4,7 @@ import { lex } from "./lexer";
 describe("lexer", () => {
   describe("#lex", () => {
     it("should lex a basic expression", () => {
-      assert.deepEqual(lex("hello + there"), [
+      assert.deepStrictEqual(lex("hello + there"), [
         { token: "ref", value: "hello" },
         { token: "special", value: "+" },
         { token: "ref", value: "there" },
@@ -12,14 +12,14 @@ describe("lexer", () => {
     });
 
     it("should lex an expression with an initially ambiguous operator", () => {
-      assert.deepEqual(lex("hello || there"), [
+      assert.deepStrictEqual(lex("hello || there"), [
         { token: "ref", value: "hello" },
         { token: "special", value: "||" },
         { token: "ref", value: "there" },
       ]);
     });
     it("should lex a string", () => {
-      assert.deepEqual(lex('"sup" && there'), [
+      assert.deepStrictEqual(lex('"sup" && there'), [
         { token: "value", value: "sup" },
         { token: "special", value: "&&" },
         { token: "ref", value: "there" },
@@ -27,12 +27,12 @@ describe("lexer", () => {
     });
 
     it("handles escaped strings", () => {
-      assert.deepEqual(lex('"sup\\"" && there'), [
+      assert.deepStrictEqual(lex('"sup\\"" && there'), [
         { token: "value", value: 'sup"' },
         { token: "special", value: "&&" },
         { token: "ref", value: "there" },
       ]);
-      assert.deepEqual(lex('"sup\\\\"   there'), [
+      assert.deepStrictEqual(lex('"sup\\\\"   there'), [
         { token: "value", value: "sup\\" },
         { token: "special", value: " " },
         { token: "ref", value: "there" },
@@ -40,7 +40,32 @@ describe("lexer", () => {
     });
 
     it("should error with unterminated strings", () => {
-      assert.throws( () => lex('"sup'));
+      assert.throws(() => lex('"sup'));
+    });
+
+    it("should handle right, left, and rl-binding tokens", () => {
+      assert.deepStrictEqual(lex("  +  "), [
+        { token: "special", value: "+" },
+      ]);
+
+      ['(', '{', '['].forEach((token) => {
+        assert.deepStrictEqual(lex(`@  ${token}  @`), [
+          { token: "ref", value: '@' },
+          { token: "special", value: " " },
+          { token: "special", value: token },
+          { token: "ref", value: '@' },
+
+        ]);
+      });
+
+      [')', '}', ']'].forEach((token) => {
+        assert.deepStrictEqual(lex(`@  ${token}  @`), [
+          { token: "ref", value: '@' },
+          { token: "special", value: token },
+          { token: "special", value: " " },
+          { token: "ref", value: '@' },
+        ]);
+      });
     });
   });
 });
