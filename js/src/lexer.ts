@@ -29,18 +29,28 @@ export function lex(raw: string): LexToken[] {
   const tokens: LexToken[] = [];
   const split = raw.split("");
   for (let i = 0; i < split.length; i++) {
+    // For use in position field in tokens
+    const position = i;
     let buffer = split[i];
     if (numStarter.test(buffer || "")) {
       while (numContinuer.test(split[i + 1] || "")) {
         i++;
         buffer += split[i];
       }
-      tokens.push({ token: "value", value: parseFloat(buffer) });
+      tokens.push({
+        token: "value",
+        value: parseFloat(buffer),
+        position
+      });
     } else if (whitespace.test(buffer || '')) {
       while (whitespace.test(split[i + 1])) {
         i++;
       }
-      tokens.push({ token: "special", value: " " });
+      tokens.push({
+        token: "special",
+        value: " ",
+        position
+      });
     } else if (
       specials.filter((operator) => operator.startsWith(buffer)).length > 0
     ) {
@@ -64,19 +74,35 @@ export function lex(raw: string): LexToken[] {
         && tokens[tokens.length - 1].value === ' ') {
         tokens.pop();
       }
-      tokens.push({ token: "special", value: buffer });
+      tokens.push({
+        token: "special",
+        value: buffer,
+        position,
+      });
     } else if (refStarter.test(buffer || "")) {
       while (refContinuer.test(split[i + 1] || "")) {
         i++;
         buffer += split[i];
       }
       if (builtinValues[buffer] !== undefined) {
-        tokens.push({ token: "value", value: builtinValues[buffer] });
+        tokens.push({
+          token: "value",
+          value: builtinValues[buffer],
+          position
+        });
       } else {
-        tokens.push({ token: "ref", value: buffer });
+        tokens.push({
+          token: "ref",
+          value: buffer,
+          position
+        });
       }
     } else if (buffer === "@") {
-      tokens.push({ token: "ref", value: "@" });
+      tokens.push({
+        token: "ref",
+        value: "@",
+        position
+      });
     } else if (buffer === '"') {
       buffer = "";
       while (split[i + 1] !== '"') {
@@ -89,7 +115,11 @@ export function lex(raw: string): LexToken[] {
         }
         buffer += split[i];
       }
-      tokens.push({ token: "value", value: buffer });
+      tokens.push({
+        token: "value",
+        value: buffer,
+        position
+      });
       i++;
     } else {
       throw new LexError("Unexpected token " + split[i]);
