@@ -43,6 +43,27 @@ describe("lexer", () => {
       assert.throws(() => lex('"sup'));
     });
 
+    it("parses any sequence of whitespace as a single space", () => {
+      const cases = [
+        '@ @',
+        '@\t@',
+        '@\n@',
+        '@     @',
+        '@\t  @',
+        '@ \t @',
+        '@  \t@',
+        '@\n  @',
+        '@ \n @',
+        '@  \n@',
+        '@  \n   \t  \t\t\t@',
+      ];
+      cases.forEach((item) => assert.deepStrictEqual(lex(item), [
+        { token: "ref", value: '@' },
+        { token: "special", value: " " },
+        { token: "ref", value: '@' },
+      ]));
+    })
+
     it("should handle right, left, and rl-binding tokens", () => {
       assert.deepStrictEqual(lex("  +  "), [
         { token: "special", value: "+" },
