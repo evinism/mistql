@@ -111,7 +111,7 @@ export function lex(raw: string): LexToken[] {
           i++;
         }
         if (split[i] === undefined) {
-          throw new LexError("Unterminated string literal");
+          throw new LexError("Unterminated string literal", position, raw);
         }
         buffer += split[i];
       }
@@ -122,7 +122,7 @@ export function lex(raw: string): LexToken[] {
       });
       i++;
     } else {
-      throw new LexError("Unexpected token " + split[i]);
+      throw new LexError(`Unexpected character '${split[i]}'`, i, raw);
     }
   }
 
