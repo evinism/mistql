@@ -224,32 +224,6 @@ describe("builtins", () => {
     });
   });
 
-  describe("#first", () => {
-    it("correctly grabs the first element", () => {
-      assert.strictEqual(
-        execute(parseOrThrow("[1, 2, 3, 4, 5] | first"), {}),
-        1
-      );
-    });
-
-    it("returns null for empty arrays", () => {
-      assert.strictEqual(execute(parseOrThrow("[] | first"), {}), null);
-    });
-  });
-
-  describe("#last", () => {
-    it("correctly grabs the last element", () => {
-      assert.strictEqual(
-        execute(parseOrThrow("[1, 2, 3, 4, 5] | last"), {}),
-        5
-      );
-    });
-
-    it("returns null for empty arrays", () => {
-      assert.strictEqual(execute(parseOrThrow("[] | last"), {}), null);
-    });
-  });
-
   describe("#keys", () => {
     it("correctly filters events", () => {
       assert.deepEqual(

@@ -7,12 +7,10 @@ import filter from "./filter";
 import filterkeys from "./filterkeys";
 import filtervalues from "./filtervalues";
 import find from "./find";
-import first from "./first";
 import groupby from "./groupby";
 import head from "./head";
 import indexFn from "./indexFn";
 import keys from "./keys";
-import last from "./last";
 import log from "./log";
 import map from "./map";
 import mapkeys from "./mapkeys";
@@ -96,13 +94,11 @@ export default {
   filterkeys,
   filtervalues,
   find,
-  first,
   groupby,
   head,
   if: ifFunction,
   index: indexFn,
   keys,
-  last,
   log,
   map,
   mapkeys,
