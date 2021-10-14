@@ -11,7 +11,7 @@ const lit = (type: any, value: any): ASTExpression => ({
 const ref = (ref: string): ASTExpression => ({
   type: "reference",
   ref,
-})
+});
 
 describe("parser", () => {
   describe("#parse", () => {
@@ -59,18 +59,16 @@ describe("parser", () => {
         assert.deepStrictEqual(parseOrThrow("false"), lit("boolean", false));
       });
 
-
       it("parses object literals", () => {
         assert.deepStrictEqual(
           parseOrThrow("{one: 1, two: 2, three: 3}"),
           lit("struct", {
             one: lit("number", 1),
             two: lit("number", 2),
-            three: lit("number", 3)
+            three: lit("number", 3),
           })
         );
       });
-
     });
 
     describe("references", () => {
@@ -352,10 +350,10 @@ describe("parser", () => {
       it("handles a simple indexing case", () => {
         const expected = {
           type: "application",
-          function: ref('index'),
+          function: ref("index"),
           arguments: [
             lit("number", 0),
-            lit("array", [lit("number", 5), lit("number", 10)])
+            lit("array", [lit("number", 5), lit("number", 10)]),
           ],
         };
         assert.deepStrictEqual(parseOrThrow("[5, 10][0]"), expected);
@@ -364,44 +362,72 @@ describe("parser", () => {
       it("handles indexing on objects", () => {
         const expected = {
           type: "application",
-          function: ref('index'),
+          function: ref("index"),
           arguments: [
             lit("string", "hello"),
-            lit("struct", { hello: lit("string", 'there') })
+            lit("struct", { hello: lit("string", "there") }),
           ],
         };
-        assert.deepStrictEqual(parseOrThrow('{hello: "there"}["hello"]'), expected);
+        assert.deepStrictEqual(
+          parseOrThrow('{hello: "there"}["hello"]'),
+          expected
+        );
       });
 
       it("binds tighter than function application", () => {
         const expected = {
           type: "application",
-          function: ref('a'),
-          arguments: [{
-            type: "application",
-            function: ref('index'),
-            arguments: [ref('c'), ref('b')]
-          }],
-        };
-        assert.deepStrictEqual(parseOrThrow('a b[c]'), expected);
-      });
-      it("works with parens", () => {
-        const expected = {
-          type: "application",
-          function: ref('index'),
+          function: ref("a"),
           arguments: [
-            ref('c'),
             {
               type: "application",
-              function: ref('a'),
-              arguments: [ref('b')]
+              function: ref("index"),
+              arguments: [ref("c"), ref("b")],
             },
           ],
         };
-        assert.deepStrictEqual(parseOrThrow('(a b)[c]'), expected);
+        assert.deepStrictEqual(parseOrThrow("a b[c]"), expected);
+      });
+
+      it("works with parens", () => {
+        const expected = {
+          type: "application",
+          function: ref("index"),
+          arguments: [
+            ref("c"),
+            {
+              type: "application",
+              function: ref("a"),
+              arguments: [ref("b")],
+            },
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow("(a b)[c]"), expected);
+      });
+
+      it("binds equivalently tightly to the dot accessor.", () => {
+        const expected = {
+          type: "application",
+          function: ref("."),
+          arguments: [
+            {
+              type: "application",
+              function: ref("index"),
+              arguments: [
+                ref("c"),
+                {
+                  type: "application",
+                  function: ref("."),
+                  arguments: [ref("a"), ref("b")],
+                },
+              ],
+            },
+            ref("d"),
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow("a.b[c].d"), expected);
       });
     });
-
 
     describe("unary expressions", () => {
       it("parses basic binary expressions", () => {
