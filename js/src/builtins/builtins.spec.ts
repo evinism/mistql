@@ -39,7 +39,7 @@ describe("builtins", () => {
     it("can sum", () => {
       assert.strictEqual(
         execute(
-          parseOrThrow("reduce (first @) + (last @) 0 @"),
+          parseOrThrow("reduce @[0] + @[1] 0 @"),
           [1, 4, 5, 7, 8]
         ),
         1 + 4 + 5 + 7 + 8
