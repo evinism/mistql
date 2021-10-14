@@ -120,66 +120,6 @@ describe("parser", () => {
 
         assert.deepStrictEqual(parseOrThrow("@.hello.there"), target);
       });
-
-      it("parses a deep series of items", () => {
-        const target = {
-          type: "application",
-          function: {
-            type: "reference",
-            ref: ".",
-          },
-          arguments: [
-            {
-              type: "application",
-              function: {
-                type: "reference",
-                ref: ".",
-              },
-              arguments: [
-                {
-                  type: "application",
-                  function: {
-                    type: "reference",
-                    ref: ".",
-                  },
-                  arguments: [
-                    {
-                      type: "application",
-                      function: {
-                        type: "reference",
-                        ref: ".",
-                      },
-                      arguments: [
-                        {
-                          type: "reference",
-                          ref: "there",
-                        },
-                        {
-                          type: "reference",
-                          ref: "is",
-                        },
-                      ],
-                    },
-                    {
-                      type: "reference",
-                      ref: "much",
-                    },
-                  ],
-                },
-                {
-                  type: "reference",
-                  ref: "to",
-                },
-              ],
-            },
-            {
-              type: "reference",
-              ref: "learn",
-            },
-          ],
-        };
-        assert.deepStrictEqual(parseOrThrow("there.is.much.to.learn"), target);
-      });
     });
 
     describe("pipes", () => {
@@ -345,6 +285,157 @@ describe("parser", () => {
         });
       });
     });
+
+    describe("dot accesses", () => {
+      it("parses a deep series of items", () => {
+        const target = {
+          type: "application",
+          function: {
+            type: "reference",
+            ref: ".",
+          },
+          arguments: [
+            {
+              type: "application",
+              function: {
+                type: "reference",
+                ref: ".",
+              },
+              arguments: [
+                {
+                  type: "application",
+                  function: {
+                    type: "reference",
+                    ref: ".",
+                  },
+                  arguments: [
+                    {
+                      type: "application",
+                      function: {
+                        type: "reference",
+                        ref: ".",
+                      },
+                      arguments: [
+                        {
+                          type: "reference",
+                          ref: "there",
+                        },
+                        {
+                          type: "reference",
+                          ref: "is",
+                        },
+                      ],
+                    },
+                    {
+                      type: "reference",
+                      ref: "much",
+                    },
+                  ],
+                },
+                {
+                  type: "reference",
+                  ref: "to",
+                },
+              ],
+            },
+            {
+              type: "reference",
+              ref: "learn",
+            },
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow("there.is.much.to.learn"), target);
+      });
+
+      it("works after a parenthetical", () => {
+        const target = {
+          type: "application",
+          function: {
+            type: "reference",
+            ref: ".",
+          },
+          arguments: [
+            {
+              type: "application",
+              function: {
+                type: "reference",
+                ref: ".",
+              },
+              arguments: [
+                {
+                  type: "application",
+                  function: {
+                    type: "reference",
+                    ref: ".",
+                  },
+                  arguments: [
+                    {
+                      type: "application",
+                      function: {
+                        type: "reference",
+                        ref: ".",
+                      },
+                      arguments: [
+                        {
+                          type: "reference",
+                          ref: "there",
+                        },
+                        {
+                          type: "reference",
+                          ref: "is",
+                        },
+                      ],
+                    },
+                    {
+                      type: "reference",
+                      ref: "much",
+                    },
+                  ],
+                },
+                {
+                  type: "reference",
+                  ref: "to",
+                },
+              ],
+            },
+            {
+              type: "reference",
+              ref: "learn",
+            },
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow("((there.is).much).to.learn"), target);
+      });
+
+      it("works after an object literal", () => {
+        const target = {
+          type: "application",
+          function: {
+            ref: ".",
+            type: "reference"
+          },
+          arguments: [
+            {
+              type: "literal",
+              value: {
+                hello: {
+                  type: "literal",
+                  value: 1,
+                  valueType: "number"
+                }
+              },
+              valueType: "struct"
+            },
+            {
+              ref: "hello",
+              type: "reference"
+            },
+          ]
+        };
+        assert.deepStrictEqual(parseOrThrow("{hello: 1}.hello"), target);
+      });
+    });
+
 
     describe("indexing expressions", () => {
       it("handles a simple indexing case", () => {
