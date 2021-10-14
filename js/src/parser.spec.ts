@@ -2,6 +2,17 @@ import assert from "assert";
 import { parseOrThrow } from "./parser";
 import { ASTExpression } from "./types";
 
+const lit = (type: any, value: any): ASTExpression => ({
+  type: "literal",
+  valueType: type,
+  value,
+});
+
+const ref = (ref: string): ASTExpression => ({
+  type: "reference",
+  ref,
+})
+
 describe("parser", () => {
   describe("#parse", () => {
     describe("overall", () => {
@@ -11,12 +22,6 @@ describe("parser", () => {
     });
 
     describe("literals", () => {
-      const lit = (type: any, value: any): ASTExpression => ({
-        type: "literal",
-        valueType: type,
-        value,
-      });
-
       it("parses numeric literals", () => {
         assert.deepStrictEqual(parseOrThrow("1"), lit("number", 1));
         assert.deepStrictEqual(parseOrThrow("2"), lit("number", 2));
@@ -342,6 +347,61 @@ describe("parser", () => {
         });
       });
     });
+
+    describe("indexing expressions", () => {
+      it("handles a simple indexing case", () => {
+        const expected = {
+          type: "application",
+          function: ref('index'),
+          arguments: [
+            lit("number", 0),
+            lit("array", [lit("number", 5), lit("number", 10)])
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow("[5, 10][0]"), expected);
+      });
+
+      it("handles indexing on objects", () => {
+        const expected = {
+          type: "application",
+          function: ref('index'),
+          arguments: [
+            lit("string", "hello"),
+            lit("struct", { hello: lit("string", 'there') })
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow('{hello: "there"}["hello"]'), expected);
+      });
+
+      it("binds tighter than function application", () => {
+        const expected = {
+          type: "application",
+          function: ref('a'),
+          arguments: [{
+            type: "application",
+            function: ref('index'),
+            arguments: [ref('c'), ref('b')]
+          }],
+        };
+        assert.deepStrictEqual(parseOrThrow('a b[c]'), expected);
+      });
+      it("works with parens", () => {
+        const expected = {
+          type: "application",
+          function: ref('index'),
+          arguments: [
+            ref('c'),
+            {
+              type: "application",
+              function: ref('a'),
+              arguments: [ref('b')]
+            },
+          ],
+        };
+        assert.deepStrictEqual(parseOrThrow('(a b)[c]'), expected);
+      });
+    });
+
 
     describe("unary expressions", () => {
       it("parses basic binary expressions", () => {
