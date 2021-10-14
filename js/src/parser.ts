@@ -109,21 +109,14 @@ const consumeIndexer: Parser = (tokens) => {
   }
   let current = tokens.slice(1);
   let entries: ASTExpression[] = [];
-  // dirty explicit check for an empty array -- should be fixed up
-  while (true) {
-    const { result, remaining } = consumeExpression(current);
-    entries.push(result);
-    current = remaining;
-    if (tmatch("special", ":", current[0])) {
-      current = current.slice(1);
-      continue;
-    } else if (tmatch("special", "]", current[0])) {
-      current = current.slice(1);
-      break;
-    } else {
-      throw new ParseError("Unexpected token " + current[0].value)
-    }
+
+  const { result, remaining } = consumeExpression(current);
+  entries.push(result);
+  current = remaining;
+  if (!tmatch("special", "]", current[0])) {
+    throw new ParseError("Unexpected token " + current[0].value);
   }
+  current = current.slice(1);
   const app: ASTExpression = {
     // TODO: Make it so this can't get overwritten by local variables.
     type: "application",
