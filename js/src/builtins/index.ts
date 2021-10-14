@@ -1,4 +1,4 @@
-import { compare, getType, truthy } from "../runtimeValues";
+import { compare, truthy } from "../runtimeValues";
 import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
 import count from "./count";
@@ -10,6 +10,7 @@ import find from "./find";
 import first from "./first";
 import groupby from "./groupby";
 import head from "./head";
+import indexFn from "./indexFn";
 import keys from "./keys";
 import last from "./last";
 import log from "./log";
@@ -47,23 +48,6 @@ const booleanBinaryOperator = (
     const b = validateType("boolean", exec(args[1], stack));
     return op(a, b);
   });
-
-const index: BuiltinFunction = arity(2, (args, stack, exec) => {
-  let key = exec(args[0], stack);
-  const source = exec(args[1], stack);
-  if (getType(source) === "struct") {
-    validateType("string", key);
-    return source[key] ?? null;
-  } else if (getType(source) === "array") {
-    validateType("number", key);
-    if (key < 0) {
-      key = key + source.length;
-    }
-    return source[key] ?? null;
-  } else {
-    throw new Error("Cannot get index of non-array or non-struct");
-  }
-});
 
 const binaryCompareFunction = (
   truthtable: [boolean, boolean, boolean]
@@ -116,7 +100,7 @@ export default {
   groupby,
   head,
   if: ifFunction,
-  index,
+  index: indexFn,
   keys,
   last,
   log,
