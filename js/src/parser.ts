@@ -28,6 +28,7 @@ type ParseResult = {
 };
 
 type Parser = (tokens: LexToken[]) => ParseResult;
+type ParameterizedParser = (sourceItem: ASTExpression, tokens: LexToken[]) => ParseResult;
 
 const tmatch = (token: string, value: unknown, root: LexToken) => {
   return (root !== undefined) && root.token === token && root.value === value;
@@ -187,6 +188,32 @@ const consumeStruct: Parser = (tokens) => {
   };
 };
 
+const consumeDotAccess: ParameterizedParser = (left, tokens) => {
+  if (!tmatch("special", ".", tokens[0])) {
+    throw new OpenAnIssueIfThisOccursError("consumeDotAccess Issue");
+  }
+  let current = tokens.slice(1);
+  let ref: string;
+  if (current.length === 0 || current[0].token !== 'ref') {
+    throw new ParseError("Unexpected token " + current[0].value + ", expected :")
+  } else {
+    ref = current[0].value;
+  }
+  current = current.slice(1);
+  const result: ASTExpression = {
+    type: "application",
+    function: {
+      type: "reference",
+      ref: "."
+    },
+    arguments: [
+      left,
+      { type: 'reference', ref: ref },
+    ]
+  };
+  return { result, remaining: current };
+}
+
 // This might be the worst function i've ever written.
 // But at least it's a contained transformation.
 type BinaryExpressionSequence = { items: ASTExpression[]; joiners: string[] };
@@ -325,13 +352,16 @@ const consumeExpression: Parser = (tokens) => {
         );
     }
 
-    if (isBinExp(next) && !hackyUnaryPostProcess) {
-      joinerPushGuard(next);
-      joiners.push(next);
-      current = current.slice(1);
-    } else if (tmatch("special", "(", next)) {
+    if (tmatch("special", "(", next)) {
       itemPushGuard(next);
       const { result, remaining } = consumeParenthetical(current);
+      items.push(result);
+      current = remaining;
+    } else if (tmatch("special", ".", next)) {
+      if (items.length === 0) {
+        throw new ParseError("Unexpected Token .")
+      }
+      const { result, remaining } = consumeDotAccess(items.pop(), current);
       items.push(result);
       current = remaining;
     } else if (tmatch("special", "[", next)) {
@@ -371,6 +401,10 @@ const consumeExpression: Parser = (tokens) => {
         type: "reference",
         ref: next.value,
       });
+      current = current.slice(1);
+    } else if (isBinExp(next) && !hackyUnaryPostProcess) {
+      joinerPushGuard(next);
+      joiners.push(next);
       current = current.slice(1);
     } else {
       break;
