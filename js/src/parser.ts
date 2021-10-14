@@ -2,11 +2,11 @@ import {
   amalgamatingBinaryOperators,
   binaryExpressionStrings,
   simpleBinaryOperators,
-  unaryExpressions,
+  unaryExpressions
 } from "./constants";
 import { OpenAnIssueIfThisOccursError, ParseError } from "./errors";
 import { lex } from "./lexer";
-import { ASTExpression, LexToken } from "./types";
+import { ASTApplicationExpression, ASTExpression, LexToken } from "./types";
 
 const amalgamationTechniques: {
   [key: string]: (start: ASTExpression[]) => ASTExpression;
@@ -102,18 +102,54 @@ const consumeArray: Parser = (tokens) => {
   };
 };
 
+const consumeIndexer: Parser = (tokens) => {
+  if (!tmatch("special", "[", tokens[0])) {
+    throw new OpenAnIssueIfThisOccursError("BracketStart Issue");
+  }
+  let current = tokens.slice(1);
+  let entries: ASTExpression[] = [];
+  // dirty explicit check for an empty array -- should be fixed up
+  while (true) {
+    const { result, remaining } = consumeExpression(current);
+    entries.push(result);
+    current = remaining;
+    if (tmatch("special", ":", current[0])) {
+      current = current.slice(1);
+      continue;
+    } else if (tmatch("special", "]", current[0])) {
+      current = current.slice(1);
+      break;
+    } else {
+      throw new ParseError("Unexpected token " + current[0].value)
+    }
+  }
+  const app: ASTExpression = {
+    // TODO: Make it so this can't get overwritten by local variables.
+    type: "application",
+    function: {
+      type: "reference",
+      ref: "index",
+    },
+    arguments: entries,
+  }
+  return {
+    result: app,
+    remaining: current,
+  };
+}
+
 const consumeStruct: Parser = (tokens) => {
   if (!tmatch("special", "{", tokens[0])) {
     throw new OpenAnIssueIfThisOccursError("BracketStart Issue");
   }
   let current = tokens.slice(1);
-  let entries: {[key: string]: ASTExpression} = {};
+  let entries: { [key: string]: ASTExpression } = {};
   while (true) {
     if (tmatch("special", "}", current[0])) {
       current = current.slice(1);
       break;
     }
-    if (current[0] === undefined){
+    if (current[0] === undefined) {
       throw new ParseError("Unexpected EOF");
     }
     let key: string;
@@ -299,11 +335,24 @@ const consumeExpression: Parser = (tokens) => {
       items.push(result);
       current = remaining;
     } else if (tmatch("special", "[", next)) {
-      itemPushGuard(next);
-      const { result, remaining } = consumeArray(current);
-      items.push(result);
-      current = remaining;
-    }else if (tmatch("special", "{", next)) {
+      // If it doesn't make sense as an item, then it should be parsed
+      // as an indexing expression instead!!
+      if (joiners.length === items.length) {
+        const { result, remaining } = consumeArray(current);
+        items.push(result);
+        current = remaining;
+      } else {
+        // We can always postfix an expression with an indexing term. Binds at maximum depth.
+        // Replaces the previous 
+        const { result: app, remaining } = consumeIndexer(current);
+        items[items.length - 1] = {
+          type: 'application',
+          function: (app as ASTApplicationExpression).function,
+          arguments: (app as ASTApplicationExpression).arguments.concat([items[items.length - 1]]),
+        }
+        current = remaining;
+      }
+    } else if (tmatch("special", "{", next)) {
       itemPushGuard(next);
       const { result, remaining } = consumeStruct(current);
       items.push(result);
@@ -331,6 +380,23 @@ const consumeExpression: Parser = (tokens) => {
     if (hackyUnaryPostProcess) {
       items[items.length - 1] = hackyUnaryPostProcess(items[items.length - 1]);
     }
+  }
+
+  let resolvedSequence = turnBinaryExpressionSequenceIntoASTExpression({
+    items,
+    // We know the below is a string because we only add specials
+    joiners: joiners.map((joiner) => joiner.value as string),
+  });
+
+  // We can always postfix an expression with an indexing term. Binds at maximum depth.
+  if (tmatch('special', '[', current[0])) {
+    const { result: app, remaining } = consumeIndexer(current);
+    resolvedSequence = {
+      type: 'application',
+      function: (app as ASTApplicationExpression).function,
+      arguments: (app as ASTApplicationExpression).arguments.concat([resolvedSequence]),
+    }
+    current = remaining;
   }
 
   return {
