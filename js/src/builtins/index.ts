@@ -1,34 +1,34 @@
-import { compare, truthy } from "../runtimeValues";
+import { compare, getType, truthy } from "../runtimeValues";
 import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
-import count from './count';
-import equal from './equal';
-import filter from './filter';
-import filterkeys from './filterkeys';
-import filtervalues from './filtervalues';
-import find from './find';
-import first from './first';
-import groupby from './groupby';
-import head from './head';
-import keys from './keys';
-import last from './last';
-import log from './log';
-import map from './map';
-import mapkeys from './mapkeys';
-import mapvalues from './mapvalues';
-import not from './not';
-import notequal from './notequal';
-import plus from './plus';
-import reduce from './reduce';
-import reverse from './reverse';
-import sequence from './sequence';
-import sort from './sort';
-import sortby from './sortby';
-import sum from './sum';
-import summarize from './summarize';
-import tail from './tail';
-import unaryMinus from './unaryMinus';
-import values from './values';
+import count from "./count";
+import equal from "./equal";
+import filter from "./filter";
+import filterkeys from "./filterkeys";
+import filtervalues from "./filtervalues";
+import find from "./find";
+import first from "./first";
+import groupby from "./groupby";
+import head from "./head";
+import keys from "./keys";
+import last from "./last";
+import log from "./log";
+import map from "./map";
+import mapkeys from "./mapkeys";
+import mapvalues from "./mapvalues";
+import not from "./not";
+import notequal from "./notequal";
+import plus from "./plus";
+import reduce from "./reduce";
+import reverse from "./reverse";
+import sequence from "./sequence";
+import sort from "./sort";
+import sortby from "./sortby";
+import sum from "./sum";
+import summarize from "./summarize";
+import tail from "./tail";
+import unaryMinus from "./unaryMinus";
+import values from "./values";
 
 const numericBinaryOperator = (
   op: (a: number, b: number) => number
@@ -49,9 +49,20 @@ const booleanBinaryOperator = (
   });
 
 const index: BuiltinFunction = arity(2, (args, stack, exec) => {
-  const idx = validateType("number", exec(args[0], stack));
-  const arr = validateType("array", exec(args[1], stack));
-  return arr[idx] ?? null;
+  let key = exec(args[0], stack);
+  const source = exec(args[1], stack);
+  if (getType(source) === "struct") {
+    validateType("string", key);
+    return source[key] ?? null;
+  } else if (getType(source) === "array") {
+    validateType("number", key);
+    if (key < 0) {
+      key = key + source.length;
+    }
+    return source[key] ?? null;
+  } else {
+    throw new Error("Cannot get index of non-array or non-struct");
+  }
 });
 
 const binaryCompareFunction = (
@@ -80,7 +91,7 @@ const dotAccessor: BuiltinFunction = arity(2, (args, stack, exec) => {
   }
   // Arrays and strings have ownProperties that shouldn't be accessible.
   // TODO: Abstract this logic out.
-  if (Array.isArray(former) || typeof former === 'string' || former === null) {
+  if (Array.isArray(former) || typeof former === "string" || former === null) {
     return null;
   }
   if (former.hasOwnProperty(ref.ref)) {

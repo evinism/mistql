@@ -206,6 +206,22 @@ describe("builtins", () => {
         null
       );
     });
+
+    it("works with indexing syntax", () => {
+      assert.strictEqual(execute(parseOrThrow("[1, 2, 3, 4, 5][0]"), {}), 1);
+    });
+
+    it("indexes from the back of an array given a negative", () => {
+      assert.strictEqual(execute(parseOrThrow("[1, 2, 3, 4, 5][-2]"), {}), 4);
+    });
+
+    it("indexes from the back of an array given a negative number", () => {
+      assert.strictEqual(execute(parseOrThrow("[1, 2, 3, 4, 5][-2]"), {}), 4);
+    });
+
+    it("indexes keys correctly", () => {
+      assert.strictEqual(execute(parseOrThrow('{hi: 1}["hi"]'), {}), 1);
+    });
   });
 
   describe("#first", () => {
@@ -319,21 +335,9 @@ describe("builtins", () => {
     it("sensibly sorts items based on the specified expression", () => {
       assert.deepEqual(
         execute(parseOrThrow("items | sortby sk"), {
-          items: [
-            { sk: 11 },
-            { sk: 2 },
-            { sk: 32 },
-            { sk: 104 },
-            { sk: 5 }
-          ]
+          items: [{ sk: 11 }, { sk: 2 }, { sk: 32 }, { sk: 104 }, { sk: 5 }],
         }),
-        [
-          { sk: 2 },
-          { sk: 5 },
-          { sk: 11 },
-          { sk: 32 },
-          { sk: 104 },
-        ]
+        [{ sk: 2 }, { sk: 5 }, { sk: 11 }, { sk: 32 }, { sk: 104 }]
       );
     });
   });
@@ -463,27 +467,25 @@ describe("builtins", () => {
     });
   });
 
-
   describe("#log", () => {
     it("passes values through", () => {
-      assert.deepEqual(
-        execute(parseOrThrow('log {bleep: "hi"}'), null),
-        { bleep: "hi" }
-      );
+      assert.deepEqual(execute(parseOrThrow('log {bleep: "hi"}'), null), {
+        bleep: "hi",
+      });
     });
   });
 
   describe("#summarize", () => {
     it("summarizes values", () => {
       assert.deepEqual(
-        execute(parseOrThrow('@ | summarize'), [1, 2, 5, 10, 12]),
+        execute(parseOrThrow("@ | summarize"), [1, 2, 5, 10, 12]),
         {
           min: 1,
           max: 12,
           mean: 6,
           median: 5,
           stddev: 4.33589667773576,
-          variance: 18.8
+          variance: 18.8,
         }
       );
     });
@@ -491,7 +493,7 @@ describe("builtins", () => {
 
   describe("#sequence", () => {
     it("summarizes values", () => {
-      const e = (type: string, data: string) => ({ type, data })
+      const e = (type: string, data: string) => ({ type, data });
       assert.deepEqual(
         execute(parseOrThrow('@ | sequence type=="chat" type == "convert"'), [
           e("convert", "one"),
@@ -499,25 +501,13 @@ describe("builtins", () => {
           e("convert", "three"),
           e("convert", "four"),
           e("chat", "five"),
-          e("convert", "six")
+          e("convert", "six"),
         ]),
         [
-          [
-            e("chat", "two"),
-            e("convert", "three"),
-          ],
-          [
-            e("chat", "two"),
-            e("convert", "four"),
-          ],
-          [
-            e("chat", "two"),
-            e("convert", "six"),
-          ],
-          [
-            e("chat", "five"),
-            e("convert", "six"),
-          ],
+          [e("chat", "two"), e("convert", "three")],
+          [e("chat", "two"), e("convert", "four")],
+          [e("chat", "two"), e("convert", "six")],
+          [e("chat", "five"), e("convert", "six")],
         ]
       );
     });
