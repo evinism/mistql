@@ -76,7 +76,7 @@ const dotAccessor: BuiltinFunction = arity(2, (args, stack, exec) => {
   }
   // Arrays and strings have ownProperties that shouldn't be accessible.
   // TODO: Abstract this logic out.
-  if (Array.isArray(former) || typeof former === "string" || former === null) {
+  if (Array.isArray(former) || typeof former === "string" || former === null || former instanceof RegExp) {
     return null;
   }
   if (former.hasOwnProperty(ref.ref)) {
