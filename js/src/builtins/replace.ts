@@ -10,7 +10,7 @@ const replace: BuiltinFunction = arity(3, (args, stack, exec) => {
   if (getType(matcher) === 'regex' || getType(matcher) === 'string') {
     return target.replace(matcher, replacer);
   } else {
-    throw new Error("Matching only works with strings or regexes")
+    throw new Error("Replacing only works with strings or regexes")
   }
 });
 
