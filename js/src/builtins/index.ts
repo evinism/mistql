@@ -15,10 +15,12 @@ import log from "./log";
 import map from "./map";
 import mapkeys from "./mapkeys";
 import mapvalues from "./mapvalues";
+import match from "./match";
 import not from "./not";
 import notequal from "./notequal";
 import plus from "./plus";
 import reduce from "./reduce";
+import replace from "./replace";
 import reverse from "./reverse";
 import sequence from "./sequence";
 import sort from "./sort";
@@ -88,6 +90,9 @@ const ifFunction: BuiltinFunction = arity(3, (args, stack, exec) => {
     : exec(args[2], stack);
 });
 
+const matchBinaryOp: BuiltinFunction =
+  arity(2, (args, stack, exec) => match(args.reverse(), stack, exec));
+
 export default {
   count,
   filter,
@@ -100,10 +105,12 @@ export default {
   index: indexFn,
   keys,
   log,
+  match,
   map,
   mapkeys,
   mapvalues,
   reduce,
+  replace,
   reverse,
   sequence,
   sort,
@@ -128,4 +135,5 @@ export default {
   "<": binaryCompareFunction([false, false, true]),
   ">=": binaryCompareFunction([true, true, false]),
   "<=": binaryCompareFunction([false, true, true]),
+  "=~": matchBinaryOp,
 };

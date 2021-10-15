@@ -5,14 +5,14 @@ import { parseOrThrow } from "../parser";
 describe("builtins", () => {
   describe("#map", () => {
     it("correctly maps simple values", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("map @ + 1 [1, 2, 3]"), {}),
         [2, 3, 4]
       );
     });
 
     it("correctly maps structy values", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("map (feature + 1) arr"), {
           arr: [{ feature: 1 }, { feature: 2 }, { feature: 3 }],
         }),
@@ -23,7 +23,7 @@ describe("builtins", () => {
 
   describe("#filter", () => {
     it("correctly filters events", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow('filter type == "hi" events'), {
           events: [
             { type: "hi", foo: 1 },
@@ -49,7 +49,7 @@ describe("builtins", () => {
 
   describe("#mapvalues", () => {
     it("correctly changes the values of each", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("@ | mapvalues @ + 2"), {
           one: 1,
           two: 2,
@@ -68,7 +68,7 @@ describe("builtins", () => {
 
   describe("#filtervalues", () => {
     it("correctly filters values", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("@ | filtervalues @ > 2"), {
           one: 1,
           two: 2,
@@ -82,7 +82,7 @@ describe("builtins", () => {
 
   describe("#filterkeys", () => {
     it("correctly filters values", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow('@ | filterkeys @ > "one"'), {
           one: 1,
           two: 2,
@@ -96,7 +96,7 @@ describe("builtins", () => {
 
   describe("#mapkeys", () => {
     it("correctly filters values", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow('@ | mapkeys @ + "_old"'), {
           one: 1,
           two: 2,
@@ -172,7 +172,7 @@ describe("builtins", () => {
 
   describe("#find", () => {
     it("correctly finds events", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow('find type == "there" events'), {
           events: [
             { type: "hi", foo: 1 },
@@ -226,7 +226,7 @@ describe("builtins", () => {
 
   describe("#keys", () => {
     it("correctly filters events", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("@ | keys"), { type: "hi", foo: 1 }),
         ["type", "foo"]
       );
@@ -235,7 +235,7 @@ describe("builtins", () => {
 
   describe("#values", () => {
     it("correctly filters events", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("@ | values"), { type: 5, foo: 1 }),
         [5, 1]
       );
@@ -272,7 +272,7 @@ describe("builtins", () => {
           },
         ],
       };
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("events | groupby email"), { events }),
         expected
       );
@@ -281,14 +281,14 @@ describe("builtins", () => {
 
   describe("#sort", () => {
     it("sensibly sorts numbers", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("[11, 2, 32, 104, 5] | sort"), {}),
         [2, 5, 11, 32, 104]
       );
     });
 
     it("sensibly sorts strings", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(
           parseOrThrow('["banana", "apple", "carrot", "cabbage"] | sort'),
           {}
@@ -298,7 +298,7 @@ describe("builtins", () => {
     });
 
     it("sensibly sorts booleans", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("[true, false, true, false] | sort"), {}),
         [false, false, true, true]
       );
@@ -307,7 +307,7 @@ describe("builtins", () => {
 
   describe("#sortby", () => {
     it("sensibly sorts items based on the specified expression", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("items | sortby sk"), {
           items: [{ sk: 11 }, { sk: 2 }, { sk: 32 }, { sk: 104 }, { sk: 5 }],
         }),
@@ -318,11 +318,11 @@ describe("builtins", () => {
 
   describe("#reverse", () => {
     it("handles empty arrays", () => {
-      assert.deepEqual(execute(parseOrThrow("[] | reverse"), {}), []);
+      assert.deepStrictEqual(execute(parseOrThrow("[] | reverse"), {}), []);
     });
 
     it("reverses arrays", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("[1, 2, 3, 4, 5] | reverse"), {}),
         [5, 4, 3, 2, 1]
       );
@@ -331,11 +331,11 @@ describe("builtins", () => {
 
   describe("#head", () => {
     it("handles empty arrays", () => {
-      assert.deepEqual(execute(parseOrThrow("[] | head 3"), {}), []);
+      assert.deepStrictEqual(execute(parseOrThrow("[] | head 3"), {}), []);
     });
 
     it("grabs the first n elements", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("[1, 2, 3, 4, 5] | head 3"), {}),
         [1, 2, 3]
       );
@@ -344,11 +344,11 @@ describe("builtins", () => {
 
   describe("#tail", () => {
     it("handles empty arrays", () => {
-      assert.deepEqual(execute(parseOrThrow("[] | head 3"), {}), []);
+      assert.deepStrictEqual(execute(parseOrThrow("[] | head 3"), {}), []);
     });
 
     it("grabs the last n elements", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("[1, 2, 3, 4, 5] | tail 3"), {}),
         [3, 4, 5]
       );
@@ -443,7 +443,7 @@ describe("builtins", () => {
 
   describe("#log", () => {
     it("passes values through", () => {
-      assert.deepEqual(execute(parseOrThrow('log {bleep: "hi"}'), null), {
+      assert.deepStrictEqual(execute(parseOrThrow('log {bleep: "hi"}'), null), {
         bleep: "hi",
       });
     });
@@ -451,7 +451,7 @@ describe("builtins", () => {
 
   describe("#summarize", () => {
     it("summarizes values", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow("@ | summarize"), [1, 2, 5, 10, 12]),
         {
           min: 1,
@@ -468,7 +468,7 @@ describe("builtins", () => {
   describe("#sequence", () => {
     it("summarizes values", () => {
       const e = (type: string, data: string) => ({ type, data });
-      assert.deepEqual(
+      assert.deepStrictEqual(
         execute(parseOrThrow('@ | sequence type=="chat" type == "convert"'), [
           e("convert", "one"),
           e("chat", "two"),
@@ -483,6 +483,71 @@ describe("builtins", () => {
           [e("chat", "two"), e("convert", "six")],
           [e("chat", "five"), e("convert", "six")],
         ]
+      );
+    });
+  });
+
+  describe("#replace", () => {
+    it("correctly replaces string values", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" | replace "ll" "zop"'), null),
+        "hezopo"
+      );
+    });
+
+    it("inteprets the first arg as a regex", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" | replace "l+" "zop"'), null),
+        "hezopo"
+      );
+    });
+
+    it("allows flags", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" | replace "l" "za" "g"'), null),
+        "hezazao"
+      );
+    });
+
+    it("replaces only first instance by default", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" | replace "l" "za"'), null),
+        "hezalo"
+      );
+    });
+  });
+
+  describe("#match", () => {
+    it("correctly matches string values", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" | match "he..o"'), null),
+        true
+      );
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" | match "he..a"'), null),
+        false
+      );
+    });
+
+    it("allows flags", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"Hello" | match "[a-z]ello" "i"'), null),
+        false
+      );
+      assert.strictEqual(
+        execute(parseOrThrow('"Hello" | match "[a-z]ello" "i"'), null),
+        true
+      );
+    });
+
+    it("allows matching via the =~ operator", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" =~ "he..o"'), null),
+        true
+      );
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" =~ "he..a"'), null),
+        false
       );
     });
   });
