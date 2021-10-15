@@ -25,9 +25,13 @@ export const seqHelper = (arr: boolean[][], start = 0): number[][] => {
 
 // Builtin Helpers
 export const arity =
-  (arityCount: number, fn: BuiltinFunction): BuiltinFunction =>
+  (arityCount: number | number[], fn: BuiltinFunction): BuiltinFunction =>
     (args, stack, exec) => {
-      if (args.length !== arityCount) {
+      const validArity =
+        (typeof arityCount === "number"
+          ? arityCount === args.length
+          : arityCount.indexOf(args.length) !== -1)
+      if (!validArity) {
         throw new Error(
           "Expected " + arityCount + " arguments, got " + args.length
         );
