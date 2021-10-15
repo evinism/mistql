@@ -8,7 +8,7 @@ import {
   Closure,
   ExecutionFunction,
   RuntimeValue,
-  Stack,
+  Stack
 } from "./types";
 
 const defaultStack: Stack = [builtins];
@@ -35,6 +35,9 @@ export const inputGardenWall = (data: unknown) => {
 export const outputGardenWall = (data: unknown) => {
   if (typeof data === "function") {
     throw new Error("Return value of query is a function, aborting!");
+  }
+  if (data instanceof RegExp) {
+    throw new Error("Return value of query is a regex, aborting!");
   }
   return inputGardenWall(data);
 };

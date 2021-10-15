@@ -497,14 +497,14 @@ describe("builtins", () => {
 
     it("inteprets the first arg as a regex", () => {
       assert.strictEqual(
-        execute(parseOrThrow('"hello" | replace "l+" "zop"'), null),
+        execute(parseOrThrow('"hello" | replace (regex "l+") "zop"'), null),
         "hezopo"
       );
     });
 
     it("allows flags", () => {
       assert.strictEqual(
-        execute(parseOrThrow('"hello" | replace "l" "za" "g"'), null),
+        execute(parseOrThrow('"hello" | replace (regex "l" "g") "za"'), null),
         "hezazao"
       );
     });
@@ -517,36 +517,36 @@ describe("builtins", () => {
     });
   });
 
-  describe("#match", () => {
+  describe("#match/#regex", () => {
     it("correctly matches string values", () => {
       assert.strictEqual(
-        execute(parseOrThrow('"hello" | match "he..o"'), null),
+        execute(parseOrThrow('"hello" | match (regex "he..o")'), null),
         true
       );
       assert.strictEqual(
-        execute(parseOrThrow('"hello" | match "he..a"'), null),
+        execute(parseOrThrow('"hello" | match (regex "he..a")'), null),
         false
       );
     });
 
     it("allows flags", () => {
       assert.strictEqual(
-        execute(parseOrThrow('"Hello" | match "[a-z]ello" "i"'), null),
+        execute(parseOrThrow('"Hello" | match (regex "[a-z]ello")'), null),
         false
       );
       assert.strictEqual(
-        execute(parseOrThrow('"Hello" | match "[a-z]ello" "i"'), null),
+        execute(parseOrThrow('"Hello" | match (regex "[a-z]ello" "i")'), null),
         true
       );
     });
 
     it("allows matching via the =~ operator", () => {
       assert.strictEqual(
-        execute(parseOrThrow('"hello" =~ "he..o"'), null),
+        execute(parseOrThrow('"hello" =~ (regex "he..o")'), null),
         true
       );
       assert.strictEqual(
-        execute(parseOrThrow('"hello" =~ "he..a"'), null),
+        execute(parseOrThrow('"hello" =~ (regex "he..a")'), null),
         false
       );
     });
