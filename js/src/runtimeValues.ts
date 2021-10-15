@@ -1,6 +1,6 @@
 import { RuntimeValue } from "./types";
 
-export type RuntimeValueType = 'array' | 'struct' | 'number' | 'boolean' | 'string' | 'null'
+export type RuntimeValueType = 'array' | 'struct' | 'regex' | 'number' | 'boolean' | 'string' | 'null'
 
 export const truthy = (runtimeValue: RuntimeValue): boolean => {
   if (Array.isArray(runtimeValue)) {
@@ -14,22 +14,26 @@ export const getType = (a: RuntimeValue): RuntimeValueType => {
     return 'array';
   } else if (a === null) {
     return 'null';
+  } else if (a instanceof RegExp) {
+    return 'regex';
   } else if (typeof a === 'object') {
     return 'struct';
   } else {
-    return typeof a as any;
+    return typeof a as RuntimeValueType;
   }
 }
 
 export const compare = (a: RuntimeValue, b: RuntimeValue): number => {
   const varType = getType(a);
   if (varType !== getType(b)) {
-    throw new Error("Type comparison ill defined between different variable types");
+    throw new Error("Type comparison ill-defined between different variable types");
   }
   if (varType === 'array') {
-    throw new Error("Type comparison betwen arrays not yet implemented");
+    throw new Error("Type comparison betwen arrays not permitted");
   } else if (varType === 'struct') {
-    throw new Error("Type comparison betwen structs not permitted");
+    throw new Error("Type comparison between structs not permitted");
+  } else if (varType === 'regex') {
+    throw new Error("Type comparison between regexes not permitted");
   } else if (varType === 'number') {
     return b - a;
   } else if (varType === 'boolean') {
