@@ -20,6 +20,7 @@ import not from "./not";
 import notequal from "./notequal";
 import plus from "./plus";
 import reduce from "./reduce";
+import regex from "./regex";
 import replace from "./replace";
 import reverse from "./reverse";
 import sequence from "./sequence";
@@ -110,6 +111,7 @@ export default {
   mapkeys,
   mapvalues,
   reduce,
+  regex,
   replace,
   reverse,
   sequence,

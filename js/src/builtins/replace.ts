@@ -1,24 +1,17 @@
-import { BuiltinFunction, RuntimeValue } from "../types";
+import { getType } from "../runtimeValues";
+import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
 
-const validFlags = /^[gims]*$/
 
-const replace: BuiltinFunction = arity([3, 4], (args, stack, exec) => {
-  const regexStr = validateType("string", exec(args[0], stack));
-  const replacement = validateType("string", exec(args[1], stack));
-  let target: RuntimeValue;
-  let flags: string;
-  if (args.length === 3) {
-    flags = "";
-    target = validateType("string", exec(args[2], stack));
+const replace: BuiltinFunction = arity(3, (args, stack, exec) => {
+  const matcher = exec(args[0], stack);
+  const replacer = validateType("string", exec(args[1], stack));
+  const target = validateType("string", exec(args[2], stack));
+  if (getType(matcher) === 'regex' || getType(matcher) === 'string') {
+    return target.replace(matcher, replacer);
   } else {
-    flags = validateType("string", exec(args[2], stack));
-    if (!validFlags.test(flags)) {
-      throw new Error("Invalid flags passed to replace: " + flags);
-    }
-    target = validateType("string", exec(args[3], stack));
+    throw new Error("Matching only works with strings or regexes")
   }
-  return target.replace(new RegExp(regexStr, flags), replacement);
 });
 
 export default replace;

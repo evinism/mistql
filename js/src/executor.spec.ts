@@ -52,6 +52,10 @@ describe("executor", () => {
     it("errors on function out", () => {
       assert.throws(() => outputGardenWall(function () { }));
     });
+
+    it("errors on regex out", () => {
+      assert.throws(() => outputGardenWall(/regex/));
+    });
   });
 
   describe("#execute", () => {
