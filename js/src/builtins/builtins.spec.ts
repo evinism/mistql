@@ -268,7 +268,7 @@ describe("builtins", () => {
     it("correctly filters events", () => {
       assert.deepStrictEqual(
         execute(parseOrThrow("@ | keys"), { type: "hi", foo: 1 }),
-        ["type", "foo"]
+        ["foo", "type"]
       );
     });
   });
@@ -277,7 +277,7 @@ describe("builtins", () => {
     it("correctly filters events", () => {
       assert.deepStrictEqual(
         execute(parseOrThrow("@ | values"), { type: 5, foo: 1 }),
-        [5, 1]
+        [1, 5]
       );
     });
   });
@@ -406,12 +406,12 @@ describe("builtins", () => {
 
   describe("#head", () => {
     it("handles empty arrays", () => {
-      assert.deepStrictEqual(execute(parseOrThrow("[] | head 3"), {}), []);
+      assert.deepStrictEqual(execute(parseOrThrow("[][:3]"), {}), []);
     });
 
     it("grabs the first n elements", () => {
       assert.deepStrictEqual(
-        execute(parseOrThrow("[1, 2, 3, 4, 5] | head 3"), {}),
+        execute(parseOrThrow("[1, 2, 3, 4, 5][:3]"), {}),
         [1, 2, 3]
       );
     });
@@ -419,12 +419,12 @@ describe("builtins", () => {
 
   describe("#tail", () => {
     it("handles empty arrays", () => {
-      assert.deepStrictEqual(execute(parseOrThrow("[] | head 3"), {}), []);
+      assert.deepStrictEqual(execute(parseOrThrow("[][:3]"), {}), []);
     });
 
     it("grabs the last n elements", () => {
       assert.deepStrictEqual(
-        execute(parseOrThrow("[1, 2, 3, 4, 5] | tail 3"), {}),
+        execute(parseOrThrow("[1, 2, 3, 4, 5][-3:]"), {}),
         [3, 4, 5]
       );
     });
