@@ -64,4 +64,37 @@ describe("index", () => {
       assert.deepStrictEqual(query("[1, 2, 3, 4, 5][2:4]", {}), [3, 4]);
     });
   });
+
+  describe("weird overwriting stuff", () => {
+    it("doesn't overwrite binary operators", () => {
+      assert.deepStrictEqual(
+        query("1 + 1 - 1 * 1 / 1", { "+": 1, "*": 1, "-": 1, "/": 1 }),
+        1
+      );
+    });
+
+    it("doesn't overwrite indexing", () => {
+      assert.deepStrictEqual(query("[1, 2, 3][1]", { index: "hello" }), 2);
+    });
+
+    it("allows us to filter on values that overlap with builtin names", () => {
+      assert.deepStrictEqual(
+        query('[{filter: "hp"}, {filter: "lp"}] | filter filter == "lp"', {
+          index: "hello",
+        }),
+        [{ filter: "lp" }]
+      );
+    });
+
+    it("gives us a method for un-overwriting", () => {
+      assert.deepStrictEqual(
+        query('[{filter: hp}, {filter: lp}] | $.filter filter == "lp"', {
+          filter: "hello",
+          hp: "hp",
+          lp: "lp",
+        }),
+        [{ filter: "lp" }]
+      );
+    });
+  });
 });
