@@ -207,6 +207,48 @@ describe("builtins", () => {
       );
     });
 
+    it("correctly indexes strings", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"abcdefg" | index 2'), {}),
+        'c'
+      );
+    });
+
+    it("allows ranges", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"abcdefg" | index 2 4'), {}),
+        'cd'
+      );
+    });
+
+    it("allows ranges with implicit end", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"abcdefg" | index 3 null'), {}),
+        'defg'
+      );
+    });
+
+    it("allows ranges with implicit start", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"abcdefg" | index null 3'), {}),
+        'abc'
+      );
+    });
+
+    it("allows ranges with arrays", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('[1, 2, 3, 4, 5] | index 1 3'), {}),
+        [2, 3]
+      );
+    });
+
+    it("allows ranges with negative indices", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('[1, 2, 3, 4, 5] | index (-3) (-1)'), {}),
+        [3, 4]
+      );
+    });
+
     it("works with indexing syntax", () => {
       assert.strictEqual(execute(parseOrThrow("[1, 2, 3, 4, 5][0]"), {}), 1);
     });
@@ -221,6 +263,10 @@ describe("builtins", () => {
 
     it("indexes keys correctly", () => {
       assert.strictEqual(execute(parseOrThrow('{hi: 1}["hi"]'), {}), 1);
+    });
+
+    it("can index strings", () => {
+      assert.strictEqual(execute(parseOrThrow('"hi"[0]'), {}), "h");
     });
   });
 
