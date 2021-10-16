@@ -37,6 +37,23 @@ describe("lexer", () => {
         { token: "special", value: " ", position: 7 },
         { token: "ref", value: "there", position: 10 },
       ]);
+      assert.deepStrictEqual(lex('"sup\\nnerd"   there'), [
+        { token: "value", value: "sup\nnerd", position: 0 },
+        { token: "special", value: " ", position: 11 },
+        { token: "ref", value: "there", position: 14 },
+      ]);
+
+      assert.deepStrictEqual(lex('"sup\\tnerd"   there'), [
+        { token: "value", value: "sup\tnerd", position: 0 },
+        { token: "special", value: " ", position: 11 },
+        { token: "ref", value: "there", position: 14 },
+      ]);
+
+      assert.deepStrictEqual(lex('"sup\\u0000 nerd"   there'), [
+        { token: "value", value: "sup\u0000 nerd", position: 0 },
+        { token: "special", value: " ", position: 16 },
+        { token: "ref", value: "there", position: 19 },
+      ]);
     });
 
     it("should error with unterminated strings", () => {
@@ -44,53 +61,54 @@ describe("lexer", () => {
     });
 
     it("trims whitespace", () => {
-      assert.deepStrictEqual(lex('  @  '), [
+      assert.deepStrictEqual(lex("  @  "), [
         { token: "ref", value: "@", position: 2 },
       ]);
     });
 
     it("parses any sequence of whitespace as a single space", () => {
       const cases = [
-        '@ @',
-        '@\t@',
-        '@\n@',
-        '@     @',
-        '@\t  @',
-        '@ \t @',
-        '@  \t@',
-        '@\n  @',
-        '@ \n @',
-        '@  \n@',
-        '@  \n   \t  \t\t\t@',
+        "@ @",
+        "@\t@",
+        "@\n@",
+        "@     @",
+        "@\t  @",
+        "@ \t @",
+        "@  \t@",
+        "@\n  @",
+        "@ \n @",
+        "@  \n@",
+        "@  \n   \t  \t\t\t@",
       ];
-      cases.forEach((item) => assert.deepStrictEqual(lex(item), [
-        { token: "ref", value: '@', position: 0 },
-        { token: "special", value: " ", position: 1 },
-        { token: "ref", value: '@', position: item.length - 1 },
-      ]));
-    })
+      cases.forEach((item) =>
+        assert.deepStrictEqual(lex(item), [
+          { token: "ref", value: "@", position: 0 },
+          { token: "special", value: " ", position: 1 },
+          { token: "ref", value: "@", position: item.length - 1 },
+        ])
+      );
+    });
 
     it("should handle right, left, and rl-binding tokens", () => {
       assert.deepStrictEqual(lex("  +  "), [
         { token: "special", value: "+", position: 2 },
       ]);
 
-      ['(', '{', '['].forEach((token) => {
+      ["(", "{", "["].forEach((token) => {
         assert.deepStrictEqual(lex(`@  ${token}  @`), [
-          { token: "ref", value: '@', position: 0 },
+          { token: "ref", value: "@", position: 0 },
           { token: "special", value: " ", position: 1 },
           { token: "special", value: token, position: 3 },
-          { token: "ref", value: '@', position: 6 },
-
+          { token: "ref", value: "@", position: 6 },
         ]);
       });
 
-      [')', '}', ']'].forEach((token) => {
+      [")", "}", "]"].forEach((token) => {
         assert.deepStrictEqual(lex(`@  ${token}  @`), [
-          { token: "ref", value: '@', position: 0 },
+          { token: "ref", value: "@", position: 0 },
           { token: "special", value: token, position: 3 },
           { token: "special", value: " ", position: 4 },
-          { token: "ref", value: '@', position: 6 },
+          { token: "ref", value: "@", position: 6 },
         ]);
       });
     });
