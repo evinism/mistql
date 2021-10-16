@@ -8,7 +8,6 @@ import filterkeys from "./filterkeys";
 import filtervalues from "./filtervalues";
 import find from "./find";
 import groupby from "./groupby";
-import head from "./head";
 import indexFn from "./indexFn";
 import keys from "./keys";
 import log from "./log";
@@ -28,7 +27,6 @@ import sort from "./sort";
 import sortby from "./sortby";
 import sum from "./sum";
 import summarize from "./summarize";
-import tail from "./tail";
 import unaryMinus from "./unaryMinus";
 import values from "./values";
 
@@ -107,7 +105,6 @@ export default {
   filtervalues,
   find,
   groupby,
-  head,
   if: ifFunction,
   index: indexFn,
   keys,
@@ -125,7 +122,6 @@ export default {
   sortby,
   sum,
   summarize,
-  tail,
   values,
   "!/unary": not,
   "-/unary": unaryMinus,
