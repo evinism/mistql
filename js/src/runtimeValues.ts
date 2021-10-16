@@ -1,5 +1,6 @@
 import { RuntimeValue } from "./types";
 
+// TODO: We also have functions here!!
 export type RuntimeValueType =
   | "array"
   | "struct"
@@ -25,6 +26,17 @@ export const getProperties = (value: RuntimeValue) => {
       retval.push(i);
     }
     return retval.sort();
+  }
+};
+
+export const castToString = (value: RuntimeValue): RuntimeValue => {
+  const type = getType(value);
+  if (type === "string") {
+    return value;
+  } else if (type === "regex" || typeof value === "function") {
+    throw new Error("Cannot cast type " + type + " to string");
+  } else {
+    return JSON.stringify(value);
   }
 };
 
