@@ -2,30 +2,64 @@ import { getType } from "../runtimeValues";
 import { BuiltinFunction, RuntimeValue } from "../types";
 import { arity, validateType } from "../util";
 
+type Indexer = (source: RuntimeValue, key: RuntimeValue, keyEnd: RuntimeValue) => RuntimeValue;
 
-const structIndexer = (source: RuntimeValue, key: RuntimeValue) => {
+const structIndexer: Indexer = (source, key, keyEnd) => {
+  if (keyEnd !== undefined) {
+    throw new Error("Index ranges not supported for structs")
+  }
   validateType("string", key);
   return source[key] ?? null;
 }
 
-const arrayIndexer = (source: RuntimeValue, key: RuntimeValue) => {
-  validateType("number", key);
+const arrayOrStringIndexer: Indexer = (source: string | any[], key, keyEnd) => {
+  // negative indices!
   if (key < 0) {
     key = key + source.length;
   }
-  return source[key] ?? null;
+  if (keyEnd < 0) {
+    keyEnd = keyEnd + source.length;
+  }
+  if (keyEnd === undefined) {
+    validateType("number", key);
+    return source[key] ?? null;
+  }
+  if (keyEnd === null) {
+    validateType("number", key);
+    return source.slice(key);
+  }
+  if (key === null) {
+    validateType("number", keyEnd);
+    return source.slice(0, keyEnd);
+  }
+  validateType("number", key);
+  validateType("number", keyEnd);
+  return source.slice(key, keyEnd);
 }
 
-const index: BuiltinFunction = arity(2, (args, stack, exec) => {
+const indexers: { [key: string]: Indexer } = {
+  'struct': structIndexer,
+  'array': arrayOrStringIndexer,
+  'string': arrayOrStringIndexer,
+}
+
+const index: BuiltinFunction = arity([2, 3], (args, stack, exec) => {
   let key = exec(args[0], stack);
-  const source = exec(args[1], stack);
-  if (getType(source) === "struct") {
-    return structIndexer(source, key);
-  } else if (getType(source) === "array") {
-    return arrayIndexer(source, key);
+  let keyEnd: RuntimeValue;
+  let source: RuntimeValue;
+  if (args.length === 2) {
+    keyEnd = undefined;
+    source = exec(args[1], stack);
   } else {
-    throw new Error("Cannot get index of non-array or non-struct");
+    keyEnd = exec(args[1], stack);
+    source = exec(args[2], stack);
   }
+  const sourceType = getType(source);
+  const indexer = indexers[sourceType];
+  if (!indexer) {
+    throw new Error("Cannot get index of type " + sourceType);
+  }
+  return indexer(source, key, keyEnd)
 });
 
 export default index;
