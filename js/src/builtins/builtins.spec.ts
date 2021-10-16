@@ -317,6 +317,41 @@ describe("builtins", () => {
         expected
       );
     });
+
+    it("groups non-strings", () => {
+      const events = [
+        { type: "signup", id: 1 },
+        { type: "signup", id: 2 },
+        { type: "play", id: 2 },
+        { type: "play", id: 2 },
+      ];
+      const expected = {
+        1: [
+          {
+            id: 1,
+            type: "signup",
+          },
+        ],
+        2: [
+          {
+            id: 2,
+            type: "signup",
+          },
+          {
+            id: 2,
+            type: "play",
+          },
+          {
+            id: 2,
+            type: "play",
+          },
+        ],
+      };
+      assert.deepStrictEqual(
+        execute(parseOrThrow("events | groupby id"), { events }),
+        expected
+      );
+    });
   });
 
   describe("#sort", () => {

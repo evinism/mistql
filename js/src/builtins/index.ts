@@ -76,7 +76,12 @@ const dotAccessor: BuiltinFunction = arity(2, (args, stack, exec) => {
   }
   // Arrays and strings have ownProperties that shouldn't be accessible.
   // TODO: Abstract this logic out.
-  if (Array.isArray(former) || typeof former === "string" || former === null || former instanceof RegExp) {
+  if (
+    Array.isArray(former) ||
+    typeof former === "string" ||
+    former === null ||
+    former instanceof RegExp
+  ) {
     return null;
   }
   if (former.hasOwnProperty(ref.ref)) {
@@ -91,8 +96,9 @@ const ifFunction: BuiltinFunction = arity(3, (args, stack, exec) => {
     : exec(args[2], stack);
 });
 
-const matchBinaryOp: BuiltinFunction =
-  arity(2, (args, stack, exec) => match(args.reverse(), stack, exec));
+const matchBinaryOp: BuiltinFunction = arity(2, (args, stack, exec) =>
+  match(args.reverse(), stack, exec)
+);
 
 export default {
   count,
