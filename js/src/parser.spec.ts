@@ -8,10 +8,16 @@ const lit = (type: any, value: any): ASTExpression => ({
   value,
 });
 
-const ref = (ref: string): ASTExpression => ({
-  type: "reference",
-  ref,
-});
+const ref = (ref: string, internal?: true): ASTExpression => {
+  const res: ASTExpression = {
+    type: "reference",
+    ref,
+  };
+  if (internal) {
+    res.internal = true;
+  }
+  return res;
+};
 
 describe("parser", () => {
   describe("#parse", () => {
@@ -103,6 +109,7 @@ describe("parser", () => {
               function: {
                 ref: ".",
                 type: "reference",
+                internal: true,
               },
               type: "application",
             },
@@ -114,6 +121,7 @@ describe("parser", () => {
           function: {
             ref: ".",
             type: "reference",
+            internal: true,
           },
           type: "application",
         };
@@ -293,6 +301,7 @@ describe("parser", () => {
           function: {
             type: "reference",
             ref: ".",
+            internal: true,
           },
           arguments: [
             {
@@ -300,6 +309,7 @@ describe("parser", () => {
               function: {
                 type: "reference",
                 ref: ".",
+                internal: true,
               },
               arguments: [
                 {
@@ -307,6 +317,7 @@ describe("parser", () => {
                   function: {
                     type: "reference",
                     ref: ".",
+                    internal: true,
                   },
                   arguments: [
                     {
@@ -314,6 +325,7 @@ describe("parser", () => {
                       function: {
                         type: "reference",
                         ref: ".",
+                        internal: true,
                       },
                       arguments: [
                         {
@@ -353,6 +365,7 @@ describe("parser", () => {
           function: {
             type: "reference",
             ref: ".",
+            internal: true,
           },
           arguments: [
             {
@@ -360,6 +373,7 @@ describe("parser", () => {
               function: {
                 type: "reference",
                 ref: ".",
+                internal: true,
               },
               arguments: [
                 {
@@ -367,6 +381,7 @@ describe("parser", () => {
                   function: {
                     type: "reference",
                     ref: ".",
+                    internal: true,
                   },
                   arguments: [
                     {
@@ -374,6 +389,7 @@ describe("parser", () => {
                       function: {
                         type: "reference",
                         ref: ".",
+                        internal: true,
                       },
                       arguments: [
                         {
@@ -404,7 +420,10 @@ describe("parser", () => {
             },
           ],
         };
-        assert.deepStrictEqual(parseOrThrow("((there.is).much).to.learn"), target);
+        assert.deepStrictEqual(
+          parseOrThrow("((there.is).much).to.learn"),
+          target
+        );
       });
 
       it("works after an object literal", () => {
@@ -412,7 +431,8 @@ describe("parser", () => {
           type: "application",
           function: {
             ref: ".",
-            type: "reference"
+            type: "reference",
+            internal: true,
           },
           arguments: [
             {
@@ -421,27 +441,26 @@ describe("parser", () => {
                 hello: {
                   type: "literal",
                   value: 1,
-                  valueType: "number"
-                }
+                  valueType: "number",
+                },
               },
-              valueType: "struct"
+              valueType: "struct",
             },
             {
               ref: "hello",
-              type: "reference"
+              type: "reference",
             },
-          ]
+          ],
         };
         assert.deepStrictEqual(parseOrThrow("{hello: 1}.hello"), target);
       });
     });
 
-
     describe("indexing expressions", () => {
       it("handles a simple indexing case", () => {
         const expected = {
           type: "application",
-          function: ref("index"),
+          function: ref("index", true),
           arguments: [
             lit("number", 0),
             lit("array", [lit("number", 5), lit("number", 10)]),
@@ -453,7 +472,7 @@ describe("parser", () => {
       it("handles indexing on objects", () => {
         const expected = {
           type: "application",
-          function: ref("index"),
+          function: ref("index", true),
           arguments: [
             lit("string", "hello"),
             lit("struct", { hello: lit("string", "there") }),
@@ -472,7 +491,7 @@ describe("parser", () => {
           arguments: [
             {
               type: "application",
-              function: ref("index"),
+              function: ref("index", true),
               arguments: [ref("c"), ref("b")],
             },
           ],
@@ -483,7 +502,7 @@ describe("parser", () => {
       it("works with parens", () => {
         const expected = {
           type: "application",
-          function: ref("index"),
+          function: ref("index", true),
           arguments: [
             ref("c"),
             {
@@ -499,16 +518,16 @@ describe("parser", () => {
       it("binds equivalently tightly to the dot accessor.", () => {
         const expected = {
           type: "application",
-          function: ref("."),
+          function: ref(".", true),
           arguments: [
             {
               type: "application",
-              function: ref("index"),
+              function: ref("index", true),
               arguments: [
                 ref("c"),
                 {
                   type: "application",
-                  function: ref("."),
+                  function: ref(".", true),
                   arguments: [ref("a"), ref("b")],
                 },
               ],
@@ -527,6 +546,7 @@ describe("parser", () => {
           function: {
             type: "reference",
             ref: "-/unary",
+            internal: true,
           },
           arguments: [
             {
@@ -544,6 +564,7 @@ describe("parser", () => {
           function: {
             type: "reference",
             ref: "+",
+            internal: true,
           },
           arguments: [
             {
@@ -555,6 +576,7 @@ describe("parser", () => {
               function: {
                 type: "reference",
                 ref: "-/unary",
+                internal: true,
               },
               arguments: [
                 {
@@ -576,6 +598,7 @@ describe("parser", () => {
           function: {
             type: "reference",
             ref: "+",
+            internal: true,
           },
           arguments: [
             {
@@ -597,6 +620,7 @@ describe("parser", () => {
           function: {
             type: "reference",
             ref: "+",
+            internal: true,
           },
           arguments: [
             {
@@ -604,6 +628,7 @@ describe("parser", () => {
               function: {
                 type: "reference",
                 ref: "*",
+                internal: true,
               },
               arguments: [
                 {
@@ -621,6 +646,7 @@ describe("parser", () => {
               function: {
                 type: "reference",
                 ref: "*",
+                internal: true,
               },
               arguments: [
                 {
@@ -647,6 +673,7 @@ describe("parser", () => {
           function: {
             type: "reference",
             ref: "-",
+            internal: true,
           },
           arguments: [
             {
@@ -654,6 +681,7 @@ describe("parser", () => {
               function: {
                 type: "reference",
                 ref: "-",
+                internal: true,
               },
               arguments: [
                 {
