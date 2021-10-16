@@ -121,10 +121,10 @@ export function lex(raw: string): LexToken[] {
           position,
         });
       }
-    } else if (buffer === "@") {
+    } else if (buffer === "@" || buffer === "$") {
       tokens.push({
         token: "ref",
-        value: "@",
+        value: buffer,
         position,
       });
     } else if (buffer === '"') {
