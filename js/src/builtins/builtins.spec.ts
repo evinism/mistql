@@ -749,4 +749,118 @@ describe("builtins", () => {
       assert.strictEqual(execute(parseOrThrow("false == true"), null), false);
     });
   });
+
+  describe("#split", () => {
+    it("splits basic strings", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('split "hi" @'), "ahi tuna"),
+        ["a", " tuna"]
+      );
+    });
+
+    it("splits via regexes", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('split (regex "h.") @'), "ahi tuna"),
+        ["a", " tuna"]
+      );
+    });
+
+    it("splits everywhere even with a non global regex", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('split (regex "a") @'), "babab"),
+        ["b", "b", "b"]
+      );
+    });
+  });
+
+  describe("#join", () => {
+    it("joins basic arrays", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('join "" @'), ["bo", "ba"]),
+        "boba"
+      );
+    });
+
+    it("joins with a delimiter", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('join ", " @'), ["bo", "ba"]),
+        "bo, ba"
+      );
+    });
+
+    it("round-trips with split", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('(split ":" @ | join ":") == @'), "hello:hi:sup"),
+        true
+      );
+    });
+  });
+
+  describe("#entries", () => {
+    it("splits objects into entries", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("entries @"), { a: 1, b: 2 }),
+        [
+          ["a", 1],
+          ["b", 2],
+        ]
+      );
+    });
+
+    it("roundtrips with fromentries", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("(@ | entries | fromentries) == @"), {
+          a: 1,
+          b: 2,
+        }),
+        true
+      );
+    });
+  });
+
+  describe("#fromentries", () => {
+    it("splits objects into entries", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("fromentries @"), [
+          ["a", 1],
+          ["b", 2],
+        ]),
+        { a: 1, b: 2 }
+      );
+    });
+
+    it("roundtrips with entries", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("(@ | fromentries | entries) == @"), [
+          ["a", 1],
+          ["b", 2],
+        ]),
+        true
+      );
+    });
+
+    it("uses nulls for missing values", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("fromentries @"), [[], ["b"], ["c", 1]]),
+        {
+          null: null,
+          b: null,
+          c: 1,
+        }
+      );
+    });
+
+    it("casts non-string keys to strings", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("fromentries @"), [
+          [{}, 1],
+          [[1, 2, 3], 2],
+        ]),
+        {
+          "{}": 1,
+          "[1,2,3]": 2,
+        }
+      );
+    });
+  });
 });
