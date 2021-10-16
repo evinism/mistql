@@ -11,13 +11,14 @@ MistQL's syntax takes inspiration from bash, SQL, JavaScript, Haskell, `jq`, and
 Keys of the data input are resolved as variables.
 
 ```js
-mistql.query("sandwich", {sandwich: "blt"}) === "blt";
-mistql.query("skate.num_of_letters + 1", {skate: {num_of_letters: 3}}) === 4;
+mistql.query("sandwich", { sandwich: "blt" }) === "blt";
+mistql.query("skate.num_of_letters + 1", { skate: { num_of_letters: 3 } }) ===
+  4;
 ```
 
 ## Calling functions
 
-Functions are called in a bash-like syntax: 
+Functions are called in a bash-like syntax:
 
 ```
 function argument1 argument2 argument3
@@ -34,6 +35,7 @@ count [1, 2, 3]
 Piping allows functions to easily pass the result of one expression as the last parameter of another.
 
 For example, the following are equivalent:
+
 ```
 animals | filter type=="cat"
 filter type=="cat" animals
@@ -47,9 +49,6 @@ events | filter type=="purchase" | groupby email | keys
 
 MistQL's standard library is built around enabling piping as often as possible.
 
-
-
-
 ## Literals
 
 MistQL supports all JSON literals. JSON is valid MistQL.
@@ -59,7 +58,7 @@ MistQL supports all JSON literals. JSON is valid MistQL.
   "name": "Jamie",
   "pronouns": ["they", "them"],
   "age": 42,
-  "subscriptionDate": null, 
+  "subscriptionDate": null,
   "isRadAsHeck": true,
 }
 ```
@@ -76,12 +75,40 @@ Arrays and structs can contain other expressions:
 
 ## Operators
 
-Operators are functions that are called via a specialized syntax. 
+Operators are functions that are called via a specialized syntax.
 
 For example, the following adds 3 numbers together via the `+` binary operator.
 
 ```
 1 + 2 + 3 == 6
+```
+
+Operators come in two varieties: Unary and Binary. The vast majority of operators are binary. The reference section details all operators available in MistQL
+
+## Indexing
+
+Structs, arrays, and strings can be indexed via square brackets:
+
+```
+{"foo": "bar"}["foo"] == "bar"
+[1, 2, 3][1] == 2
+"hello"[0] == "h"
+```
+
+Negative numbers are used to index from the end of the string or array.
+
+```
+"hello"[-1] == "o"
+[1, 2, 3, 4, 5][-2] == 4
+```
+
+Ranges can be specified via bracket-and-colon syntax:
+
+```
+[1, 2, 3, 4, 5][1:3] == [2, 3]
+[1, 2, 3, 4, 5][2:] == [3, 4, 5]
+[1, 2, 3, 4, 5][-2:] == [4, 5]
+"example.com"[-3:] == "com"
 ```
 
 ## The `@` symbol
