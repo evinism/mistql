@@ -57,16 +57,14 @@ export const getType = (a: RuntimeValue): RuntimeValueType => {
 export const compare = (a: RuntimeValue, b: RuntimeValue): number => {
   const varType = getType(a);
   if (varType !== getType(b)) {
-    throw new Error(
-      "Type comparison ill-defined between different variable types"
-    );
+    throw new Error("Comparison ill-defined between different variable types");
   }
   if (varType === "array") {
-    throw new Error("Type comparison betwen arrays not permitted");
+    throw new Error("Comparison between arrays not permitted");
   } else if (varType === "struct") {
-    throw new Error("Type comparison between structs not permitted");
+    throw new Error("Comparison between structs not permitted");
   } else if (varType === "regex") {
-    throw new Error("Type comparison between regexes not permitted");
+    throw new Error("Comparison between regexes not permitted");
   } else if (varType === "number") {
     return b - a;
   } else if (varType === "boolean") {
