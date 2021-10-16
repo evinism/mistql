@@ -148,11 +148,11 @@ const consumeIndexer: Parser = (tokens) => {
   }
 
   const app: ASTExpression = {
-    // TODO: Make it so this can't get overwritten by local variables.
     type: "application",
     function: {
       type: "reference",
       ref: "index",
+      internal: true,
     },
     arguments: entries,
   };
@@ -223,6 +223,7 @@ const consumeDotAccess: ParameterizedParser = (left, tokens) => {
     function: {
       type: "reference",
       ref: ".",
+      internal: true,
     },
     arguments: [left, { type: "reference", ref: ref }],
   };
@@ -261,6 +262,7 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
           function: {
             type: "reference",
             ref: currentExpression,
+            internal: true,
           },
           arguments: [l, r],
         };
@@ -360,6 +362,7 @@ const consumeExpression: Parser = (tokens) => {
             function: {
               type: "reference",
               ref: (cur.value as string) + "/unary",
+              internal: true,
             },
             arguments: [acc],
           }),

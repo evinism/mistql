@@ -8,10 +8,10 @@ import {
   Closure,
   ExecutionFunction,
   RuntimeValue,
-  Stack
+  Stack,
 } from "./types";
 
-const defaultStack: Stack = [builtins];
+const defaultStack: Stack = [builtins, { $: builtins }];
 
 export const inputGardenWall = (data: unknown) => {
   if (["number", "boolean", "string"].indexOf(typeof data) > -1) {
@@ -43,9 +43,10 @@ export const outputGardenWall = (data: unknown) => {
 };
 
 export const execute = (node: ASTExpression, variables: unknown) => {
+  const data = inputGardenWall(variables);
   const result = executeInner(
     node,
-    pushRuntimeValueToStack(inputGardenWall(variables), defaultStack)
+    pushRuntimeValueToStack(data, defaultStack)
   );
   return outputGardenWall(result);
 };
@@ -114,8 +115,9 @@ const executeLiteral = (
 
 const executeReference = (
   statement: ASTReferenceExpression,
-  stack: Closure[]
+  inputStack: Closure[]
 ): RuntimeValue => {
+  const stack = statement.internal ? defaultStack : inputStack;
   // first, find the appropriate referenced variable:
   let referencedInStack = undefined;
   for (let i = stack.length - 1; i >= 0; i--) {
