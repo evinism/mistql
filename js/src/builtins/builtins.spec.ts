@@ -38,10 +38,7 @@ describe("builtins", () => {
   describe("#reduce", () => {
     it("can sum", () => {
       assert.strictEqual(
-        execute(
-          parseOrThrow("reduce @[0] + @[1] 0 @"),
-          [1, 4, 5, 7, 8]
-        ),
+        execute(parseOrThrow("reduce @[0] + @[1] 0 @"), [1, 4, 5, 7, 8]),
         1 + 4 + 5 + 7 + 8
       );
     });
@@ -208,43 +205,40 @@ describe("builtins", () => {
     });
 
     it("correctly indexes strings", () => {
-      assert.strictEqual(
-        execute(parseOrThrow('"abcdefg" | index 2'), {}),
-        'c'
-      );
+      assert.strictEqual(execute(parseOrThrow('"abcdefg" | index 2'), {}), "c");
     });
 
     it("allows ranges", () => {
       assert.strictEqual(
         execute(parseOrThrow('"abcdefg" | index 2 4'), {}),
-        'cd'
+        "cd"
       );
     });
 
     it("allows ranges with implicit end", () => {
       assert.strictEqual(
         execute(parseOrThrow('"abcdefg" | index 3 null'), {}),
-        'defg'
+        "defg"
       );
     });
 
     it("allows ranges with implicit start", () => {
       assert.strictEqual(
         execute(parseOrThrow('"abcdefg" | index null 3'), {}),
-        'abc'
+        "abc"
       );
     });
 
     it("allows ranges with arrays", () => {
       assert.deepStrictEqual(
-        execute(parseOrThrow('[1, 2, 3, 4, 5] | index 1 3'), {}),
+        execute(parseOrThrow("[1, 2, 3, 4, 5] | index 1 3"), {}),
         [2, 3]
       );
     });
 
     it("allows ranges with negative indices", () => {
       assert.deepStrictEqual(
-        execute(parseOrThrow('[1, 2, 3, 4, 5] | index (-3) (-1)'), {}),
+        execute(parseOrThrow("[1, 2, 3, 4, 5] | index (-3) (-1)"), {}),
         [3, 4]
       );
     });
@@ -595,6 +589,129 @@ describe("builtins", () => {
         execute(parseOrThrow('"hello" =~ (regex "he..a")'), null),
         false
       );
+    });
+  });
+
+  describe("#equal", () => {
+    it("compares strings correctly", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" == "hello"'), null),
+        true
+      );
+      assert.strictEqual(
+        execute(parseOrThrow('"hello" == "hellz"'), null),
+        false
+      );
+    });
+
+    it("compares numbers correctly", () => {
+      assert.strictEqual(execute(parseOrThrow("1 == 1"), null), true);
+      assert.strictEqual(execute(parseOrThrow("1 == -1"), null), false);
+    });
+
+    it("compares null correctly", () => {
+      assert.strictEqual(execute(parseOrThrow("null == null"), null), true);
+    });
+
+    it("returns false for different types", () => {
+      assert.strictEqual(execute(parseOrThrow("0 == null"), null), false);
+      assert.strictEqual(execute(parseOrThrow("null == 0"), null), false);
+      assert.strictEqual(execute(parseOrThrow('null == "null"'), null), false);
+      assert.strictEqual(execute(parseOrThrow('0 == "0"'), null), false);
+      assert.strictEqual(execute(parseOrThrow("1 == true"), null), false);
+      assert.strictEqual(execute(parseOrThrow("0 == false"), null), false);
+      assert.strictEqual(
+        execute(parseOrThrow('"false" == false'), null),
+        false
+      );
+      assert.strictEqual(execute(parseOrThrow('"true" == true'), null), false);
+    });
+
+    it("compares arrays correctly", () => {
+      assert.strictEqual(
+        execute(parseOrThrow("[1, 2, 3] == [1, 2, 3]"), null),
+        true
+      );
+      assert.strictEqual(execute(parseOrThrow("[] == []"), null), true);
+      assert.strictEqual(execute(parseOrThrow("[[]] == [[]]"), null), true);
+      assert.strictEqual(
+        execute(parseOrThrow('[["hi"]] == [["hi"]]'), null),
+        true
+      );
+      assert.strictEqual(execute(parseOrThrow("[1, 2] == [1]"), null), false);
+      assert.strictEqual(
+        execute(parseOrThrow('[["hi"]] == [["hz"]]'), null),
+        false
+      );
+      assert.strictEqual(
+        execute(parseOrThrow("[1, 2, 3] == [1, 2, 3, 4]"), null),
+        false
+      );
+      assert.strictEqual(
+        execute(parseOrThrow("[1, 2, 3] == [1, 2, 4]"), null),
+        false
+      );
+    });
+
+    it("compares structs correctly", () => {
+      assert.strictEqual(
+        execute(
+          parseOrThrow(
+            "{one: 1, two: 2, three: 3} == {one: 1, two: 2, three: 3}"
+          ),
+          null
+        ),
+        true
+      );
+      assert.strictEqual(execute(parseOrThrow("{} == {}"), null), true);
+      assert.strictEqual(
+        execute(
+          parseOrThrow(
+            "{one: 1, two: 2, three: 3} == {one: 1, two: 2, three: 4}"
+          ),
+          null
+        ),
+        false
+      );
+      assert.strictEqual(
+        execute(
+          parseOrThrow(
+            "{one: 1, two: 2, three: 3} == {one: 1, two: 2, four: 3}"
+          ),
+          null
+        ),
+        false
+      );
+    });
+
+    it("compares regexes correctly", () => {
+      assert.strictEqual(
+        execute(parseOrThrow('(regex "blah") == (regex "blah")'), null),
+        true
+      );
+      assert.strictEqual(
+        execute(parseOrThrow('(regex "blah" "g") == (regex "blah" "g")'), null),
+        true
+      );
+      assert.strictEqual(
+        execute(parseOrThrow('(regex "blah" "g") == (regex "blah")'), null),
+        false
+      );
+      assert.strictEqual(
+        execute(parseOrThrow('(regex "blah") == (regex "bl.h")'), null),
+        false
+      );
+      assert.strictEqual(
+        execute(parseOrThrow('(regex "bah" "g") == (regex "blah")'), null),
+        false
+      );
+    });
+
+    it("compares booleans correctly", () => {
+      assert.strictEqual(execute(parseOrThrow("true == true"), null), true);
+      assert.strictEqual(execute(parseOrThrow("false == false"), null), true);
+      assert.strictEqual(execute(parseOrThrow("true == false"), null), false);
+      assert.strictEqual(execute(parseOrThrow("false == true"), null), false);
     });
   });
 });
