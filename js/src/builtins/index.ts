@@ -2,13 +2,16 @@ import { compare, truthy } from "../runtimeValues";
 import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
 import count from "./count";
+import entries from "./entries";
 import equal from "./equal";
 import filter from "./filter";
 import filterkeys from "./filterkeys";
 import filtervalues from "./filtervalues";
 import find from "./find";
+import fromentries from "./fromentries";
 import groupby from "./groupby";
 import indexFn from "./indexFn";
+import join from "./join";
 import keys from "./keys";
 import log from "./log";
 import map from "./map";
@@ -25,6 +28,7 @@ import reverse from "./reverse";
 import sequence from "./sequence";
 import sort from "./sort";
 import sortby from "./sortby";
+import split from "./split";
 import sum from "./sum";
 import summarize from "./summarize";
 import unaryMinus from "./unaryMinus";
@@ -100,13 +104,16 @@ const matchBinaryOp: BuiltinFunction = arity(2, (args, stack, exec) =>
 
 export default {
   count,
+  entries,
   filter,
   filterkeys,
   filtervalues,
   find,
+  fromentries,
   groupby,
   if: ifFunction,
   index: indexFn,
+  join,
   keys,
   log,
   match,
@@ -120,6 +127,7 @@ export default {
   sequence,
   sort,
   sortby,
+  split,
   sum,
   summarize,
   values,
