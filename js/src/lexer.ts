@@ -4,21 +4,44 @@ import { LexToken } from "./types";
 
 // This defines how various tokens capture whitespace
 const whitespaceBehavior = {
-  l: ')}]'.split(''),
-  r: '({['.split(''),
-  rl: '.:|,'.split('').concat(binaryExpressionStrings),
+  l: ")}]".split(""),
+  r: "({[".split(""),
+  rl: ".:|,".split("").concat(binaryExpressionStrings),
+};
+
+// Stolen shamelessly from parsimmon
+// Turn escaped characters into real ones (e.g. "\\n" becomes "\n").
+function interpretEscapes(str: string) {
+  let escapes = {
+    b: "\b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+  };
+  return str.replace(/\\(u[0-9a-fA-F]{4}|[^u])/, (_, escape) => {
+    let type = escape.charAt(0);
+    let hex = escape.slice(1);
+    if (type === "u") {
+      return String.fromCharCode(parseInt(hex, 16));
+    }
+    if (escapes.hasOwnProperty(type)) {
+      return escapes[type];
+    }
+    return type;
+  });
 }
 
 // TODO: Make this not n squared
-const vaccumsWhitespace = (token: string, direction: 'l' | 'r') => {
+const vaccumsWhitespace = (token: string, direction: "l" | "r") => {
   if (whitespaceBehavior.rl.indexOf(token) > -1) {
     return true;
   }
   if (whitespaceBehavior[direction].indexOf(token) > -1) {
     return true;
-  };
+  }
   return false;
-}
+};
 const refStarter = /[a-zA-Z_]/;
 const refContinuer = /[a-zA-Z_0-9]/;
 const numStarter = /[0-9]/;
@@ -40,16 +63,16 @@ export function lex(raw: string): LexToken[] {
       tokens.push({
         token: "value",
         value: parseFloat(buffer),
-        position
+        position,
       });
-    } else if (whitespace.test(buffer || '')) {
+    } else if (whitespace.test(buffer || "")) {
       while (whitespace.test(split[i + 1])) {
         i++;
       }
       tokens.push({
         token: "special",
         value: " ",
-        position
+        position,
       });
     } else if (
       specials.filter((operator) => operator.startsWith(buffer)).length > 0
@@ -62,16 +85,17 @@ export function lex(raw: string): LexToken[] {
         i++;
         buffer += split[i];
       }
-      if (vaccumsWhitespace(buffer, 'r')) {
+      if (vaccumsWhitespace(buffer, "r")) {
         while (whitespace.test(split[i + 1])) {
           i++;
         }
       }
       if (
-        vaccumsWhitespace(buffer, 'l')
-        && tokens.length > 0
-        && tokens[tokens.length - 1].token === 'special'
-        && tokens[tokens.length - 1].value === ' ') {
+        vaccumsWhitespace(buffer, "l") &&
+        tokens.length > 0 &&
+        tokens[tokens.length - 1].token === "special" &&
+        tokens[tokens.length - 1].value === " "
+      ) {
         tokens.pop();
       }
       tokens.push({
@@ -88,37 +112,37 @@ export function lex(raw: string): LexToken[] {
         tokens.push({
           token: "value",
           value: builtinValues[buffer],
-          position
+          position,
         });
       } else {
         tokens.push({
           token: "ref",
           value: buffer,
-          position
+          position,
         });
       }
     } else if (buffer === "@") {
       tokens.push({
         token: "ref",
         value: "@",
-        position
+        position,
       });
     } else if (buffer === '"') {
       buffer = "";
       while (split[i + 1] !== '"') {
         i++;
-        if (split[i] === "\\") {
-          i++;
-        }
         if (split[i] === undefined) {
           throw new LexError("Unterminated string literal", position, raw);
+        } else if (split[i] === "\\" && '\\"'.indexOf(split[i + 1]) !== -1) {
+          // handle escaping double quotes and backslashes manually
+          i++;
         }
         buffer += split[i];
       }
       tokens.push({
         token: "value",
-        value: buffer,
-        position
+        value: interpretEscapes(buffer),
+        position,
       });
       i++;
     } else {
@@ -128,12 +152,16 @@ export function lex(raw: string): LexToken[] {
 
   // Trim whitespace as a post-lex step
   const firstToken = tokens[0];
-  if (firstToken && firstToken.token === "special" && firstToken.value === ' ') {
+  if (
+    firstToken &&
+    firstToken.token === "special" &&
+    firstToken.value === " "
+  ) {
     tokens.shift();
   }
 
   const lastToken = tokens[tokens.length - 1];
-  if (lastToken && lastToken.token === "special" && lastToken.value === ' ') {
+  if (lastToken && lastToken.token === "special" && lastToken.value === " ") {
     tokens.pop();
   }
 
