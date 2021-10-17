@@ -1,8 +1,8 @@
-import { getType, RuntimeValueType } from "./runtimeValues";
-import { BuiltinFunction, RuntimeValue } from "./types";
+import { getType } from "./runtimeValues";
+import { BuiltinFunction, RuntimeValue, RuntimeValueType } from "./types";
 
 export function escapeRegExp(string: string): string {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // $& means the whole matched string
 }
 
 export const seqHelper = (arr: boolean[][], start = 0): number[][] => {
@@ -21,23 +21,23 @@ export const seqHelper = (arr: boolean[][], start = 0): number[][] => {
     }
   }
   return result;
-}
+};
 
 // Builtin Helpers
 export const arity =
   (arityCount: number | number[], fn: BuiltinFunction): BuiltinFunction =>
-    (args, stack, exec) => {
-      const validArity =
-        (typeof arityCount === "number"
-          ? arityCount === args.length
-          : arityCount.indexOf(args.length) !== -1)
-      if (!validArity) {
-        throw new Error(
-          "Expected " + arityCount + " arguments, got " + args.length
-        );
-      }
-      return fn(args, stack, exec);
-    };
+  (args, stack, exec) => {
+    const validArity =
+      typeof arityCount === "number"
+        ? arityCount === args.length
+        : arityCount.indexOf(args.length) !== -1;
+    if (!validArity) {
+      throw new Error(
+        "Expected " + arityCount + " arguments, got " + args.length
+      );
+    }
+    return fn(args, stack, exec);
+  };
 
 export const validateType = (
   type: RuntimeValueType,

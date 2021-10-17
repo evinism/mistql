@@ -1,15 +1,4 @@
-import { RuntimeValue } from "./types";
-
-// TODO: We also have functions here!!
-export type RuntimeValueType =
-  | "array"
-  | "struct"
-  | "regex"
-  | "number"
-  | "boolean"
-  | "string"
-  | "function"
-  | "null";
+import { RuntimeValue, RuntimeValueType } from "./types";
 
 export const truthy = (runtimeValue: RuntimeValue): boolean => {
   if (Array.isArray(runtimeValue)) {

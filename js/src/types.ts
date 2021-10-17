@@ -55,7 +55,27 @@ export type ASTExpression =
   | ASTLiteralExpression;
 
 /* Runtime types */
-export type RuntimeValue = any;
+export type RuntimeValue =
+  | RuntimeValue[]
+  | { [key: string]: RuntimeValue }
+  | ExecutionFunction
+  | RegExp
+  | number
+  | boolean
+  | string
+  | null
+  | any; // TODO: Remove this one.
+
+export type RuntimeValueType =
+  | "array"
+  | "struct"
+  | "regex"
+  | "number"
+  | "boolean"
+  | "string"
+  | "function"
+  | "null";
+
 export type Closure = {
   [varname: string]: RuntimeValue;
 };
