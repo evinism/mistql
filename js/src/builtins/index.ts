@@ -8,6 +8,7 @@ import filter from "./filter";
 import filterkeys from "./filterkeys";
 import filtervalues from "./filtervalues";
 import find from "./find";
+import float from "./float";
 import fromentries from "./fromentries";
 import groupby from "./groupby";
 import indexFn from "./indexFn";
@@ -29,6 +30,7 @@ import sequence from "./sequence";
 import sort from "./sort";
 import sortby from "./sortby";
 import split from "./split";
+import string from "./string";
 import sum from "./sum";
 import summarize from "./summarize";
 import unaryMinus from "./unaryMinus";
@@ -109,6 +111,7 @@ export default {
   filterkeys,
   filtervalues,
   find,
+  float,
   fromentries,
   groupby,
   if: ifFunction,
@@ -128,6 +131,7 @@ export default {
   sort,
   sortby,
   split,
+  string,
   sum,
   summarize,
   values,

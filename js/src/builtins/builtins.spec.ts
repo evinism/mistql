@@ -863,4 +863,37 @@ describe("builtins", () => {
       );
     });
   });
+
+  describe("#string", () => {
+    it("casts values to strings", () => {
+      assert.deepStrictEqual(execute(parseOrThrow("string @"), "hi"), "hi");
+      assert.deepStrictEqual(execute(parseOrThrow("string @"), 1.5), "1.5");
+      assert.deepStrictEqual(execute(parseOrThrow("string @"), null), "null");
+      assert.deepStrictEqual(
+        execute(parseOrThrow("string @"), [1, 2]),
+        "[1,2]"
+      );
+      assert.deepStrictEqual(execute(parseOrThrow("string @"), true), "true");
+      assert.deepStrictEqual(execute(parseOrThrow("string @"), false), "false");
+    });
+  });
+
+  describe("#float", () => {
+    it("casts values to floats", () => {
+      assert.deepStrictEqual(execute(parseOrThrow("float @"), "1.5"), 1.5);
+      assert.deepStrictEqual(
+        execute(parseOrThrow("float @"), "10000.4"),
+        10000.4
+      );
+      assert.deepStrictEqual(
+        Number.isNaN(execute(parseOrThrow("float @"), "lol[]")),
+        true
+      );
+      assert.throws(() => execute(parseOrThrow("float @"), []));
+      assert.throws(() => execute(parseOrThrow("float @"), {}));
+      assert.deepStrictEqual(execute(parseOrThrow("float @"), null), 0);
+      assert.deepStrictEqual(execute(parseOrThrow("float @"), true), 1);
+      assert.deepStrictEqual(execute(parseOrThrow("float @"), false), 0);
+    });
+  });
 });

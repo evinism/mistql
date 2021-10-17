@@ -40,6 +40,22 @@ export const castToString = (value: RuntimeValue): RuntimeValue => {
   }
 };
 
+export const castToFloat = (value: RuntimeValue): RuntimeValue => {
+  const type = getType(value);
+  if (type === "string") {
+    return parseFloat(value);
+  } else if (
+    type === "regex" ||
+    typeof value === "function" ||
+    type == "struct" ||
+    type === "array"
+  ) {
+    throw new Error("Cannot cast type " + type + " to float");
+  } else {
+    return +value;
+  }
+};
+
 export const getType = (a: RuntimeValue): RuntimeValueType => {
   if (Array.isArray(a)) {
     return "array";
