@@ -8,6 +8,7 @@ export type RuntimeValueType =
   | "number"
   | "boolean"
   | "string"
+  | "function"
   | "null";
 
 export const truthy = (runtimeValue: RuntimeValue): boolean => {
