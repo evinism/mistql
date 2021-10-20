@@ -55,9 +55,9 @@ Result:
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `struct`         | `struct`    |
+| 2     | `any`            | `object`         | `object`    |
 
-Filters a struct's keys based on a condition
+Filters a object's keys based on a condition
 
 #### Example
 
@@ -78,9 +78,9 @@ Result:
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `struct`         | `struct`    |
+| 2     | `any`            | `object`         | `object`    |
 
-Filters a struct's values based on a condition
+Filters a object's values based on a condition
 
 #### Example
 
@@ -135,7 +135,7 @@ Result:
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `array`          | `struct`    |
+| 2     | `any`            | `array`          | `object`    |
 
 Groups the items in the array based on some condition
 
@@ -217,9 +217,9 @@ Result:
 
 | Arity | Parameter 1 Type | Return Type     |
 | ----- | ---------------- | --------------- |
-| 1     | `struct`         | `array<string>` |
+| 1     | `object`         | `array<string>` |
 
-Returns an array of all keys of a given struct.
+Returns an array of all keys of a given object.
 
 ```
 {bleep: "bloop", zap: [4, 5, 6]} | keys
@@ -289,7 +289,7 @@ Result:
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `struct`         | `struct`    |
+| 2     | `any`            | `object`         | `object`    |
 
 Maps every key in an expression.
 
@@ -317,9 +317,9 @@ Result:
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `struct`         | `struct`    |
+| 2     | `any`            | `object`         | `object`    |
 
-Runs an expression on every value of a struct.
+Runs an expression on every value of a object.
 
 #### Example
 
@@ -461,9 +461,9 @@ Result:
 
 | Arity | Parameter 1 Type | Return Type |
 | ----- | ---------------- | ----------- |
-| 1     | `array<number>`  | `struct`    |
+| 1     | `array<number>`  | `object`    |
 
-Gives a struct containing a statistical summary of an array of numbers
+Gives a object containing a statistical summary of an array of numbers
 
 #### Example
 
@@ -490,9 +490,9 @@ Result:
 
 | Arity | Parameter 1 Type | Return Type |
 | ----- | ---------------- | ----------- |
-| 1     | `struct`         | `array`     |
+| 1     | `object`         | `array`     |
 
-Returns an array of all values of a given struct.
+Returns an array of all values of a given object.
 
 Query:
 

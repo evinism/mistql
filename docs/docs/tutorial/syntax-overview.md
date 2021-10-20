@@ -63,7 +63,7 @@ MistQL supports all JSON literals. JSON is valid MistQL.
 }
 ```
 
-Arrays and structs can contain other expressions:
+Arrays and objects can contain other expressions:
 
 ```
 [

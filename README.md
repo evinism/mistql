@@ -5,7 +5,7 @@
 `mistql` is a miniature query language built for embedding within applications. It supports
 logic for querying and manipulating JSON-like data in a simple manner.
 
-MistQL is built from the ground up to be lightweight. At ~4.5kb gzipped with no dependencies, it can
+MistQL is built from the ground up to be lightweight. At ~5.2kb gzipped with no dependencies, it can
 be included in size-sensitive frontends.
 
 ## Motivation
@@ -67,8 +67,9 @@ MistQL has 4 primitive types:
 
 MistQL also has 3 complex types:
 
-- `struct`
+- `object`
 - `array`
 - `function`
+- `regex`
 
 The interface of MistQL is restricted in that functions can neither be provided as data, nor returned as the result of a query -- they exist entirely within MistQL
