@@ -200,7 +200,7 @@ const consumeStruct: Parser = (tokens) => {
   return {
     result: {
       type: "literal",
-      valueType: "struct",
+      valueType: "object",
       value: entries,
     },
     remaining: current,

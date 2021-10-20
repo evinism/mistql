@@ -8,7 +8,7 @@ export const truthy = (runtimeValue: RuntimeValue): boolean => {
 };
 
 export const getProperties = (value: RuntimeValue) => {
-  if (getType(value) !== "struct") {
+  if (getType(value) !== "object") {
     return [];
   } else {
     const retval: string[] = [];
@@ -37,7 +37,7 @@ export const castToFloat = (value: RuntimeValue): RuntimeValue => {
   } else if (
     type === "regex" ||
     typeof value === "function" ||
-    type == "struct" ||
+    type == "object" ||
     type === "array"
   ) {
     throw new Error("Cannot cast type " + type + " to float");
@@ -54,7 +54,7 @@ export const getType = (a: RuntimeValue): RuntimeValueType => {
   } else if (a instanceof RegExp) {
     return "regex";
   } else if (typeof a === "object") {
-    return "struct";
+    return "object";
   } else {
     return typeof a as RuntimeValueType;
   }
@@ -67,8 +67,8 @@ export const compare = (a: RuntimeValue, b: RuntimeValue): number => {
   }
   if (varType === "array") {
     throw new Error("Comparison between arrays not permitted");
-  } else if (varType === "struct") {
-    throw new Error("Comparison between structs not permitted");
+  } else if (varType === "object") {
+    throw new Error("Comparison between objects not permitted");
   } else if (varType === "regex") {
     throw new Error("Comparison between regexes not permitted");
   } else if (varType === "number") {
@@ -99,7 +99,7 @@ export const equal = (a: RuntimeValue, b: RuntimeValue): boolean => {
       }
     }
     return true;
-  } else if (type === "struct") {
+  } else if (type === "object") {
     const aProps = getProperties(a);
     const bProps = getProperties(b);
     if (aProps.length !== bProps.length) {

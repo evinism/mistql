@@ -68,7 +68,7 @@ describe("parser", () => {
       it("parses object literals", () => {
         assert.deepStrictEqual(
           parseOrThrow("{one: 1, two: 2, three: 3}"),
-          lit("struct", {
+          lit("object", {
             one: lit("number", 1),
             two: lit("number", 2),
             three: lit("number", 3),
@@ -444,7 +444,7 @@ describe("parser", () => {
                   valueType: "number",
                 },
               },
-              valueType: "struct",
+              valueType: "object",
             },
             {
               ref: "hello",
@@ -475,7 +475,7 @@ describe("parser", () => {
           function: ref("index", true),
           arguments: [
             lit("string", "hello"),
-            lit("struct", { hello: lit("string", "there") }),
+            lit("object", { hello: lit("string", "there") }),
           ],
         };
         assert.deepStrictEqual(

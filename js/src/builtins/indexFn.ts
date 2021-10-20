@@ -4,9 +4,9 @@ import { arity, validateType } from "../util";
 
 type Indexer = (source: RuntimeValue, key: RuntimeValue, keyEnd: RuntimeValue) => RuntimeValue;
 
-const structIndexer: Indexer = (source, key, keyEnd) => {
+const objectIndexer: Indexer = (source, key, keyEnd) => {
   if (keyEnd !== undefined) {
-    throw new Error("Index ranges not supported for structs")
+    throw new Error("Index ranges not supported for objects")
   }
   validateType("string", key);
   return source[key] ?? null;
@@ -38,7 +38,7 @@ const arrayOrStringIndexer: Indexer = (source: string | any[], key, keyEnd) => {
 }
 
 const indexers: { [key: string]: Indexer } = {
-  'struct': structIndexer,
+  'object': objectIndexer,
   'array': arrayOrStringIndexer,
   'string': arrayOrStringIndexer,
 }
