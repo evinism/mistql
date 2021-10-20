@@ -32,3 +32,5 @@ Indexing expressions must follow whatever they're indexing directly, with no spa
 Valid: `[1, 2, 3][0]`
 
 Invalid: `[1, 2, 3] [0]`
+
+To get around this if necessary, you can always use the `index` method for which indexing expressions are syntactic sugar.

@@ -1,5 +1,5 @@
-import React from 'react';
 import clsx from 'clsx';
+import React from 'react';
 import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
@@ -18,14 +18,14 @@ const FeatureList = [
     Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        MistQL has 0 dependencies and is hand-tuned for size. At 4.0kB gzipped, MistQL is able to fit on heavily size-restricted frontends. 
+        MistQL has 0 dependencies and is hand-tuned for size. At 5.2kB gzipped, MistQL is able to fit on heavily size-restricted frontends.
       </>
     ),
   },
   {
     title: 'Built for Browsers',
     Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
-    
+
     description: (
       <>
         MistQL is is purpose-built to be embedded in both browserside and serverside JavaScript.
@@ -35,7 +35,7 @@ const FeatureList = [
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({ Svg, title, description }) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">

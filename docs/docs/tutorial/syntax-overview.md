@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Syntax Overview
 
-MistQL's syntax takes inspiration from bash, SQL, JavaScript, Haskell, `jq`, and others.
+MistQL's syntax takes inspiration from SQL, JavaScript, JMESPath, `jq`, bash, and others.
 
 ## Inputs
 
@@ -63,7 +63,7 @@ MistQL supports all JSON literals. JSON is valid MistQL.
 }
 ```
 
-Arrays and objects can contain other expressions:
+Additionally, arrays and objects can contain other expressions:
 
 ```
 [
@@ -95,14 +95,14 @@ Structs, arrays, and strings can be indexed via square brackets:
 "hello"[0] == "h"
 ```
 
-Negative numbers are used to index from the end of the string or array.
+Negative numbers are used to index arrays from the end of the string or array.
 
 ```
 "hello"[-1] == "o"
 [1, 2, 3, 4, 5][-2] == 4
 ```
 
-Ranges can be specified via bracket-and-colon syntax:
+Array ranges can be specified via bracket-and-colon syntax:
 
 ```
 [1, 2, 3, 4, 5][1:3] == [2, 3]
@@ -116,7 +116,7 @@ Ranges can be specified via bracket-and-colon syntax:
 The `@` symbol refers to the current context variable. At the top level, the context variable is set to the data input.
 
 ```js
-mistql.query("@", [1, 2, 3]); // evaluates to [1, 2, 3]
+mistql.query("@", {foo: "bar"}); // evaluates to {foo: "bar"}
 ```
 
 Certain functions change the context variable, depending on usage.
