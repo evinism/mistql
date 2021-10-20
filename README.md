@@ -5,7 +5,7 @@
 `mistql` is a miniature query language built for embedding within applications. It supports
 logic for querying and manipulating JSON-like data in a simple manner.
 
-MistQL is built from the ground up to be lightweight. At ~5.2kb gzipped with no dependencies, it can
+MistQL is built from the ground up to be lightweight. At 5.2kb gzipped with no dependencies, it can
 be included in size-sensitive frontends.
 
 ## Motivation
