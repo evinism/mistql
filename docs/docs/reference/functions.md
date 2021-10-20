@@ -24,8 +24,8 @@ The following counts the number of occurrences of the number `3` in the array
 
 ### `entries`
 
-| Arity | Parameter Type | Return Type |
-| ----- | -------------- | ----------- |
+| Arity | Parameter Type | Return Type            |
+| ----- | -------------- | ---------------------- |
 | 1     | `object`       | `array<[string, any]>` |
 
 Gets the entries of an object.
@@ -73,9 +73,9 @@ Result:
 
 ### `filterkeys`
 
-| Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
-| ----- | ---------------- | ---------------- | ----------- |
-| 2     | `@: string -> any`       | `object`         | `object`    |
+| Arity | Parameter 1 Type   | Parameter 2 Type | Return Type |
+| ----- | ------------------ | ---------------- | ----------- |
+| 2     | `@: string -> any` | `object`         | `object`    |
 
 Filters a object's keys based on a condition
 
@@ -155,7 +155,7 @@ Result:
 
 | Arity | Parameter Type | Return Type |
 | ----- | -------------- | ----------- |
-| 1     | `any`       | `number` |
+| 1     | `any`          | `number`    |
 
 Casts the target value to a float
 
@@ -167,9 +167,9 @@ Casts the target value to a float
 
 ### `fromentries`
 
-| Arity | Parameter Type | Return Type |
-| ----- | -------------- | ----------- |
-| 1     | `array<[string, any]>` | `any` |
+| Arity | Parameter Type         | Return Type |
+| ----- | ---------------------- | ----------- |
+| 1     | `array<[string, any]>` | `any`       |
 
 Create an object from a list of entries. The inverse of `entries`.
 
@@ -251,9 +251,9 @@ Result:
 
 ### `index`
 
-| Arity   | Parameter 1 Type   | Parameter 2 Type (optional) | Parameter 3 Type | Return Type   |
-| ------- | ------------------ | ---------------- | ---------------- | ------------- |
-| 2-3     | `number` or `string` or `null` | `number` or `null` | `array` or `object`       | `unknown` |
+| Arity   | Parameter 1 Type               | Parameter 2 Type (optional) | Parameter 3 Type    | Return Type |
+| ------- | ------------------------------ | --------------------------- | ------------------- | ----------- |
+| 2-3     | `number` or `string` or `null` | `number` or `null`          | `array` or `object` | `unknown`   |
 
 Performs the indexing operation, returning `null` if no such item exists. Bracket notation is syntactic sugar for calling the above function calls. Below are a number of indexing expressions and their equivalent `index` function calls.
 
@@ -472,8 +472,8 @@ Result:
 ### `regex`
 
 | Arity | Parameter 1 Type    | Parameter 2 Type (optional) | Return Type |
-| ----- | ------------------- | ---------------- | ----------- |
-| 1 - 2 | `string`            | `string`         | `regex`    |
+| ----- | ------------------- | --------------------------- | ----------- |
+| 1 - 2 | `string`            | `string`                    | `regex`     |
 
 Constructs a regular expression based on the pattern. The second, optional, argument specifies the flags.
 
@@ -485,8 +485,8 @@ Constructs a regular expression based on the pattern. The second, optional, argu
 ### `replace`
 
 | Arity | Parameter 1 Type    | Parameter 2 Type | Parameter 3 Type | Return Type |
-| ----- | ------------------- | ---------------- | --- | ----------- |
-| 3 | `string` or `regex` | `string` | `string` | `string`    |
+| ----- | ------------------- | ---------------- | ---------------- | ----------- |
+| 3     | `string` or `regex` | `string`         | `string`         | `string`    |
 
 Replaces the first matching instance of parameter 1 with parameter 2 in parameter 3. If a global regex is used, all instances are replaced.
 
@@ -532,7 +532,7 @@ TODO: Explain Sequence
 
 | Arity | Parameter 1 Type | Return Type |
 | ----- | ---------------- | ----------- |
-| 1     | `array<t>`       | `array<t>`     |
+| 1     | `array<t>`       | `array<t>`  |
 
 Sorts an array into ascending order. Strings are sorted alphabetically. Numbers are sorted numerically.
 
@@ -574,9 +574,9 @@ Result:
 
 ### `split`
 
-| Arity | Parameter 1 Type    | Parameter 2 Type | Return Type      |
-| ----- | ------------------- | ---------------- | ---------------- |
-| 2     | `string` or `regex` | `string`         | `array<string>`  |
+| Arity | Parameter 1 Type    | Parameter 2 Type | Return Type     |
+| ----- | ------------------- | ---------------- | --------------- |
+| 2     | `string` or `regex` | `string`         | `array<string>` |
 
 Splits a string based on a delimiter.
 
@@ -598,7 +598,7 @@ Result:
 
 | Arity | Parameter Type | Return Type |
 | ----- | -------------- | ----------- |
-| 1     | `any`       | `string` |
+| 1     | `any`          | `string`    |
 
 Casts the target value to a string
 
