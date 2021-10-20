@@ -33,5 +33,6 @@ Binary operators make up the vast majority of MistQL's operators.
 |`>=`| `number` or `string` | `number` or `string` | Greater Than or Equal |
 |`==`| `any` | `boolean` | Whether two values are equivalent |
 |`!=`| `any` | `boolean` | Whether two values are not equivalent |
+|`=~`| `string` or `regex` | `boolean` | Whether the left hand value matches the right hand value |
 |`&&`| `any` | `boolean` | `true` if the two values are both truthy, `false` otherwise |
-|`\|\|`| `any` | `boolean` | `true` if either of the values is truthy, `false` otherwise |
+|`\|\|`| `any` | `boolean` | `true` if either of the values is truthy, `false` otherwise. NOTE: The backslashes aren't necessary. I just can't figure out how to format it properly for Docusaurus. |
