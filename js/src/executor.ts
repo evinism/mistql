@@ -8,7 +8,7 @@ import {
   Closure,
   ExecutionFunction,
   RuntimeValue,
-  Stack,
+  Stack
 } from "./types";
 
 const defaultStack: Stack = [builtins, { $: builtins }];
@@ -101,7 +101,7 @@ const executeLiteral = (
       return statement.value.map((exp: ASTExpression) =>
         executeInner(exp, stack)
       );
-    case "struct": {
+    case "object": {
       const result = {};
       for (let i in statement.value) {
         if (statement.value.hasOwnProperty(i)) {

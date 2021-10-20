@@ -120,7 +120,7 @@ describe("executor", () => {
         assert.deepStrictEqual(result, [[5], 6]);
       });
 
-      it("handles struct literals", () => {
+      it("handles object literals", () => {
         const result = execute(parseOrThrow('{foo: "bar"}'), {});
         assert.deepStrictEqual(result, { foo: "bar" });
       });

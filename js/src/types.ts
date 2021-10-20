@@ -1,35 +1,35 @@
 // Parser Types
 export type ASTLiteralExpression =
   | {
-      type: "literal";
-      valueType: "string";
-      value: string;
-    }
+    type: "literal";
+    valueType: "string";
+    value: string;
+  }
   | {
-      type: "literal";
-      valueType: "number";
-      value: number;
-    }
+    type: "literal";
+    valueType: "number";
+    value: number;
+  }
   | {
-      type: "literal";
-      valueType: "boolean";
-      value: boolean;
-    }
+    type: "literal";
+    valueType: "boolean";
+    value: boolean;
+  }
   | {
-      type: "literal";
-      valueType: "array";
-      value: Array<ASTExpression>;
-    }
+    type: "literal";
+    valueType: "array";
+    value: Array<ASTExpression>;
+  }
   | {
-      type: "literal";
-      valueType: "null";
-      value: null;
-    }
+    type: "literal";
+    valueType: "null";
+    value: null;
+  }
   | {
-      type: "literal";
-      valueType: "struct";
-      value: { [key: string]: ASTExpression };
-    };
+    type: "literal";
+    valueType: "object";
+    value: { [key: string]: ASTExpression };
+  };
 
 export type ASTPipelineExpression = {
   type: "pipeline";
@@ -68,7 +68,7 @@ export type RuntimeValue =
 
 export type RuntimeValueType =
   | "array"
-  | "struct"
+  | "object"
   | "regex"
   | "number"
   | "boolean"
@@ -93,17 +93,17 @@ export type BuiltinFunction = (
 
 export type LexToken =
   | {
-      token: "value";
-      value: string | number | boolean | null;
-      position: number;
-    }
+    token: "value";
+    value: string | number | boolean | null;
+    position: number;
+  }
   | {
-      token: "ref";
-      value: string;
-      position: number;
-    }
+    token: "ref";
+    value: string;
+    position: number;
+  }
   | {
-      token: "special";
-      value: string;
-      position: number;
-    };
+    token: "special";
+    value: string;
+    position: number;
+  };

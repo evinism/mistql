@@ -11,7 +11,7 @@ describe("builtins", () => {
       );
     });
 
-    it("correctly maps structy values", () => {
+    it("correctly maps objecty values", () => {
       assert.deepStrictEqual(
         execute(parseOrThrow("map (feature + 1) arr"), {
           arr: [{ feature: 1 }, { feature: 2 }, { feature: 3 }],
@@ -688,7 +688,7 @@ describe("builtins", () => {
       );
     });
 
-    it("compares structs correctly", () => {
+    it("compares objects correctly", () => {
       assert.strictEqual(
         execute(
           parseOrThrow(
