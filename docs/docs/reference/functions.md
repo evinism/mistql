@@ -22,6 +22,26 @@ The following counts the number of occurrences of the number `3` in the array
 [1, 2, 3, 2, 2, 3] | filter @ == 3 | count
 ```
 
+### `entries`
+
+| Arity | Parameter Type | Return Type |
+| ----- | -------------- | ----------- |
+| 1     | `object`       | `array<[string, any]>` |
+
+Gets the entries of an object.
+
+#### Example
+
+Query:
+```
+{foo: "bar", baz: {boof: "woof"}} | entries
+```
+
+Result:
+```
+[["foo", "bar"] ["baz", {boof: "woof"}]]
+```
+
 ### `filter`
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
@@ -131,6 +151,40 @@ Result:
 { fruit: "banana", score: 4},
 ```
 
+### `float`
+
+| Arity | Parameter Type | Return Type |
+| ----- | -------------- | ----------- |
+| 1     | `any`       | `number` |
+
+Casts the target value to a float
+
+#### Example
+
+```
+(float "1.5") == 1.5
+```
+
+### `fromentries`
+
+| Arity | Parameter Type | Return Type |
+| ----- | -------------- | ----------- |
+| 1     | `array<[string, any]>` | `any` |
+
+Create an object from a list of entries. The inverse of `entries`.
+
+#### Example
+
+Query:
+```
+[["foo", "bar"] ["baz", {boof: "woof"}]] | fromentries
+```
+
+Result:
+```
+{foo: "bar", baz: {boof: "woof"}}
+```
+
 ### `groupby`
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
@@ -224,6 +278,25 @@ Result:
 2
 ```
 
+### `join`
+
+| Arity | Parameter 1 | Parameter 2 Type | Return Type     |
+| ----- | ---- |---------------- | --------------- |
+| 2     | `string` | `array<string>`         | `array<>` |
+
+Joins an array of strings together with a given delimiter.
+
+#### Example
+```
+["foo", "bar", "baz"] | join ","
+```
+
+Result:
+
+```
+"foo,bar,baz"
+```
+
 ### `keys`
 
 | Arity | Parameter 1 Type | Return Type     |
@@ -265,6 +338,26 @@ Result:
 ```
 
 Additionally, `MistQL Log: ["haha", "blah", "cat"]` is written to the console.
+
+### `match`
+
+| Arity | Parameter 1 Type    | Parameter 2 Type | Return Type |
+| ----- | ------------------- | ---------------- | ----------- |
+| 2     | `regex` or `string` | `string`         | `boolean`   |
+
+Whether the given string matches the pattern.
+
+#### Example
+
+Query:
+```
+match (regex "(ha)*") "hahahaha"
+```
+
+Result:
+```
+true
+```
 
 ### `map`
 
@@ -376,6 +469,39 @@ Result:
 6
 ```
 
+### `regex`
+
+| Arity | Parameter 1 Type    | Parameter 2 Type (optional) | Return Type |
+| ----- | ------------------- | ---------------- | ----------- |
+| 1 - 2 | `string`            | `string`         | `regex`    |
+
+Constructs a regular expression based on the pattern. The second, optional, argument specifies the flags.
+
+#### Example
+
+`regex "(h.)*" "g"`  constructs the regular expression `/(h.)*/g`
+
+
+### `replace`
+
+| Arity | Parameter 1 Type    | Parameter 2 Type | Parameter 3 Type | Return Type |
+| ----- | ------------------- | ---------------- | --- | ----------- |
+| 3 | `string` or `regex` | `string` | `string` | `string`    |
+
+Replaces the first matching instance of parameter 1 with parameter 2 in parameter 3. If a global regex is used, all instances are replaced.
+
+#### Example
+
+Query:
+```
+"haha" | replace (regex "h." "g") "z"
+```
+
+Result:
+```
+"zz"
+```
+
 ### `reverse`
 
 | Arity | Parameter 1 Type | Return Type |
@@ -444,6 +570,42 @@ Result:
 
 ```
 [8, 1, 2, 3]
+```
+
+### `split`
+
+| Arity | Parameter 1 Type    | Parameter 2 Type | Return Type      |
+| ----- | ------------------- | ---------------- | ---------------- |
+| 2     | `string` or `regex` | `string`         | `array<string>`  |
+
+Splits a string based on a delimiter.
+
+#### Example
+Query:
+
+```
+"foo,bar,baz" | split ","
+```
+
+Result:
+
+```
+["foo", "bar", "baz"]
+```
+
+
+### `string`
+
+| Arity | Parameter Type | Return Type |
+| ----- | -------------- | ----------- |
+| 1     | `any`       | `string` |
+
+Casts the target value to a string
+
+#### Example
+
+```
+(string 1.5) == "1.5"
 ```
 
 ### `sum`
