@@ -26,7 +26,7 @@ The following counts the number of occurrences of the number `3` in the array
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `array<t>`       | `array<t>`  |
+| 2     | `@: t -> any`    | `array<t>`       | `array<t>`  |
 
 Filters an array based on a condition.
 
@@ -55,7 +55,7 @@ Result:
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `object`         | `object`    |
+| 2     | `@: string -> any`       | `object`         | `object`    |
 
 Filters a object's keys based on a condition
 
@@ -76,9 +76,9 @@ Result:
 
 ### `filtervalues`
 
-| Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
-| ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `object`         | `object`    |
+| Arity | Parameter 1 Type    | Parameter 2 Type | Return Type |
+| ----- | ------------------- | ---------------- | ----------- |
+| 2     | `@: unknown -> any` | `object`         | `object`    |
 
 Filters a object's values based on a condition
 
@@ -108,7 +108,7 @@ Result:
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type   |
 | ----- | ---------------- | ---------------- | ------------- |
-| 2     | `any`            | `array<t>`       | `t` or `null` |
+| 2     | `@: t -> any`    | `array<t>`       | `t` or `null` |
 
 Finds the first item that matches the condition
 
@@ -135,7 +135,7 @@ Result:
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `array`          | `object`    |
+| 2     | `@: t -> any`    | `array<t>`       | `object`    |
 
 Groups the items in the array based on some condition
 
@@ -197,11 +197,22 @@ Result:
 
 ### `index`
 
-| Arity | Parameter 1 Type | Parameter 2 Type | Return Type   |
-| ----- | ---------------- | ---------------- | ------------- |
-| 2     | `number`         | `array<t>`       | `t` or `null` |
+| Arity   | Parameter 1 Type   | Parameter 2 Type (optional) | Parameter 3 Type | Return Type   |
+| ------- | ------------------ | ---------------- | ---------------- | ------------- |
+| 2-3     | `number` or `string` or `null` | `number` or `null` | `array` or `object`       | `unknown` |
 
-Returns the nth item in an array, or null if no such item exists.
+Performs the indexing operation, returning `null` if no such item exists. Bracket notation is syntactic sugar for calling the above function calls. Below are a number of indexing expressions and their equivalent `index` function calls.
+
+| Indexing Expression | Equivalent |
+|---|---|
+| `arr[1]` | `index 1 arr` |
+| `arr[1:3]` | `index 1 3 arr` |
+| `arr[1:]` | `index 1 null arr` |
+| `arr[:1]` | `index null 1 arr` |
+| `obj["key"]` | `index "key" obj` |
+
+
+Example:
 
 ```
 [1, 2, 3] | index 1
@@ -259,7 +270,7 @@ Additionally, `MistQL Log: ["haha", "blah", "cat"]` is written to the console.
 
 | Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
 | ----- | ---------------- | ---------------- | ----------- |
-| 2     | `k`              | `array<t>`       | `array<k>`  |
+| 2     | `@: t -> k`      | `array<t>`       | `array<k>`  |
 
 Runs an expression on every element of an array.
 
@@ -287,9 +298,9 @@ Result:
 
 ### `mapkeys`
 
-| Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
-| ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `object`         | `object`    |
+| Arity | Parameter 1 Type   | Parameter 2 Type | Return Type |
+| ----- | ------------------ | ---------------- | ----------- |
+| 2     | `@: string -> any` | `object`         | `object`    |
 
 Maps every key in an expression.
 
@@ -315,9 +326,9 @@ Result:
 
 ### `mapvalues`
 
-| Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
-| ----- | ---------------- | ---------------- | ----------- |
-| 2     | `any`            | `object`         | `object`    |
+| Arity | Parameter 1 Type    | Parameter 2 Type | Return Type |
+| ----- | ------------------- | ---------------- | ----------- |
+| 2     | `@: unknown -> any` | `object`         | `object`    |
 
 Runs an expression on every value of a object.
 
@@ -345,9 +356,9 @@ Result:
 
 ### `reduce`
 
-| Arity | Parameter 1 Type | Parameter 2 Type | Parameter 3 Type | Return Type |
-| ----- | ---------------- | ---------------- | ---------------- | ----------- |
-| 3     | `any`            | `b`              | `array<a>`       | `b`         |
+| Arity | Parameter 1 Type           | Parameter 2 Type | Parameter 3 Type | Return Type |
+| ----- | -------------------------- | ---------------- | ---------------- | ----------- |
+| 3     | `@: [acc: b, cur: a] -> b` | `b`              | `array<a>`       | `b`         |
 
 Runs a `reduce` operation on every value of an array
 
@@ -356,7 +367,7 @@ Runs a `reduce` operation on every value of an array
 Query:
 
 ```
-[1, 2, 3] | reduce (first @) + (last @) 0
+[1, 2, 3] | reduce @[0] + @[1] 0
 ```
 
 Result:
@@ -369,7 +380,7 @@ Result:
 
 | Arity | Parameter 1 Type | Return Type |
 | ----- | ---------------- | ----------- |
-| 1     | `array`          | `array`     |
+| 1     | `array<t>`       | `array<t>`  |
 
 Reverses an array
 
@@ -395,9 +406,9 @@ TODO: Explain Sequence
 
 | Arity | Parameter 1 Type | Return Type |
 | ----- | ---------------- | ----------- |
-| 1     | `array`          | `array`     |
+| 1     | `array<t>`       | `array<t>`     |
 
-Sorts an array into ascending order.
+Sorts an array into ascending order. Strings are sorted alphabetically. Numbers are sorted numerically.
 
 #### Example
 
@@ -415,9 +426,9 @@ Result:
 
 ### `sortby`
 
-| Arity | Parameter 1 Type | Return Type |
-| ----- | ---------------- | ----------- |
-| 1     | `array`          | `array`     |
+| Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
+| ----- | ---------------- | ---------------- | ----------- |
+| 2     | `@: t -> any`    | `array<t>`       | `array<t>`  |
 
 Sorts an array into ascending order by some expression
 
