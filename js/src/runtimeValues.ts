@@ -1,8 +1,11 @@
 import { RuntimeValue, RuntimeValueType } from "./types";
 
 export const truthy = (runtimeValue: RuntimeValue): boolean => {
-  if (Array.isArray(runtimeValue)) {
+  const type = getType(runtimeValue);
+  if (type === 'array') {
     return !!runtimeValue.length;
+  } else if (type === 'object') {
+    return !!getProperties(runtimeValue).length;
   }
   return !!runtimeValue;
 };

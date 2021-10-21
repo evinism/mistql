@@ -6,7 +6,7 @@ sidebar_position: 3
 
 These are the nasty parts of MistQL, documented here for posterity's sake.
 
-## Gotcha 1: Unary Minus:
+## Gotcha 1: Unary Minus
 
 You may be tempted to write:
 
@@ -34,3 +34,16 @@ Valid: `[1, 2, 3][0]`
 Invalid: `[1, 2, 3] [0]`
 
 To get around this if necessary, you can always use the `index` method for which indexing expressions are syntactic sugar.
+
+## Gotcha 3: Using named variables with non-homogenous data structures
+
+When mapping or filtering over non-homogenous data structures, certain variables may not 
+be defined for every item. For example, consider the key "bar" in the following invalid expression:
+
+Invalid: `[{foo: 1, bar: 1}, {foo: 2}] | filter bar == null`
+
+When iterating over the second object, the variable `bar` is not defined as the object contains
+no such key.  To get around this, simply specify where the variable comes from by using the `@` symbol.
+
+Valid: `[{foo: 1, bar: 1}, {foo: 2}] | filter @.bar == null`
+
