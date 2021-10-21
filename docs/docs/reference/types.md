@@ -30,8 +30,8 @@ data types, they are considered unequal.
 | string   | exact              | `false` if empty, `true` otherwise |
 | number   | IEEE 754 compliant | IEEE 754 compliant                 |
 | boolean  | exact              | Standard                           |
-| null     | `true```           | `false`                            |
-| object   | Deep equality      | `true`                             |
-| array    | Deep equality      | `true`                             |
+| null     | `true`             | `false`                            |
+| object   | Deep equality      | `false` if empty, `true` otherwise |
+| array    | Deep equality      | `false` if empty, `true` otherwise |
 | function | Referential        | `true`                             |
 | regex    | On source and flag | `true`                             |
