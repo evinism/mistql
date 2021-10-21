@@ -5688,10 +5688,10 @@ minimist@^1.2.0, minimist@^1.2.5:
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.5.tgz#67d66014b66a6a8aaa0c083c5fd58df4e4e97602"
   integrity sha512-FM9nNUYrRBAELZQT3xeZQ7fmMOBg6nWNmJKTcgsJeaLstP/UODVpGsr5OhXhhXg6f+qtJ8uiZ+PUxkDWcgIXLw==
 
-mistql@0.4.0-beta.3:
-  version "0.4.0-beta.3"
-  resolved "https://registry.yarnpkg.com/mistql/-/mistql-0.4.0-beta.3.tgz#736f19b085e7803b07045c6f4f490370fbbc9a20"
-  integrity sha512-2qoyM5jdH8r8MIdKWOTe4fMHOYHMi993sGwWSrqGwnHWGtQmko0gHPgpULsRD8ziYJNal30YFIiKgGCG7djqcA==
+mistql@0.4.0-rc.0:
+  version "0.4.0-rc.0"
+  resolved "https://registry.yarnpkg.com/mistql/-/mistql-0.4.0-rc.0.tgz#20dcb2fb7eeb7bd511b6037c25fdda136981a2b1"
+  integrity sha512-Xsnfj5Azu14NQ7zl14bV0BmZMQXJFh6mgYRuIC5d3+h6ZWWICRSoQ6AvhWwDnbhF8n3FD7X80em20lYm+s4dSg==
 
 mixin-deep@^1.2.0:
   version "1.3.2"
