@@ -96,5 +96,20 @@ describe("index", () => {
         [{ filter: "lp" }]
       );
     });
+
+    it("supports truth tables", () => {
+      assert.equal(query('!!{}', null), false);
+      assert.equal(query('!!{foo: "bar"}', null), true);
+      assert.equal(query('!![]', null), false);
+      assert.equal(query('!![0]', null), true);
+      assert.equal(query('!!""', null), false);
+      assert.equal(query('!!"hi"', null), true);
+      assert.equal(query('!!0', null), false);
+      assert.equal(query('!!1', null), true);
+      assert.equal(query('!!(regex "")', null), true);
+      assert.equal(query('!!(regex "hi")', null), true);
+      assert.equal(query('!!(regex "hi")', null), true);
+      assert.equal(query('!!float', null), true);
+    });
   });
 });
