@@ -9,3 +9,21 @@
   height: 200px;
   width: 200px;
 }
+
+.prose {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+
+.tripdot {
+  border: 0;
+}
+
+.tripdot::after {
+  content: "⋅⋅⋅";
+  font-size: 2rem;
+  text-align: center;
+  display: block;
+}
