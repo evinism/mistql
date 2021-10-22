@@ -625,6 +625,13 @@ describe("builtins", () => {
         false
       );
     });
+
+    it("doesn't reverse the underlying AST when using the =~ operator", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow('[1, 2] | map "hello" =~ (regex "he..o")'), null),
+        [true, true]
+      );
+    });
   });
 
   describe("#equal", () => {

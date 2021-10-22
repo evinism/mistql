@@ -101,7 +101,7 @@ const ifFunction: BuiltinFunction = arity(3, (args, stack, exec) => {
 });
 
 const matchBinaryOp: BuiltinFunction = arity(2, (args, stack, exec) =>
-  match(args.reverse(), stack, exec)
+  match(args.slice().reverse(), stack, exec)
 );
 
 export default {
