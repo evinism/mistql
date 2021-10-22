@@ -63,6 +63,23 @@ export default function HomepageFeatures() {
       <hr className={styles.tripdot} />
       <section className={styles.prose}>
         <div className="container">
+          <h2 className="text--center">Select Examples</h2>
+          <p className="text--center">More examples can be found by navigating to the "Try It Now" link.</p>
+          <h3 className="text--center">Get count of a specific event</h3>
+          <pre>events | filter type == "submit" | count</pre>
+          <h3 className="text--center">Get count of all event types</h3>
+          <pre>events | groupby type | mapvalues count</pre>
+          <h3 className="text--center">Get the worst possible chess line</h3>
+          <pre>(lines | sortby overallScore)[-1]</pre>
+          <h3 className="text--center">Get emails of all users that use the Chat feature</h3>
+          <pre>events | filter type == "send_message" | groupby email | keys</pre>
+          <h3 className="text--center">Get usernames of all users who purchased before signing up</h3>
+          <pre>events | sort timestamp | groupby email | mapvalues (sequence type == "purchase" type == "signup") | filtervalues (count @ {'>'} 0) | keys</pre>
+        </div>
+      </section>
+      <hr className={styles.tripdot} />
+      <section className={styles.prose}>
+        <div className="container">
           <h2 className="text--center">How MistQL stacks up against other solutions</h2>
           <h3 className="text--center">JMESPath</h3>
           <p>
