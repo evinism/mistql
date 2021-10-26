@@ -97,6 +97,14 @@ describe("index", () => {
       );
     });
 
+    it("gives us a method for un-overwriting things in the data param", () => {
+      assert.deepStrictEqual(
+        query('[{filter: hp}, {filter: lp}] | $.filter filter == $.@.filter',
+          { filter: "lp", lp: "lp", hp: "hp" }),
+        [{ filter: "lp" }]
+      );
+    });
+
     it("supports truth tables", () => {
       assert.equal(query('!!{}', null), false);
       assert.equal(query('!!{foo: "bar"}', null), true);

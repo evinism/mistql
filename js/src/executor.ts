@@ -11,7 +11,7 @@ import {
   Stack
 } from "./types";
 
-const defaultStack: Stack = [builtins, { $: builtins }];
+const defaultStack: Stack = [builtins];
 
 export const inputGardenWall = (data: unknown) => {
   if (["number", "boolean", "string"].indexOf(typeof data) > -1) {
@@ -44,9 +44,13 @@ export const outputGardenWall = (data: unknown) => {
 
 export const execute = (node: ASTExpression, variables: unknown) => {
   const data = inputGardenWall(variables);
+  const initialStack = [builtins, {
+    $: Object.assign({}, builtins, { "@": data }),
+  }];
+
   const result = executeInner(
     node,
-    pushRuntimeValueToStack(data, defaultStack)
+    pushRuntimeValueToStack(data, initialStack)
   );
   return outputGardenWall(result);
 };
@@ -117,7 +121,7 @@ const executeReference = (
   statement: ASTReferenceExpression,
   inputStack: Closure[]
 ): RuntimeValue => {
-  const stack = statement.internal ? defaultStack : inputStack;
+  const stack = statement.internal ? [builtins] : inputStack;
   // first, find the appropriate referenced variable:
   let referencedInStack = undefined;
   for (let i = stack.length - 1; i >= 0; i--) {
