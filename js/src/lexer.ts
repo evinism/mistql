@@ -9,27 +9,9 @@ const whitespaceBehavior = {
   rl: ".:|,".split("").concat(binaryExpressionStrings),
 };
 
-// Stolen shamelessly from parsimmon
-// Turn escaped characters into real ones (e.g. "\\n" becomes "\n").
-function interpretEscapes(str: string) {
-  let escapes = {
-    b: "\b",
-    f: "\f",
-    n: "\n",
-    r: "\r",
-    t: "\t",
-  };
-  return str.replace(/\\(u[0-9a-fA-F]{4}|[^u])/, (_, escape) => {
-    let type = escape.charAt(0);
-    let hex = escape.slice(1);
-    if (type === "u") {
-      return String.fromCharCode(parseInt(hex, 16));
-    }
-    if (escapes.hasOwnProperty(type)) {
-      return escapes[type];
-    }
-    return type;
-  });
+// gross hacky way to ensure that we can tell between string literal end and escaped quote;
+function endsWithOddNumberOfSlashes(str: string) {
+  return (str.match(/\\+$/) || [''])[0].length % 2 === 1;
 }
 
 // TODO: Make this not n squared
@@ -133,15 +115,19 @@ export function lex(raw: string): LexToken[] {
         i++;
         if (split[i] === undefined) {
           throw new LexError("Unterminated string literal", position, raw);
-        } else if (split[i] === "\\" && '\\"'.indexOf(split[i + 1]) !== -1) {
-          // handle escaping double quotes and backslashes manually
+        } else if (split[i] === "\\" && split[i + 1] === '"' && !endsWithOddNumberOfSlashes(buffer)) {
+          // Handle escaped double quotes separately
+          // The only case where this isn't valid is when the slash before is escaped.
+          // Checking for buffer ending with even number of slashes is a hacky way to do this.
+          buffer += '\\u0022';
           i++;
+        } else {
+          buffer += split[i];
         }
-        buffer += split[i];
       }
       tokens.push({
         token: "value",
-        value: interpretEscapes(buffer),
+        value: JSON.parse(`"${buffer}"`), // Rely on JSON.parse to handle escaping non-quotes
         position,
       });
       i++;
