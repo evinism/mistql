@@ -6,6 +6,22 @@ sidebar_position: 4
 
 The following are all builtin functions in MistQL
 
+### `apply`
+
+| Arity | Parameter 1 Type | Parameter 2 Type | Return Type |
+| ----- | ---------------- | ---------------- | ----------- |
+| 2     | `@: T -> K`      | `T`              | `K`         |
+
+Takes the second argument and provides it as the context for the first argument
+
+This is almost exclusively used as a utility as part of piping, e.g. `1 | apply @ + 1 | apply @ * 2`
+
+#### Example
+
+```
+({a: "foo" } | apply a + "bar") == "foobar"
+```
+
 ### `count`
 
 | Arity | Parameter Type | Return Type |
