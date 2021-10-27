@@ -22,7 +22,7 @@ Binary operators make up the vast majority of MistQL's operators.
 
 | Operator | Parameter Types | Return Type | Description |
 |---|---|---|---|
-|`+`| `number` or `string` | `number` or `string` | Adds two numbers or concatenates two strings, depending on argument type |
+|`+`| `number` or `string` or `array` | `number` or `string` or `array` | Adds two numbers, concatanates two strings, or concatanates two arrays, depending on argument type |
 |`-`| `number` | `number` | Subtracts one number from another |
 |`*`| `number` | `number` | Multiplies 2 numbers |
 |`/`| `number` | `number` | Divides one number by another |
