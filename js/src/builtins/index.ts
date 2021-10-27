@@ -1,6 +1,7 @@
 import { compare, truthy } from "../runtimeValues";
 import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
+import apply from "./apply";
 import count from "./count";
 import entries from "./entries";
 import equal from "./equal";
@@ -105,6 +106,7 @@ const matchBinaryOp: BuiltinFunction = arity(2, (args, stack, exec) =>
 );
 
 export default {
+  apply,
   count,
   entries,
   filter,
