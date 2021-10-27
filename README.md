@@ -1,75 +1,55 @@
-# MistQL
+# MistQL: Query language for JSON-like structures
 
-## A miniature embeddable query language for JSON-like structures
+![mistql logo](https://www.mistql.com/assets/images/icon128-020f567a30894a6c26227dc6773d3406.png)
 
-`mistql` is a miniature query language built for embedding within applications. It supports
-logic for querying and manipulating JSON-like data in a simple manner.
+`mistql` is a miniature embeddable query language for JSON-like structures. MistQL is built for embedding within applications. It supports
+logic for querying and manipulating JSON-like data in a simple, readable manner. 
 
-MistQL is built from the ground up to be lightweight. At 5.2kb gzipped with no dependencies, it can
-be included in size-sensitive frontends.
+For more detailed usage information, please visit MistQL's docs site.
 
-## Motivation
+### Links
+* [MistQL's doc site](https://www.mistql.com/).
+* [Getting Started](https://www.mistql.com/docs/intro)
+* [Try it out!](https://www.mistql.com/tryitout)
+* [Functions](https://www.mistql.com/docs/reference/functions)
+* [Reference](https://www.mistql.com/docs/reference/overview)
 
-Having a simple JSON query language allows
 
-- Cross-language serializable functions
-- Shared frontend / backend logic for form validation or price calculation.
-- User-submitted logic
+# Developing MistQL
 
-In the past, I've used JSON Logic for such tasks, but JSON logic leaves a bit to be desired:
+Contributions to MistQL are very welcome!
 
-- It's not very expressive, and even simple things can prove quite annoying to implement
-- It doesn't have a dedicated syntax, making reading and writing complex transforms extremely challenging
+As MistQL is still a small project, there are no formatting requirements for either issues or pull requests.
 
-## In-language usage:
+### Code workflow
+Code contributions to MistQL should roughly follow standard open source workflows:
+1. Fork the project
+2. Make code changes on your fork of the project.
+3. (if necessary) Pull upstream to bring in new changes
+4. Submit a pull request to MistQL's `main` branch.
+5. (if necessary) Implement changes requested by maintainers.
+6. Wait for the branch to be accepted and merged by maintainers!
 
-```js
-// JavaScript
-import mistql from 'mistql';
+### MistQL standard
+No MistQL standard yet exists, but we're aiming for the `0.4.0` release of `mistql` on npm as a standardizable language. After the `0.4.0` release, we will create a language specification, separate from any implementation. As part of that initiative, a language-independent test suite will be developed, such that we can develop for any environment, ensuring cross-implementation compliance to the specification.
 
-mistql.query(query, { events: [...] })
-```
+From that point, we're aiming to develop a python implementation, followed by a ruby implementation. Other implementations will be gladly welcomed.
 
-## Example usage:
+## Directory Structure
 
-The following are simple examples of how MistQL could be used.
+MistQL's directory struture is a monorepo, currently consisting solely of two directories:
 
-### Get count of a specific event
+1. `/docs`: Documentation Site (hosted at [mistql.com](https://www.mistql.com/))
+2. `/js`: MistQL's browser implementation (e.g. `mistql` on npm).
 
-`events | filter type == "submit" | count`
+## Developing for the docs site
 
-### Get count of all event types
+Docs are built via a fairly standard [Docusaurus 2](https://docusaurus.io/) implementation. Please follow Docusaurus's docs for developing for the Docs site.
 
-`events | groupby type | mapvalues count`
+## Developing for `mistql` on npm
 
-### Get the worst chess line possible.
+`mistql` is written exclusively using typescript. Additionally, `mistql` uses `yarn` for dependency management, versioning, and uploading. Tests are stored alongside their implementation, using the suffix `.spec.ts`. Writing tests for all feature additions and bug fixes is strongly encouraged.
 
-`lines | sortby (-overallScore) | first`
+For all major improvements, it is strongly encouraged to run `yarn bundlesize` to estimate gzipped impact of MistQL on a browser. MistQL for the browser should, in general, remain relatively close to 5kb. 
 
-### Get emails of all users that use the Chat feature
-
-`events | filter type == "send_message" | groupby email | keys`
-
-### Get usernames of all users who purchased before signing up
-
-`events | sort timestamp | groupby email | mapvalues (sequence type == "purchase", type == "signup") | filtervalues (count @ > 0) | keys`
-
-## Builtin Types
-
-MistQL's types correspond closely to JSON types, for interoperability between different languages.
-
-MistQL has 4 primitive types:
-
-- `string`
-- `number`
-- `null`
-- `boolean`
-
-MistQL also has 3 complex types:
-
-- `object`
-- `array`
-- `function`
-- `regex`
-
-The interface of MistQL is restricted in that functions can neither be provided as data, nor returned as the result of a query -- they exist entirely within MistQL
+The directory structure is relatively flat, except for the single `src/builtins` folder, which contains the implementation of all of MistQL's internal functions.
