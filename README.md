@@ -2,13 +2,13 @@
 
 ![mistql logo](https://www.mistql.com/assets/images/icon128-020f567a30894a6c26227dc6773d3406.png)
 
-`mistql` is a miniature embeddable query language for JSON-like structures. MistQL is built for embedding within applications. It supports
+MistQL is a miniature embeddable query language for JSON-like structures, built for embedding within applications. It supports
 logic for querying and manipulating JSON-like data in a simple, readable manner. 
 
 For more detailed usage information, please visit MistQL's docs site.
 
 ### Links
-* [MistQL's doc site](https://www.mistql.com/).
+* [MistQL's doc site](https://www.mistql.com/)
 * [Getting Started](https://www.mistql.com/docs/intro)
 * [Try it out!](https://www.mistql.com/tryitout)
 * [Functions](https://www.mistql.com/docs/reference/functions)
