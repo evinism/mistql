@@ -903,4 +903,24 @@ describe("builtins", () => {
       assert.deepStrictEqual(execute(parseOrThrow("float @"), false), 0);
     });
   });
+
+  describe("#apply", () => {
+    it("allows easy modification to a value via piping", () => {
+      assert.deepStrictEqual(execute(parseOrThrow("@ | apply @ + 1"), 1), 2);
+      assert.deepStrictEqual(
+        execute(parseOrThrow("@ | apply @ + 1 | apply @ + 1"), 1),
+        3
+      );
+    });
+    it("defines intermediate variables from the context variable", () => {
+      assert.deepStrictEqual(
+        execute(parseOrThrow("@ | apply a"), { a: 1, b: 2 }),
+        1
+      );
+      assert.deepStrictEqual(
+        execute(parseOrThrow("@ | apply b"), { a: 1, b: 2 }),
+        2
+      );
+    });
+  });
 });
