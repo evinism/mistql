@@ -9,6 +9,9 @@ const plus: BuiltinFunction = arity(2, (args, stack, exec) => {
   if (type !== getType(b)) {
     throw new Error("Cannot add values of different types");
   }
+  if (type === "array") {
+    return [].concat(a, b)
+  }
   if (type !== 'string' && type !== 'number') {
     throw new Error("Cannot add values of type " + type)
   }

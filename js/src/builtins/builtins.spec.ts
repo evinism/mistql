@@ -118,6 +118,10 @@ describe("builtins", () => {
     it("works for strings", () => {
       assert.strictEqual(execute(parseOrThrow('"sup "+ "bro"'), {}), "sup bro");
     });
+
+    it("works for arrays", () => {
+      assert.deepStrictEqual(execute(parseOrThrow('[1, 2, 3] + [4, 5] + [6, 7]'), {}), [1, 2, 3, 4, 5, 6, 7]);
+    });
   });
 
   describe("#[numerical binary operators]", () => {
