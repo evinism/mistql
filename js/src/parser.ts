@@ -246,9 +246,12 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
   if (bexpseq.items.length === 0) {
     throw new UnpositionableParseError("Tried to parse empty expression!");
   }
-  if (bexpseq.items.length === 1) {
+  if (bexpseq.items.length === 1 && bexpseq.joiners.length === 0) {
     // this is the majority case by a long shot.
     return bexpseq.items[0];
+  }
+  if (bexpseq.items.length - 1 !== bexpseq.joiners.length) {
+    throw new UnpositionableParseError("Invalid sequence of binary expressions!");
   }
   let current = bexpseq;
 
@@ -315,6 +318,9 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
       items: newItems,
       joiners: newJoiners,
     };
+  }
+  if (current.joiners.length !== 0) {
+    throw new UnpositionableParseError("Expected expression following binary expression " + current.joiners[0]);
   }
   return current.items[0];
 };

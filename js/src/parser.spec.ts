@@ -715,5 +715,11 @@ describe("parser", () => {
         });
       });
     });
+    it("errors with incomplete binary expressions", () => {
+      assert.throws(() => parseOrThrow("here +"));
+      assert.throws(() => parseOrThrow("(here +)"));
+      assert.throws(() => parseOrThrow("(1 * 2 *)"));
+      assert.throws(() => parseOrThrow("a | b |"));
+    });
   });
 });
