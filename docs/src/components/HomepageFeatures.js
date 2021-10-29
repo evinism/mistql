@@ -14,21 +14,22 @@ const FeatureList = [
     ),
   },
   {
-    title: 'Extremely Lightweight',
+    title: 'Built for Browsers',
     //Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        MistQL has 0 dependencies and is hand-tuned for size. At 5.2kB gzipped, MistQL is able to fit on size-restricted frontends.
+        MistQL has 0 dependencies and is hand-tuned for size. At 5.2kB gzipped, MistQL is specifically built to be embedded in size-restricted frontends.
       </>
     ),
   },
   {
-    title: 'Built for Browsers',
+    title: 'Secure by Design',
     //Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
 
     description: (
       <>
-        MistQL is is purpose-built to be embedded in both browserside and serverside JavaScript.
+        Queries in MistQL operate solely on the data you provide to it. You can run untrusted MistQL in your
+        browser without risk of XSS.
       </>
     ),
   },
@@ -80,6 +81,31 @@ export default function HomepageFeatures() {
       <hr className={styles.tripdot} />
       <section className={styles.prose}>
         <div className="container">
+          <h2 className="text--center">Motivation</h2>
+          <p>
+            MistQL originated as a domain specific language for machine
+            learning feature extraction on the frontend. Despite the widespread
+            proliferation of learned features in neural networks, the need for
+            handcrafted features still provides immense value in situations
+            where classical machine learning models are more appropriate. MistQL
+            was purpose-built to fill the niche of a domain specific language for
+            feature extraction on the frontend.
+          </p>
+          <p>
+            Despite this initial motivation, MistQL is far more general than simply
+            clientside feature extraction. MistQL can be used in a wide range of
+            applications, including, but not limited to:
+            <ul>
+              <li>User-submitted or untrusted logic</li>
+              <li>Shared backend / frontend logic in scenarios where sharing code is infeasable</li>
+              <li>As a serializable storage format for pure functions</li>
+            </ul>
+          </p>
+        </div>
+      </section>
+      <hr className={styles.tripdot} />
+      <section className={styles.prose}>
+        <div className="container">
           <h2 className="text--center">How MistQL stacks up against other solutions</h2>
           <h3 className="text--center">JMESPath</h3>
           <p>
@@ -105,12 +131,6 @@ export default function HomepageFeatures() {
           <p>
             Emuto and MistQL have similar scopes, however Emuto lacks a number of features that mistql
             provides out of the box, including regexes and a large standard library.
-          </p>
-          <h3 className="text--center">jq</h3>
-          <p>
-            Despite jq's ubiquity, `jq` doesn't have a strong browser implementation. `jq` may be
-            a better choice if all you need is a command line utility, but if you need in-browser
-            computation, MistQL is probably a stronger choice.
           </p>
         </div>
       </section>
