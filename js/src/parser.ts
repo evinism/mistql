@@ -2,9 +2,9 @@ import {
   amalgamatingBinaryOperators,
   binaryExpressionStrings,
   simpleBinaryOperators,
-  unaryExpressions,
+  unaryExpressions
 } from "./constants";
-import { OpenAnIssueIfThisOccursError, ParseError } from "./errors";
+import { OpenAnIssueIfThisOccursError, ParseError, UnpositionableParseError } from "./errors";
 import { lex } from "./lexer";
 import { ASTApplicationExpression, ASTExpression, LexToken } from "./types";
 
@@ -27,10 +27,15 @@ type ParseResult = {
   remaining: LexToken[];
 };
 
-type Parser = (tokens: LexToken[]) => ParseResult;
+type ParseContext = {
+  rawQuery: string
+}
+
+type Parser = (tokens: LexToken[], ctx: ParseContext) => ParseResult;
 type ParameterizedParser = (
   sourceItem: ASTExpression,
-  tokens: LexToken[]
+  tokens: LexToken[],
+  ctx: ParseContext
 ) => ParseResult;
 
 const tmatch = (token: string, value: unknown, root: LexToken) => {
@@ -39,11 +44,11 @@ const tmatch = (token: string, value: unknown, root: LexToken) => {
 
 const buildTMatchThrower =
   (ErrorConstructor: any) =>
-  (token: string, value: unknown, root: LexToken) => {
-    if (!tmatch(token, value, root)) {
-      throw new ErrorConstructor("Expected " + value + ", got " + root.value);
-    }
-  };
+    (token: string, value: unknown, root: LexToken) => {
+      if (!tmatch(token, value, root)) {
+        throw new ErrorConstructor("Expected " + value + ", got " + root.value);
+      }
+    };
 
 const tmatchOrThrow = buildTMatchThrower(ParseError);
 const tmatchOrThrowBad = buildTMatchThrower(OpenAnIssueIfThisOccursError);
@@ -61,13 +66,13 @@ const isUnExp = (token: LexToken) => {
   return res;
 };
 
-const consumeParenthetical: Parser = (tokens: LexToken[]) => {
+const consumeParenthetical: Parser = (tokens: LexToken[], ctx) => {
   tmatchOrThrowBad("special", "(", tokens[0]);
   let current = tokens.slice(1);
-  const { result, remaining } = consumeExpression(current);
+  const { result, remaining } = consumeExpression(current, ctx);
   current = remaining;
   if (!current[0]) {
-    throw new ParseError("Unexpected EOF");
+    throw new ParseError("Unexpected EOF", ctx.rawQuery.length - 1, ctx.rawQuery);
   }
   tmatchOrThrow("special", ")", current[0]);
   current = current.slice(1);
@@ -77,7 +82,7 @@ const consumeParenthetical: Parser = (tokens: LexToken[]) => {
   };
 };
 
-const consumeArray: Parser = (tokens) => {
+const consumeArray: Parser = (tokens, ctx) => {
   tmatchOrThrowBad("special", "[", tokens[0]);
   let current = tokens.slice(1);
   let entries: ASTExpression[] = [];
@@ -87,7 +92,7 @@ const consumeArray: Parser = (tokens) => {
       current = current.slice(1);
       break;
     }
-    const { result, remaining } = consumeExpression(current);
+    const { result, remaining } = consumeExpression(current, ctx);
     entries.push(result);
     current = remaining;
     if (tmatch("special", ",", current[0])) {
@@ -97,7 +102,7 @@ const consumeArray: Parser = (tokens) => {
       current = current.slice(1);
       break;
     } else {
-      throw new ParseError("Unexpected token " + current[0].value);
+      throw new ParseError("Unexpected token " + current[0].value, current[0].position, ctx.rawQuery);
     }
   }
   return {
@@ -110,7 +115,7 @@ const consumeArray: Parser = (tokens) => {
   };
 };
 
-const consumeIndexer: Parser = (tokens) => {
+const consumeIndexer: Parser = (tokens, ctx) => {
   tmatchOrThrowBad("special", "[", tokens[0]);
   let current = tokens.slice(1);
   let entries: ASTExpression[] = [];
@@ -133,7 +138,7 @@ const consumeIndexer: Parser = (tokens) => {
       });
       break;
     }
-    const { result, remaining } = consumeExpression(current);
+    const { result, remaining } = consumeExpression(current, ctx);
     entries.push(result);
     current = remaining;
     if (tmatch("special", ":", current[0])) {
@@ -143,7 +148,7 @@ const consumeIndexer: Parser = (tokens) => {
       current = current.slice(1);
       break;
     } else {
-      throw new ParseError("Unexpected token " + current[0].value);
+      throw new ParseError("Unexpected token " + current[0].value, current[0].position, ctx.rawQuery);
     }
   }
 
@@ -162,7 +167,7 @@ const consumeIndexer: Parser = (tokens) => {
   };
 };
 
-const consumeStruct: Parser = (tokens) => {
+const consumeStruct: Parser = (tokens, ctx) => {
   tmatchOrThrowBad("special", "{", tokens[0]);
   let current = tokens.slice(1);
   let entries: { [key: string]: ASTExpression } = {};
@@ -172,19 +177,19 @@ const consumeStruct: Parser = (tokens) => {
       break;
     }
     if (current[0] === undefined) {
-      throw new ParseError("Unexpected EOF");
+      throw new ParseError("Unexpected EOF", ctx.rawQuery.length, ctx.rawQuery);
     }
     let key: string;
     if (current[0].token === "ref" || current[0].token === "value") {
       key = current[0].value.toString();
       current = current.slice(1);
     } else {
-      throw new ParseError("Unexpected token " + current[0].value);
+      throw new ParseError("Unexpected token " + current[0].value, current[0].position, ctx.rawQuery);
     }
     tmatchOrThrow("special", ":", current[0]);
     current = current.slice(1);
 
-    const { result, remaining } = consumeExpression(current);
+    const { result, remaining } = consumeExpression(current, ctx);
     entries[key] = result;
     current = remaining;
     if (tmatch("special", ",", current[0])) {
@@ -194,7 +199,7 @@ const consumeStruct: Parser = (tokens) => {
       current = current.slice(1);
       break;
     } else {
-      throw new ParseError("Unexpected token " + current[0].value);
+      throw new ParseError("Unexpected token " + current[0].value, current[0].position, ctx.rawQuery);
     }
   }
   return {
@@ -207,13 +212,14 @@ const consumeStruct: Parser = (tokens) => {
   };
 };
 
-const consumeDotAccess: ParameterizedParser = (left, tokens) => {
+const consumeDotAccess: ParameterizedParser = (left, tokens, ctx) => {
   tmatchOrThrowBad("special", ".", tokens[0]);
   let current = tokens.slice(1);
   let ref: string;
   if (current.length === 0 || current[0].token !== "ref") {
     throw new ParseError(
-      "Unexpected token " + current[0].value + ", expected :"
+      "Unexpected token " + current[0].value + ", expected :",
+      current[0].position, ctx.rawQuery
     );
   }
   ref = current[0].value;
@@ -235,10 +241,10 @@ const consumeDotAccess: ParameterizedParser = (left, tokens) => {
 type BinaryExpressionSequence = { items: ASTExpression[]; joiners: string[] };
 
 const turnBinaryExpressionSequenceIntoASTExpression = (
-  bexpseq: BinaryExpressionSequence
+  bexpseq: BinaryExpressionSequence,
 ): ASTExpression => {
   if (bexpseq.items.length === 0) {
-    throw new ParseError("Tried to parse empty expression!");
+    throw new UnpositionableParseError("Tried to parse empty expression!");
   }
   if (bexpseq.items.length === 1) {
     // this is the majority case by a long shot.
@@ -313,7 +319,7 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
   return current.items[0];
 };
 
-const consumeExpression: Parser = (tokens) => {
+const consumeExpression: Parser = (tokens, ctx) => {
   let current = tokens;
   let items: ASTExpression[] = [];
   let joiners: LexToken[] = [];
@@ -321,7 +327,7 @@ const consumeExpression: Parser = (tokens) => {
   const itemPushGuard = (token: LexToken) => {
     if (joiners.length !== items.length) {
       // Now parsing an item, so guard
-      throw new ParseError("Unexpected Token " + token.value);
+      throw new ParseError("Unexpected Token " + token.value, token.position, ctx.rawQuery);
     }
   };
 
@@ -332,7 +338,7 @@ const consumeExpression: Parser = (tokens) => {
   const joinerPushGuard = (token: LexToken) => {
     if (binExpDoesntMakeSense()) {
       // Now parsing an item, so guard
-      throw new ParseError("Unexpected Token " + token.value);
+      throw new ParseError("Unexpected Token " + token.value, token.position, ctx.rawQuery);
     }
   };
   while (current.length > 0) {
@@ -372,27 +378,27 @@ const consumeExpression: Parser = (tokens) => {
 
     if (tmatch("special", "(", next)) {
       itemPushGuard(next);
-      const { result, remaining } = consumeParenthetical(current);
+      const { result, remaining } = consumeParenthetical(current, ctx);
       items.push(result);
       current = remaining;
     } else if (tmatch("special", ".", next)) {
       if (items.length === 0) {
-        throw new ParseError("Unexpected Token .");
+        throw new ParseError("Unexpected Token .", next.position, ctx.rawQuery);
       }
-      const { result, remaining } = consumeDotAccess(items.pop(), current);
+      const { result, remaining } = consumeDotAccess(items.pop(), current, ctx);
       items.push(result);
       current = remaining;
     } else if (tmatch("special", "[", next)) {
       // If it doesn't make sense as an item, then it should be parsed
       // as an indexing expression instead!!
       if (joiners.length === items.length) {
-        const { result, remaining } = consumeArray(current);
+        const { result, remaining } = consumeArray(current, ctx);
         items.push(result);
         current = remaining;
       } else {
         // We can always postfix an expression with an indexing term. Binds at maximum depth.
         // Replaces the previous
-        const { result: app, remaining } = consumeIndexer(current);
+        const { result: app, remaining } = consumeIndexer(current, ctx);
         items[items.length - 1] = {
           type: "application",
           function: (app as ASTApplicationExpression).function,
@@ -404,7 +410,7 @@ const consumeExpression: Parser = (tokens) => {
       }
     } else if (tmatch("special", "{", next)) {
       itemPushGuard(next);
-      const { result, remaining } = consumeStruct(current);
+      const { result, remaining } = consumeStruct(current, ctx);
       items.push(result);
       current = remaining;
     } else if (next.token === "value") {
@@ -444,7 +450,7 @@ const consumeExpression: Parser = (tokens) => {
 
   // We can always postfix an expression with an indexing term. Binds at maximum depth.
   if (tmatch("special", "[", current[0])) {
-    const { result: app, remaining } = consumeIndexer(current);
+    const { result: app, remaining } = consumeIndexer(current, ctx);
     resolvedSequence = {
       type: "application",
       function: (app as ASTApplicationExpression).function,
@@ -465,11 +471,13 @@ const consumeExpression: Parser = (tokens) => {
   };
 };
 
-function parseQuery(tokens: LexToken[]): ASTExpression {
-  const { result, remaining } = consumeExpression(tokens);
+function parseQuery(tokens: LexToken[], ctx: ParseContext): ASTExpression {
+  const { result, remaining } = consumeExpression(tokens, ctx);
   if (remaining.length !== 0) {
     throw new ParseError(
-      "Unexpected token " + remaining[0].value + ", expected EOF"
+      "Unexpected token " + remaining[0].value + ", expected EOF",
+      ctx.rawQuery.length,
+      ctx.rawQuery,
     );
   }
   return result;
@@ -477,7 +485,10 @@ function parseQuery(tokens: LexToken[]): ASTExpression {
 
 function parse(raw: string): ASTExpression {
   const lexed = lex(raw);
-  const parsed = parseQuery(lexed);
+  const ctx: ParseContext = {
+    rawQuery: raw,
+  }
+  const parsed = parseQuery(lexed, ctx);
   return parsed;
 }
 
