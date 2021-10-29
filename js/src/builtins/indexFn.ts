@@ -1,3 +1,4 @@
+import { RuntimeError } from "../errors";
 import { getType } from "../runtimeValues";
 import { BuiltinFunction, RuntimeValue } from "../types";
 import { arity, validateType } from "../util";
@@ -6,7 +7,7 @@ type Indexer = (source: RuntimeValue, key: RuntimeValue, keyEnd: RuntimeValue) =
 
 const objectIndexer: Indexer = (source, key, keyEnd) => {
   if (keyEnd !== undefined) {
-    throw new Error("Index ranges not supported for objects")
+    throw new RuntimeError("Index ranges not supported for objects")
   }
   validateType("string", key);
   return source[key] ?? null;
@@ -57,7 +58,7 @@ const index: BuiltinFunction = arity([2, 3], (args, stack, exec) => {
   const sourceType = getType(source);
   const indexer = indexers[sourceType];
   if (!indexer) {
-    throw new Error("Cannot get index of type " + sourceType);
+    throw new RuntimeError("Cannot get index of type " + sourceType);
   }
   return indexer(source, key, keyEnd)
 });

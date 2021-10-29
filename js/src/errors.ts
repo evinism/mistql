@@ -32,4 +32,7 @@ export class LexError extends PositionableError {
 export class ParseError extends Error {
 }
 
+export class RuntimeError extends Error {
+}
+
 export class OpenAnIssueIfThisOccursError extends Error { }
