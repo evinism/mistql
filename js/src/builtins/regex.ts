@@ -1,3 +1,4 @@
+import { RuntimeError } from "../errors";
 import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
 
@@ -11,7 +12,7 @@ const regex: BuiltinFunction = arity([1, 2], (args, stack, exec) => {
   } else {
     flags = validateType("string", exec(args[1], stack));
     if (!validFlags.test(flags)) {
-      throw new Error("Invalid flags passed to replace: " + flags);
+      throw new RuntimeError("Invalid flags passed to replace: " + flags);
     }
   }
   return new RegExp(regexStr, flags);

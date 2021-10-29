@@ -1,3 +1,4 @@
+import { RuntimeError } from "../errors";
 import { getType } from "../runtimeValues";
 import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
@@ -10,7 +11,7 @@ const replace: BuiltinFunction = arity(3, (args, stack, exec) => {
   if (getType(matcher) === 'regex' || getType(matcher) === 'string') {
     return target.replace(matcher, replacer);
   } else {
-    throw new Error("Replacing only works with strings or regexes")
+    throw new RuntimeError("Replacing only works with strings or regexes")
   }
 });
 

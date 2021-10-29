@@ -1,3 +1,4 @@
+import { RuntimeError } from "./errors";
 import { getType } from "./runtimeValues";
 import { BuiltinFunction, RuntimeValue, RuntimeValueType } from "./types";
 
@@ -26,25 +27,25 @@ export const seqHelper = (arr: boolean[][], start = 0): number[][] => {
 // Builtin Helpers
 export const arity =
   (arityCount: number | number[], fn: BuiltinFunction): BuiltinFunction =>
-  (args, stack, exec) => {
-    const validArity =
-      typeof arityCount === "number"
-        ? arityCount === args.length
-        : arityCount.indexOf(args.length) !== -1;
-    if (!validArity) {
-      throw new Error(
-        "Expected " + arityCount + " arguments, got " + args.length
-      );
-    }
-    return fn(args, stack, exec);
-  };
+    (args, stack, exec) => {
+      const validArity =
+        typeof arityCount === "number"
+          ? arityCount === args.length
+          : arityCount.indexOf(args.length) !== -1;
+      if (!validArity) {
+        throw new RuntimeError(
+          "Expected " + arityCount + " arguments, got " + args.length
+        );
+      }
+      return fn(args, stack, exec);
+    };
 
 export const validateType = (
   type: RuntimeValueType,
   value: RuntimeValue
 ): RuntimeValue => {
   if (getType(value) !== type) {
-    throw new Error("Expected type " + type + ", got " + getType(value));
+    throw new RuntimeError("Expected type " + type + ", got " + getType(value));
   }
   return value;
 };
