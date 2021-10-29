@@ -1,4 +1,6 @@
 import builtins from "./builtins";
+import { RuntimeError } from "./errors";
+import { getProperties, getType } from "./runtimeValues";
 import { pushRuntimeValueToStack } from "./stackManip";
 import {
   ASTApplicationExpression,
@@ -7,11 +9,9 @@ import {
   ASTReferenceExpression,
   Closure,
   ExecutionFunction,
-  RuntimeValue,
-  Stack
+  RuntimeValue
 } from "./types";
 
-const defaultStack: Stack = [builtins];
 
 export const inputGardenWall = (data: unknown) => {
   if (["number", "boolean", "string"].indexOf(typeof data) > -1) {
@@ -33,11 +33,9 @@ export const inputGardenWall = (data: unknown) => {
 };
 
 export const outputGardenWall = (data: unknown) => {
-  if (typeof data === "function") {
-    throw new Error("Return value of query is a function, aborting!");
-  }
-  if (data instanceof RegExp) {
-    throw new Error("Return value of query is a regex, aborting!");
+  const outputType = getType(data)
+  if (outputType === "function" || outputType === "regex") {
+    throw new RuntimeError(`Return value of query is "${outputType}", aborting!`);
   }
   return inputGardenWall(data);
 };
@@ -107,11 +105,9 @@ const executeLiteral = (
       );
     case "object": {
       const result = {};
-      for (let i in statement.value) {
-        if (statement.value.hasOwnProperty(i)) {
-          result[i] = executeInner(statement.value[i], stack);
-        }
-      }
+      getProperties(statement.value).forEach((prop) => {
+        result[prop] = executeInner(statement.value[prop], stack);
+      })
       return result;
     }
   }
@@ -131,7 +127,7 @@ const executeReference = (
     }
   }
   if (referencedInStack === undefined) {
-    throw new Error("Could not find referenced variable " + statement.ref);
+    throw new RuntimeError("Could not find referenced variable " + statement.ref);
   }
   return referencedInStack;
 };
@@ -141,8 +137,9 @@ const executeApplication = (
   stack: Closure[]
 ): RuntimeValue => {
   const fn = executeInner(statement.function, stack);
-  if (typeof fn !== "function") {
-    throw new Error("Expected a function, got.. something else!");
+  const fnType = getType(fn);
+  if (fnType !== "function") {
+    throw new RuntimeError(`Attempted to call a variable of type "${fnType}". Only functions are callable`);
   }
   return fn(statement.arguments, stack, executeInner);
 };

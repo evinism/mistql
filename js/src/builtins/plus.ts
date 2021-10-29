@@ -1,3 +1,4 @@
+import { RuntimeError } from "../errors";
 import { getType } from "../runtimeValues";
 import { BuiltinFunction } from "../types";
 import { arity } from "../util";
@@ -7,13 +8,13 @@ const plus: BuiltinFunction = arity(2, (args, stack, exec) => {
   const b = exec(args[1], stack);
   const type = getType(a);
   if (type !== getType(b)) {
-    throw new Error("Cannot add values of different types");
+    throw new RuntimeError("Cannot add values of different types");
   }
   if (type === "array") {
     return [].concat(a, b)
   }
   if (type !== 'string' && type !== 'number') {
-    throw new Error("Cannot add values of type " + type)
+    throw new RuntimeError("Cannot add values of type " + type)
   }
   return a + b;
 });

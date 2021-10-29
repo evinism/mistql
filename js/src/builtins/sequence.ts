@@ -1,3 +1,4 @@
+import { RuntimeError } from "../errors";
 import { truthy } from "../runtimeValues";
 import { pushRuntimeValueToStack } from "../stackManip";
 import { BuiltinFunction, RuntimeValue } from "../types";
@@ -6,7 +7,7 @@ import { seqHelper, validateType } from "../util";
 
 const sequence: BuiltinFunction = (args, stack, exec) => {
   if (args.length < 3) {
-    throw new Error("Expected at least 3 arguments, got " + args.length);
+    throw new RuntimeError("Expected at least 3 arguments, got " + args.length);
   }
   const target: RuntimeValue[] = validateType("array", exec(args[args.length - 1], stack));
   const fns = args.slice(0, args.length - 1);
