@@ -29,7 +29,10 @@ export class PositionableError extends Error {
 export class LexError extends PositionableError {
 }
 
-export class ParseError extends Error {
+export class ParseError extends PositionableError {
+}
+
+export class UnpositionableParseError extends Error {
 }
 
 export class RuntimeError extends Error {
