@@ -157,6 +157,19 @@ export default function HomepageFeatures() {
             of features that mistql provides out of the box, including regexes
             and a large standard library.
           </p>
+          <h3 className="text--center">jq</h3>
+          <p>
+            jq is primarily used as a command-line tool rather than as an
+            embeddable query language. Despite its ubiquity, jq doesn't have a
+            robust, portable browser implementation, nor does it seem to be a
+            major goal of the project. However, if your primary use case is as a
+            CLI tool, jq is almost certainly your best bet, as it's a very
+            well-known tool with a large amount of community support.
+          </p>
+          <p>
+            The decision criteria for whether to use jq or MistQL is very
+            similar to the decision criteria for whether to use JMESPath or jq.
+          </p>
         </div>
       </section>
     </>
