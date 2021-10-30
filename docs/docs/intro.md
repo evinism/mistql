@@ -6,7 +6,7 @@ sidebar_position: 1
 
 MistQL is a miniature language for performing computations on JSON-like structures.
 
-MistQL's JavaScript implementation is built from the ground up to be included in clientside browser applications. It has no dependencies and has a total footprint of 5.2kB gzipped, making it suitable for size-sensitive frontends. 
+MistQL's JavaScript implementation is built from the ground up to be included in clientside browser applications. It has no dependencies and has a total footprint of 5.3kB gzipped, making it suitable for size-sensitive frontends. 
 
 ## Installation
 
