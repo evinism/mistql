@@ -49,11 +49,13 @@ Gets the entries of an object.
 #### Example
 
 Query:
+
 ```
 {foo: "bar", baz: {boof: "woof"}} | entries
 ```
 
 Result:
+
 ```
 [["foo", "bar"] ["baz", {boof: "woof"}]]
 ```
@@ -192,11 +194,13 @@ Create an object from a list of entries. The inverse of `entries`.
 #### Example
 
 Query:
+
 ```
 [["foo", "bar"] ["baz", {boof: "woof"}]] | fromentries
 ```
 
 Result:
+
 ```
 {foo: "bar", baz: {boof: "woof"}}
 ```
@@ -267,20 +271,19 @@ Result:
 
 ### `index`
 
-| Arity   | Parameter 1 Type               | Parameter 2 Type (optional) | Parameter 3 Type    | Return Type |
-| ------- | ------------------------------ | --------------------------- | ------------------- | ----------- |
-| 2-3     | `number` or `string` or `null` | `number` or `null`          | `array` or `object` | `unknown`   |
+| Arity | Parameter 1 Type               | Parameter 2 Type (optional) | Parameter 3 Type    | Return Type |
+| ----- | ------------------------------ | --------------------------- | ------------------- | ----------- |
+| 2-3   | `number` or `string` or `null` | `number` or `null`          | `array` or `object` | `unknown`   |
 
 Performs the indexing operation, returning `null` if no such item exists. Bracket notation is syntactic sugar for calling the above function calls. Below are a number of indexing expressions and their equivalent `index` function calls.
 
-| Indexing Expression | Equivalent |
-|---|---|
-| `arr[1]` | `index 1 arr` |
-| `arr[1:3]` | `index 1 3 arr` |
-| `arr[1:]` | `index 1 null arr` |
-| `arr[:1]` | `index null 1 arr` |
-| `obj["key"]` | `index "key" obj` |
-
+| Indexing Expression | Equivalent         |
+| ------------------- | ------------------ |
+| `arr[1]`            | `index 1 arr`      |
+| `arr[1:3]`          | `index 1 3 arr`    |
+| `arr[1:]`           | `index 1 null arr` |
+| `arr[:1]`           | `index null 1 arr` |
+| `obj["key"]`        | `index "key" obj`  |
 
 Example:
 
@@ -296,13 +299,14 @@ Result:
 
 ### `join`
 
-| Arity | Parameter 1 | Parameter 2 Type | Return Type     |
-| ----- | ---- |---------------- | --------------- |
-| 2     | `string` | `array<string>`         | `array<>` |
+| Arity | Parameter 1 | Parameter 2 Type | Return Type |
+| ----- | ----------- | ---------------- | ----------- |
+| 2     | `string`    | `array<string>`  | `array<>`   |
 
 Joins an array of strings together with a given delimiter.
 
 #### Example
+
 ```
 ["foo", "bar", "baz"] | join ","
 ```
@@ -366,11 +370,13 @@ Whether the given string matches the pattern.
 #### Example
 
 Query:
+
 ```
 match (regex "(ha)*") "hahahaha"
 ```
 
 Result:
+
 ```
 true
 ```
@@ -487,16 +493,15 @@ Result:
 
 ### `regex`
 
-| Arity | Parameter 1 Type    | Parameter 2 Type (optional) | Return Type |
-| ----- | ------------------- | --------------------------- | ----------- |
-| 1 - 2 | `string`            | `string`                    | `regex`     |
+| Arity | Parameter 1 Type | Parameter 2 Type (optional) | Return Type |
+| ----- | ---------------- | --------------------------- | ----------- |
+| 1 - 2 | `string`         | `string`                    | `regex`     |
 
 Constructs a regular expression based on the pattern. The second, optional, argument specifies the flags.
 
 #### Example
 
-`regex "(h.)*" "g"`  constructs the regular expression `/(h.)*/g`
-
+`regex "(h.)*" "g"` constructs the regular expression `/(h.)*/g`
 
 ### `replace`
 
@@ -509,11 +514,13 @@ Replaces the first matching instance of parameter 1 with parameter 2 in paramete
 #### Example
 
 Query:
+
 ```
 "haha" | replace (regex "h." "g") "z"
 ```
 
 Result:
+
 ```
 "zz"
 ```
@@ -542,7 +549,26 @@ Result:
 
 ### `sequence`
 
-TODO: Explain Sequence
+| Arity | Parameter `n` type | Last Parameter Type | Return Type       |
+| ----- | ------------------ | ------------------- | ----------------- |
+| >3    | `@: t -> boolean`  | `array<t>`          | `array<array<t>>` |
+
+Computes the set of all possible subsequences of the target array that
+satisfy the specified conditions.
+
+#### Example
+
+Query:
+
+```
+[1, 2, 3, 4] | sequence (@ % 2) ((@ + 1)% 2)
+```
+
+Result:
+
+```
+[[1, 2], [1, 4], [3, 4]]
+```
 
 ### `sort`
 
@@ -597,6 +623,7 @@ Result:
 Splits a string based on a delimiter.
 
 #### Example
+
 Query:
 
 ```
@@ -608,7 +635,6 @@ Result:
 ```
 ["foo", "bar", "baz"]
 ```
-
 
 ### `string`
 
