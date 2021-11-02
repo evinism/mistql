@@ -41,6 +41,22 @@ describe("executor", () => {
       );
     });
 
+    it("coerces functions to blank objects", () => {
+      assert.deepStrictEqual(inputGardenWall(() => { }), {});
+    });
+
+    it("coerces dates to timestamps", () => {
+      assert.deepStrictEqual(inputGardenWall(new Date('10-10-2020')), JSON.parse(JSON.stringify(new Date('10-10-2020'))));
+    });
+
+    it("coerces object-numbers to numbers", () => {
+      assert.deepStrictEqual(inputGardenWall(new Number(50)), 50);
+    });
+
+    it("coerces object-numbers to numbers", () => {
+      assert.deepStrictEqual(inputGardenWall(new Boolean(true)), true);
+    });
+
     it("coerces own properties", () => {
       function foo() { }
       foo.hi = "doc";
