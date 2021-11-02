@@ -17,8 +17,14 @@ export const inputGardenWall = (data: unknown) => {
   if (["number", "boolean", "string"].indexOf(typeof data) > -1) {
     return data;
   }
-  if (data instanceof Number || data instanceof Boolean || data instanceof Date) {
+  if (data instanceof Number || data instanceof Boolean || data instanceof String) {
+    return data.valueOf();
+  }
+  if (data instanceof Date) {
     return JSON.parse(JSON.stringify(data));
+  }
+  if (data instanceof Symbol) {
+    return data.toString();
   }
   if (data === null || data === undefined) {
     return null;
