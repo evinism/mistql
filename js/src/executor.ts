@@ -21,7 +21,7 @@ export const inputGardenWall = (data: unknown) => {
     return data.valueOf();
   }
   if (data instanceof Date) {
-    return JSON.parse(JSON.stringify(data));
+    return data.toISOString();
   }
   if (data instanceof Symbol) {
     return data.toString();
