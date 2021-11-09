@@ -8,8 +8,16 @@
           "assertions": [
             {
               "query": "@",
-              "data": [1, 2, 3],
-              "expected": [1, 2, 3]
+              "data": [
+                1,
+                2,
+                3
+              ],
+              "expected": [
+                1,
+                2,
+                3
+              ]
             }
           ]
         },
@@ -107,7 +115,11 @@
             {
               "query": "map @ + 1 [1, 2, 3]",
               "data": {},
-              "expected": [2, 3, 4]
+              "expected": [
+                2,
+                3,
+                4
+              ]
             }
           ]
         },
@@ -117,9 +129,23 @@
             {
               "query": "map (feature + 1) arr",
               "data": {
-                "arr": [{ "feature": 1 }, { "feature": 2 }, { "feature": 3 }]
+                "arr": [
+                  {
+                    "feature": 1
+                  },
+                  {
+                    "feature": 2
+                  },
+                  {
+                    "feature": 3
+                  }
+                ]
               },
-              "expected": [2, 3, 4]
+              "expected": [
+                2,
+                3,
+                4
+              ]
             }
           ]
         }
@@ -134,7 +160,10 @@
             {
               "query": "filter @ > 1 [1, 2, 3]",
               "data": {},
-              "expected": [2, 3]
+              "expected": [
+                2,
+                3
+              ]
             }
           ]
         },
@@ -144,9 +173,26 @@
             {
               "query": "filter (feature > 1) arr",
               "data": {
-                "arr": [{ "feature": 1 }, { "feature": 2 }, { "feature": 3 }]
+                "arr": [
+                  {
+                    "feature": 1
+                  },
+                  {
+                    "feature": 2
+                  },
+                  {
+                    "feature": 3
+                  }
+                ]
               },
-              "expected": [{ "feature": 2 }, { "feature": 3 }]
+              "expected": [
+                {
+                  "feature": 2
+                },
+                {
+                  "feature": 3
+                }
+              ]
             }
           ]
         },
@@ -157,12 +203,25 @@
               "query": "events | filter type == \"hi\"",
               "data": {
                 "events": [
-                  { "type": "hi" },
-                  { "type": "hello" },
-                  { "type": "hi" }
+                  {
+                    "type": "hi"
+                  },
+                  {
+                    "type": "hello"
+                  },
+                  {
+                    "type": "hi"
+                  }
                 ]
               },
-              "expected": [{ "type": "hi" }, { "type": "hi" }]
+              "expected": [
+                {
+                  "type": "hi"
+                },
+                {
+                  "type": "hi"
+                }
+              ]
             }
           ]
         }
@@ -176,7 +235,13 @@
           "assertions": [
             {
               "query": "reduce @[0] + @[1] 0 @",
-              "data": [1, 4, 5, 7, 8],
+              "data": [
+                1,
+                4,
+                5,
+                7,
+                8
+              ],
               "expected": 25
             }
           ]
@@ -192,7 +257,11 @@
             {
               "query": "mapvalues @ + 1 { \"a\": 1, \"b\": 2, \"c\": 3 }",
               "data": {},
-              "expected": { "a": 2, "b": 3, "c": 4 }
+              "expected": {
+                "a": 2,
+                "b": 3,
+                "c": 4
+              }
             }
           ]
         }
@@ -207,7 +276,10 @@
             {
               "query": "filtervalues @ > 1 { \"a\": 1, \"b\": 2, \"c\": 3 }",
               "data": {},
-              "expected": { "b": 2, "c": 3 }
+              "expected": {
+                "b": 2,
+                "c": 3
+              }
             }
           ]
         }
@@ -222,7 +294,11 @@
             {
               "query": "mapkeys @ + \"suffix\" { \"a\": 1, \"b\": 2, \"c\": 3 }",
               "data": {},
-              "expected": { "asuffix": 1, "bsuffix": 2, "csuffix": 3 }
+              "expected": {
+                "asuffix": 1,
+                "bsuffix": 2,
+                "csuffix": 3
+              }
             }
           ]
         }
@@ -237,7 +313,9 @@
             {
               "query": "filterkeys @ > \"b\" { \"a\": 1, \"b\": 2, \"c\": 3 }",
               "data": {},
-              "expected": { "c": 3 }
+              "expected": {
+                "c": 3
+              }
             }
           ]
         }
@@ -282,7 +360,12 @@
             {
               "query": "[1, 2] + [3, 4]",
               "data": {},
-              "expected": [1, 2, 3, 4]
+              "expected": [
+                1,
+                2,
+                3,
+                4
+              ]
             }
           ]
         }
@@ -582,7 +665,10 @@
             {
               "query": "[1, 2, 3, 4, 5] | index 2 4",
               "data": {},
-              "expected": [3, 4]
+              "expected": [
+                3,
+                4
+              ]
             }
           ]
         },
@@ -602,12 +688,22 @@
             {
               "query": "[1, 2, 3, 4, 5] | index 1 null",
               "data": {},
-              "expected": [2, 3, 4, 5]
+              "expected": [
+                2,
+                3,
+                4,
+                5
+              ]
             },
             {
               "query": "[1, 2, 3, 4, 5] | index null (-1)",
               "data": {},
-              "expected": [1, 2, 3, 4]
+              "expected": [
+                1,
+                2,
+                3,
+                4
+              ]
             }
           ]
         },
@@ -631,22 +727,46 @@
           "assertions": [
             {
               "query": "(@[0:0]) == (index 0 0 @)",
-              "data": [1, {}, "3", 4, null],
+              "data": [
+                1,
+                {},
+                "3",
+                4,
+                null
+              ],
               "expected": true
             },
             {
               "query": "(@[-1]) == (index (-1) @)",
-              "data": [1, {}, "3", 4, null],
+              "data": [
+                1,
+                {},
+                "3",
+                4,
+                null
+              ],
               "expected": true
             },
             {
               "query": "(@[-1:]) == (index (-1) null @)",
-              "data": [1, {}, "3", 4, null],
+              "data": [
+                1,
+                {},
+                "3",
+                4,
+                null
+              ],
               "expected": true
             },
             {
               "query": "(@[:-2]) == (index null (-2) @)",
-              "data": [1, {}, "3", 4, null],
+              "data": [
+                1,
+                {},
+                "3",
+                4,
+                null
+              ],
               "expected": true
             }
           ]
@@ -662,7 +782,10 @@
             {
               "query": "{a: 1, b: 2} | keys",
               "data": {},
-              "expected": ["a", "b"]
+              "expected": [
+                "a",
+                "b"
+              ]
             }
           ]
         },
@@ -687,7 +810,10 @@
             {
               "query": "{a: 1, b: 2} | values",
               "data": {},
-              "expected": [1, 2]
+              "expected": [
+                1,
+                2
+              ]
             }
           ]
         },
@@ -713,9 +839,21 @@
               "query": "[{a: 1}, {a: 2}, {a: 3}] | groupby a",
               "data": {},
               "expected": {
-                "1": [{ "a": 1 }],
-                "2": [{ "a": 2 }],
-                "3": [{ "a": 3 }]
+                "1": [
+                  {
+                    "a": 1
+                  }
+                ],
+                "2": [
+                  {
+                    "a": 2
+                  }
+                ],
+                "3": [
+                  {
+                    "a": 3
+                  }
+                ]
               }
             }
           ]
@@ -727,10 +865,22 @@
               "query": "events | groupby email",
               "data": {
                 "events": [
-                  { "type": "signup", "email": "test1@example.com" },
-                  { "type": "signup", "email": "test2@example.com" },
-                  { "type": "play", "email": "test2@example.com" },
-                  { "type": "play", "email": "test2@example.com" }
+                  {
+                    "type": "signup",
+                    "email": "test1@example.com"
+                  },
+                  {
+                    "type": "signup",
+                    "email": "test2@example.com"
+                  },
+                  {
+                    "type": "play",
+                    "email": "test2@example.com"
+                  },
+                  {
+                    "type": "play",
+                    "email": "test2@example.com"
+                  }
                 ]
               },
               "expected": {
@@ -755,6 +905,788 @@
                   }
                 ]
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#sort",
+      "cases": [
+        {
+          "it": "sensibly sorts numbers",
+          "assertions": [
+            {
+              "query": "[1, 2, 3, 4, 5] | sort",
+              "data": {},
+              "expected": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            },
+            {
+              "query": "[11, 2, 32, 104, 5] | sort",
+              "data": {},
+              "expected": [
+                2,
+                5,
+                11,
+                32,
+                104
+              ]
+            }
+          ]
+        },
+        {
+          "it": "sensibly sorts strings",
+          "assertions": [
+            {
+              "query": "[\"banana\", \"apple\", \"carrot\", \"cabbage\"] | sort",
+              "data": {},
+              "expected": [
+                "apple",
+                "banana",
+                "cabbage",
+                "carrot"
+              ]
+            }
+          ]
+        },
+        {
+          "it": "sensibly sorts booleans",
+          "assertions": [
+            {
+              "query": "[true, false, true, false] | sort",
+              "data": {},
+              "expected": [
+                false,
+                false,
+                true,
+                true
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#sortby",
+      "cases": [
+        {
+          "it": "sensibly sorts items based on the specified expression",
+          "assertions": [
+            {
+              "query": "[{sk: 11}, {sk: 2}, {sk: 32}, {sk: 104}, {sk: 5}] | sortby sk",
+              "data": {},
+              "expected": [
+                {
+                  "sk": 2
+                },
+                {
+                  "sk": 5
+                },
+                {
+                  "sk": 11
+                },
+                {
+                  "sk": 32
+                },
+                {
+                  "sk": 104
+                }
+              ]
+            },
+            {
+              "query": "[{a: 3}, {a: 1}, {a: 2}] | sortby a | map a",
+              "data": {},
+              "expected": [
+                1,
+                2,
+                3
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#reverse",
+      "cases": [
+        {
+          "it": "reverses an array",
+          "assertions": [
+            {
+              "query": "[1, 2, 3, 4, 5] | reverse",
+              "data": {},
+              "expected": [
+                5,
+                4,
+                3,
+                2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "it": "handles empty arrays",
+          "assertions": [
+            {
+              "query": "[] | reverse",
+              "data": {},
+              "expected": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#if",
+      "cases": [
+        {
+          "it": "returns the first value if the condition is true",
+          "assertions": [
+            {
+              "query": "if true 1 2",
+              "data": {},
+              "expected": 1
+            },
+            {
+              "query": "if arg left right",
+              "data": {
+                "arg": 1,
+                "left": 2,
+                "right": 3
+              },
+              "expected": 2
+            }
+          ]
+        },
+        {
+          "it": "returns the second value if the condition is false",
+          "assertions": [
+            {
+              "query": "if false 1 2",
+              "data": {},
+              "expected": 2
+            },
+            {
+              "query": "if arg left right",
+              "data": {
+                "arg": 0,
+                "left": 2,
+                "right": 3
+              },
+              "expected": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#dotaccessor",
+      "cases": [
+        {
+          "it": "correctly selects deep values",
+          "assertions": [
+            {
+              "query": "hello.over.there",
+              "data": {
+                "hello": {
+                  "over": {
+                    "there": "world"
+                  }
+                }
+              },
+              "expected": "world"
+            }
+          ]
+        },
+        {
+          "it": "allows complex lhs expressions",
+          "assertions": [
+            {
+              "query": "(@ | apply @[0]).hello",
+              "data": [
+                {
+                  "hello": "world"
+                }
+              ],
+              "expected": "world"
+            }
+          ]
+        },
+        {
+          "it": "returns null on unknown key",
+          "assertions": [
+            {
+              "query": "hello.bar",
+              "data": {
+                "hello": {
+                  "foo": "world"
+                }
+              },
+              "expected": null
+            }
+          ]
+        },
+        {
+          "it": "implements null coalescing by default",
+          "assertions": [
+            {
+              "query": "one.two.three.four",
+              "data": {
+                "one": {}
+              },
+              "expected": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#log",
+      "cases": [
+        {
+          "it": "passes values through without modification",
+          "assertions": [
+            {
+              "query": "log 1",
+              "data": {},
+              "expected": 1
+            },
+            {
+              "query": "log true",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "log \"hello\"",
+              "data": {},
+              "expected": "hello"
+            },
+            {
+              "query": "log [1, 2, 3]",
+              "data": {},
+              "expected": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "query": "log {a: 1, b: 2}",
+              "data": {},
+              "expected": {
+                "a": 1,
+                "b": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#summarize",
+      "cases": [
+        {
+          "it": "summarizes a array of numbers",
+          "assertions": [
+            {
+              "query": "summarize [1, 2, 5, 10, 12]",
+              "data": {},
+              "expected": {
+                "min": 1,
+                "max": 12,
+                "mean": 6,
+                "median": 5,
+                "stddev": 4.33589667773576,
+                "variance": 18.8
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#sequence",
+      "cases": [
+        {
+          "it": "finds sequences that satisfy the constraints",
+          "assertions": [
+            {
+              "query": "@ | sequence type == \"chat\" type == \"convert\"",
+              "data": [
+                {
+                  "type": "convert",
+                  "data": "one"
+                },
+                {
+                  "type": "chat",
+                  "data": "two"
+                },
+                {
+                  "type": "convert",
+                  "data": "three"
+                },
+                {
+                  "type": "convert",
+                  "data": "four"
+                },
+                {
+                  "type": "chat",
+                  "data": "five"
+                },
+                {
+                  "type": "convert",
+                  "data": "six"
+                }
+              ],
+              "expected": [
+                [
+                  {
+                    "type": "chat",
+                    "data": "two"
+                  },
+                  {
+                    "type": "convert",
+                    "data": "three"
+                  }
+                ],
+                [
+                  {
+                    "type": "chat",
+                    "data": "two"
+                  },
+                  {
+                    "type": "convert",
+                    "data": "four"
+                  }
+                ],
+                [
+                  {
+                    "type": "chat",
+                    "data": "two"
+                  },
+                  {
+                    "type": "convert",
+                    "data": "six"
+                  }
+                ],
+                [
+                  {
+                    "type": "chat",
+                    "data": "five"
+                  },
+                  {
+                    "type": "convert",
+                    "data": "six"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#replace",
+      "cases": [
+        {
+          "it": "correctly replaces string values",
+          "assertions": [
+            {
+              "query": "\"hello\" | replace \"ll\" \"zop\"",
+              "data": {},
+              "expected": "hezopo"
+            }
+          ]
+        },
+        {
+          "it": "accepts a regex for as the selector",
+          "assertions": [
+            {
+              "query": "\"hello\" | replace (regex \"l+\") \"zop\"",
+              "data": {},
+              "expected": "hezopo"
+            }
+          ]
+        },
+        {
+          "it": "allows flagged regexes",
+          "assertions": [
+            {
+              "query": "\"hello\" | replace (regex \"l\" \"g\") \"zop\"",
+              "data": {},
+              "expected": "hezopzopo"
+            }
+          ]
+        },
+        {
+          "it": "replaces only the first instance by default",
+          "assertions": [
+            {
+              "query": "\"hello\" | replace \"l\" \"za\"",
+              "data": {},
+              "expected": "hezalo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#match/#regex",
+      "cases": [
+        {
+          "it": "correctly matches regexes",
+          "assertions": [
+            {
+              "query": "\"hello\" | match (regex \"he..o\")",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "\"hello\" | match (regex \"he..a\")",
+              "data": {},
+              "expected": false
+            }
+          ]
+        },
+        {
+          "it": "allows flagged regexes",
+          "assertions": [
+            {
+              "query": "\"Hello\" | match (regex \"[a-z]ello\")",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "\"Hello\" | match (regex \"[a-z]ello\" \"i\")",
+              "data": {},
+              "expected": true
+            }
+          ]
+        },
+        {
+          "it": "allows matching via the =~ operator",
+          "assertions": [
+            {
+              "query": "\"Hello\" =~ (regex \"[a-z]ello\")",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "\"Hello\" =~ (regex \"[a-z]ello\" \"i\")",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "\"my name is mister cool guy\" =~ (regex \"[a-z ]*\")",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "\"my name is #1 cool guy\" =~ (regex \"[a-z ]*\")",
+              "data": {},
+              "expected": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#equal",
+      "cases": [
+        {
+          "it": "compares strings correctly",
+          "assertions": [
+            {
+              "query": "\"hello\" == \"hello\"",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "\"hello\" == \"world\"",
+              "data": {},
+              "expected": false
+            }
+          ]
+        },
+        {
+          "it": "compares numbers correctly",
+          "assertions": [
+            {
+              "query": "1 == 1",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "1 == 2",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "1.0 == 1",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "1.0 == -1",
+              "data": {},
+              "expected": false
+            }
+          ]
+        },
+        {
+          "it": "compares nulls correctly",
+          "assertions": [
+            {
+              "query": "null == null",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "null == 1",
+              "data": {},
+              "expected": false
+            }
+          ]
+        },
+        {
+          "it": "evaluates to false when comparing different types",
+          "assertions": [
+            {
+              "query": "1 == \"1\"",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "1 == null",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "null == 1",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "0 == null",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "\"false\" == false",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "true == \"true\"",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "true == []",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "false == []",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "[] == {}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{} == []",
+              "data": {},
+              "expected": false
+            }
+          ]
+        },
+        {
+          "it": "compares arrays correctly",
+          "assertions": [
+            {
+              "query": "[] == []",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "[1, 2, 3] == [1, 2, 3]",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "[1, 2, 3] == [1, 2, 3, 4]",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "[1, 2, 3] == [1, 2, 4]",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "[[], [], [[]], [4]] == [[], [], [[]], [4]]",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "[[], [], [[]], [3]] == [[], [], [[]], [4]]",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "[[], [], [], [4]] == [[], [], [[]], [4]]",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "[\"hello\", \"there\"] == [\"hello\", \"there\"]",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "[\"hello\", \"there\"] == [\"hello\", \"thoo\"]",
+              "data": {},
+              "expected": false
+            }
+          ]
+        },
+        {
+          "it": "compares objects correctly",
+          "assertions": [
+            {
+              "query": "{} == {}",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "{a: true} == {}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{\"a\": 1} == {\"a\": 1}",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "{\"a\": 1} == {\"a\": 2}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{\"a\": 1, \"b\": 2} == {\"a\": 1, \"b\": 2}",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "{\"a\": 1, \"b\": 2} == {\"a\": 1, \"b\": 3}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{\"a\": 1, \"b\": 2} == {\"a\": 1, \"c\": 3}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{\"a\": 1, \"b\": 2} == {\"a\": 1, \"b\": 2, \"c\": 3}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{\"a\": 1, \"b\": 2} == {\"a\": 1, \"b\": 2, \"c\": 3}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{\"a\": 1, \"b\": 2} == {\"a\": 1, \"b\": 2, \"c\": 3}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{\"a\": 1, \"b\": 2} == {\"a\": 1, \"b\": 2, \"c\": 3}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{\"a\": 1, \"b\": 2} == {\"a\": 1, \"b\": 2, \"c\": 3}",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "{a: { b: []}} == {a: { b: []}}",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "{a: { b: []}} == {a: { b: [{}]}}",
+              "data": {},
+              "expected": false
+            }
+          ]
+        },
+        {
+          "it": "compares regexes on source and flags",
+          "assertions": [
+            {
+              "query": "(regex \"i+\") == (regex \"i+\")",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "(regex \"j+\") == (regex \"i+\")",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "(regex \"beep boop\") == (regex \"i+\")",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "(regex \"i+\" \"g\") == (regex \"i+\")",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "(regex \"i+\" \"g\") == (regex \"i+\" \"g\")",
+              "data": {},
+              "expected": true
+            }
+          ]
+        },
+        {
+          "it": "compares booleans correctly",
+          "assertions": [
+            {
+              "query": "true == true",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "false == false",
+              "data": {},
+              "expected": true
+            },
+            {
+              "query": "true == false",
+              "data": {},
+              "expected": false
+            },
+            {
+              "query": "false == true",
+              "data": {},
+              "expected": false
             }
           ]
         }
