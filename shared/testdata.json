@@ -1691,6 +1691,385 @@
           ]
         }
       ]
+    },
+    {
+      "describe": "#split",
+      "cases": [
+        {
+          "it": "splits basic strings",
+          "assertions": [
+            {
+              "query": "split \"hi\" @",
+              "data": "ahi tuna",
+              "expected": [
+                "a",
+                " tuna"
+              ]
+            },
+            {
+              "query": "split \"\" @",
+              "data": "ahi tuna",
+              "expected": [
+                "a",
+                "h",
+                "i",
+                " ",
+                "t",
+                "u",
+                "n",
+                "a"
+              ]
+            }
+          ]
+        },
+        {
+          "it": "splits via regexes",
+          "assertions": [
+            {
+              "query": "split (regex \"\\\\s+\") @",
+              "data": "hi there",
+              "expected": [
+                "hi",
+                "there"
+              ]
+            },
+            {
+              "query": "split (regex \"\\\\s+\") @",
+              "data": "hi\r\n\r\nthere",
+              "expected": [
+                "hi",
+                "there"
+              ]
+            },
+            {
+              "query": "split (regex \"\\\\s+\") @",
+              "data": "hi\r\n\r\n\nthere",
+              "expected": [
+                "hi",
+                "there"
+              ]
+            }
+          ]
+        },
+        {
+          "it": "splits everywhere even with a non-global regex",
+          "assertions": [
+            {
+              "query": "split (regex \"\\\\s+\") @",
+              "data": "hi there friend!!",
+              "expected": [
+                "hi",
+                "there",
+                "friend!!"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#join",
+      "cases": [
+        {
+          "it": "joins basic strings",
+          "assertions": [
+            {
+              "query": "join \"\" @",
+              "data": [
+                "a",
+                "b",
+                "c"
+              ],
+              "expected": "abc"
+            }
+          ]
+        },
+        {
+          "it": "joins with a delimiter",
+          "assertions": [
+            {
+              "query": "join \" \" @",
+              "data": [
+                "a",
+                "b",
+                "c"
+              ],
+              "expected": "a b c"
+            }
+          ]
+        },
+        {
+          "it": "round-trips with split",
+          "assertions": [
+            {
+              "query": "(split \":\" @ | join \":\") == @",
+              "data": "hello:hi:cattt:",
+              "expected": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#entries",
+      "cases": [
+        {
+          "it": "returns an array of entries",
+          "assertions": [
+            {
+              "query": "entries @",
+              "data": {
+                "a": 1,
+                "b": 2
+              },
+              "expected": [
+                [
+                  "a",
+                  1
+                ],
+                [
+                  "b",
+                  2
+                ]
+              ]
+            },
+            {
+              "it": "round-trips with fromentries",
+              "query": "(entries @ | fromentries) == @",
+              "data": {
+                "a": 1,
+                "b": 2
+              },
+              "expected": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#fromentries",
+      "cases": [
+        {
+          "it": "returns an object from an array of entries",
+          "assertions": [
+            {
+              "query": "fromentries @",
+              "data": [
+                [
+                  "a",
+                  1
+                ],
+                [
+                  "b",
+                  2
+                ]
+              ],
+              "expected": {
+                "a": 1,
+                "b": 2
+              }
+            }
+          ]
+        },
+        {
+          "it": "uses nulls for missing values",
+          "assertions": [
+            {
+              "query": "fromentries @",
+              "data": [
+                [
+                  "a",
+                  1
+                ],
+                [
+                  "b"
+                ],
+                []
+              ],
+              "expected": {
+                "a": 1,
+                "b": null,
+                "null": null
+              }
+            }
+          ]
+        },
+        {
+          "it": "casts non-string keys to strings",
+          "assertions": [
+            {
+              "query": "fromentries @",
+              "data": [
+                [
+                  {},
+                  1
+                ],
+                [
+                  [
+                    1,
+                    2,
+                    3
+                  ],
+                  2
+                ]
+              ],
+              "expected": {
+                "{}": 1,
+                "[1,2,3]": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#string",
+      "cases": [
+        {
+          "it": "returns a string",
+          "assertions": [
+            {
+              "query": "string @",
+              "data": "hi",
+              "expected": "hi"
+            }
+          ]
+        },
+        {
+          "it": "returns a string from a number",
+          "assertions": [
+            {
+              "query": "string @",
+              "data": 1,
+              "expected": "1"
+            }
+          ]
+        },
+        {
+          "it": "returns a string from a boolean",
+          "assertions": [
+            {
+              "query": "string @",
+              "data": true,
+              "expected": "true"
+            }
+          ]
+        },
+        {
+          "it": "returns a string from a null",
+          "assertions": [
+            {
+              "query": "string @",
+              "data": null,
+              "expected": "null"
+            }
+          ]
+        },
+        {
+          "it": "returns a string from an array",
+          "assertions": [
+            {
+              "query": "string @",
+              "data": [
+                "hi",
+                "there"
+              ],
+              "expected": "[\"hi\",\"there\"]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#float",
+      "cases": [
+        {
+          "it": "returns a float",
+          "assertions": [
+            {
+              "query": "float @",
+              "data": 1.5,
+              "expected": 1.5
+            }
+          ]
+        },
+        {
+          "it": "returns a float from a number",
+          "assertions": [
+            {
+              "query": "float @",
+              "data": 1,
+              "expected": 1
+            }
+          ]
+        },
+        {
+          "it": "returns a float from a boolean",
+          "assertions": [
+            {
+              "query": "float @",
+              "data": true,
+              "expected": 1
+            },
+            {
+              "query": "float @",
+              "data": false,
+              "expected": 0
+            }
+          ]
+        },
+        {
+          "it": "returns a float from a null",
+          "assertions": [
+            {
+              "query": "float @",
+              "data": null,
+              "expected": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "describe": "#apply",
+      "cases": [
+        {
+          "it": "allows easy modification to a value via piping",
+          "assertions": [
+            {
+              "query": "@ | apply @ + 1",
+              "data": 1,
+              "expected": 2
+            },
+            {
+              "query": "@ | apply @ + 1 | apply @ + 2",
+              "data": 1,
+              "expected": 4
+            }
+          ]
+        },
+        {
+          "it": "defines intermediate variables from the context variable",
+          "assertions": [
+            {
+              "query": "@ | apply a",
+              "data": {
+                "a": -1,
+                "b": -2
+              },
+              "expected": -1
+            },
+            {
+              "query": "@ | apply b",
+              "data": {
+                "a": -1,
+                "b": -2
+              },
+              "expected": -2
+            }
+          ]
+        }
+      ]
     }
   ]
 }
