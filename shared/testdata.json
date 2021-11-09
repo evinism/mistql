@@ -1,0 +1,110 @@
+{
+  "data": [
+    {
+      "describe": "IO roundtrip",
+      "cases": [
+        {
+          "it": "inputs/outputs arrays",
+          "assertions": [
+            {
+              "query": "@",
+              "data": [
+                1,
+                2,
+                3
+              ],
+              "expected": [
+                1,
+                2,
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "it": "inputs/outputs objects",
+          "assertions": [
+            {
+              "query": "@",
+              "data": {
+                "a": 1,
+                "b": 2,
+                "c": 3
+              },
+              "expected": {
+                "a": 1,
+                "b": 2,
+                "c": 3
+              }
+            }
+          ]
+        },
+        {
+          "it": "inputs/outputs numbers",
+          "assertions": [
+            {
+              "query": "@",
+              "data": 100000,
+              "expected": 100000
+            },
+            {
+              "query": "@",
+              "data": -100000,
+              "expected": -100000
+            },
+            {
+              "query": "@",
+              "data": 0,
+              "expected": 0
+            },
+            {
+              "query": "@",
+              "data": 30.5,
+              "expected": 30.5
+            }
+          ]
+        },
+        {
+          "it": "inputs/outputs strings",
+          "assertions": [
+            {
+              "query": "@",
+              "data": "hello",
+              "expected": "hello"
+            },
+            {
+              "query": "@",
+              "data": "",
+              "expected": ""
+            }
+          ]
+        },
+        {
+          "it": "inputs/outputs booleans",
+          "assertions": [
+            {
+              "query": "@",
+              "data": true,
+              "expected": true
+            },
+            {
+              "query": "@",
+              "data": false,
+              "expected": false
+            }
+          ]
+        },
+        {
+          "it": "inputs/outputs null",
+          "assertions": [
+            {
+              "query": "@",
+              "data": null,
+              "expected": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
