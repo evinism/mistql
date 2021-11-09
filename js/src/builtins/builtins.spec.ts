@@ -2,10 +2,7 @@ import assert from "assert";
 import { execute } from "../executor";
 import { parseOrThrow } from "../parser";
 
-describe("builtins", () => {
-  /* THESE SHOULD ALL BE TRANSFERRED OVER TO CROSS-IMPLEMENTATION TESTS */
-  /* All tests below have not yet been transferred over */
-
+describe("builtin js specifics", () => {
   describe("#dotaccessor", () => {
     it("fails if the rhs isnt a reference", () => {
       // Might want to loosen this restriction at some point.
