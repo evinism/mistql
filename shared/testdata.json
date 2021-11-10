@@ -450,6 +450,131 @@
           ]
         },
         {
+          "describe": "#[boolean binary operators]",
+          "cases": [
+            {
+              "it": "can and booleans",
+              "assertions": [
+                {
+                  "query": "true && true",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "true && false",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "false && true",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "false && false",
+                  "data": {},
+                  "expected": false
+                }
+              ]
+            },
+            {
+              "it": "can or booleans",
+              "assertions": [
+                {
+                  "query": "true || true",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "true || false",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "false || true",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "false || false",
+                  "data": {},
+                  "expected": false
+                }
+              ]
+            },
+            {
+              "it": "allows short circuting with and",
+              "assertions": [
+                {
+                  "query": "null && 0",
+                  "data": {},
+                  "expected": null
+                },
+                {
+                  "query": "null && 1",
+                  "data": {},
+                  "expected": null
+                },
+                {
+                  "query": "0 && null",
+                  "data": {},
+                  "expected": 0
+                },
+                {
+                  "query": "1 && null",
+                  "data": {},
+                  "expected": null
+                },
+                {
+                  "query": "1 && 0",
+                  "data": {},
+                  "expected": 0
+                },
+                {
+                  "query": "1 && 2",
+                  "data": {},
+                  "expected": 2
+                }
+              ]
+            },
+            {
+              "it": "allows short circuting with or",
+              "assertions": [
+                {
+                  "query": "null || 0",
+                  "data": {},
+                  "expected": 0
+                },
+                {
+                  "query": "null || 1",
+                  "data": {},
+                  "expected": 1
+                },
+                {
+                  "query": "0 || null",
+                  "data": {},
+                  "expected": null
+                },
+                {
+                  "query": "1 || null",
+                  "data": {},
+                  "expected": 1
+                },
+                {
+                  "query": "1 || 0",
+                  "data": {},
+                  "expected": 1
+                },
+                {
+                  "query": "1 || 2",
+                  "data": {},
+                  "expected": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
           "describe": "#[comparators]",
           "cases": [
             {
