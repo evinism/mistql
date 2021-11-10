@@ -1,6 +1,7 @@
 import { compare, truthy } from "../runtimeValues";
 import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
+import and from "./and";
 import apply from "./apply";
 import count from "./count";
 import entries from "./entries";
@@ -22,6 +23,7 @@ import mapvalues from "./mapvalues";
 import match from "./match";
 import not from "./not";
 import notequal from "./notequal";
+import or from "./or";
 import plus from "./plus";
 import reduce from "./reduce";
 import regex from "./regex";
@@ -43,15 +45,6 @@ const numericBinaryOperator = (
   arity(2, (args, stack, exec) => {
     const a = validateType("number", exec(args[0], stack));
     const b = validateType("number", exec(args[1], stack));
-    return op(a, b);
-  });
-
-const booleanBinaryOperator = (
-  op: (a: boolean, b: boolean) => boolean
-): BuiltinFunction =>
-  arity(2, (args, stack, exec) => {
-    const a = validateType("boolean", exec(args[0], stack));
-    const b = validateType("boolean", exec(args[1], stack));
     return op(a, b);
   });
 
@@ -145,8 +138,8 @@ export default {
   "*": numericBinaryOperator((a, b) => a * b),
   "/": numericBinaryOperator((a, b) => a / b),
   "%": numericBinaryOperator((a, b) => a % b),
-  "||": booleanBinaryOperator((a, b) => a || b),
-  "&&": booleanBinaryOperator((a, b) => a && b),
+  "||": or,
+  "&&": and,
   "==": equal,
   "!=": notequal,
   ">": binaryCompareFunction([true, false, false]),
