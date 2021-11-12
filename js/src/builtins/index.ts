@@ -38,6 +38,7 @@ import sum from "./sum";
 import summarize from "./summarize";
 import unaryMinus from "./unaryMinus";
 import values from "./values";
+import withindices from "./withindices";
 
 const numericBinaryOperator = (
   op: (a: number, b: number) => number
@@ -130,6 +131,7 @@ export default {
   sum,
   summarize,
   values,
+  withindices,
   "!/unary": not,
   "-/unary": unaryMinus,
   ".": dotAccessor,

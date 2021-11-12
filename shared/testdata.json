@@ -2203,6 +2203,38 @@
               ]
             }
           ]
+        },
+        {
+          "describe": "#withindices",
+          "cases": [
+            {
+              "it": "returns an array of indices",
+              "assertions": [
+                {
+                  "query": "withindices @",
+                  "data": [
+                    "a",
+                    "b",
+                    "c"
+                  ],
+                  "expected": [
+                    [
+                      0,
+                      "a"
+                    ],
+                    [
+                      1,
+                      "b"
+                    ],
+                    [
+                      2,
+                      "c"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
