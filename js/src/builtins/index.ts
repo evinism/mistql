@@ -113,6 +113,7 @@ export default {
   if: ifFunction,
   index: indexFn,
   join,
+  stringjoin: join,
   keys,
   log,
   match,
