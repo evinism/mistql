@@ -1901,13 +1901,13 @@
           ]
         },
         {
-          "describe": "#join",
+          "describe": "#stringjoin",
           "cases": [
             {
               "it": "joins basic strings",
               "assertions": [
                 {
-                  "query": "join \"\" @",
+                  "query": "stringjoin \"\" @",
                   "data": [
                     "a",
                     "b",
@@ -1921,7 +1921,7 @@
               "it": "joins with a delimiter",
               "assertions": [
                 {
-                  "query": "join \" \" @",
+                  "query": "stringjoin \" \" @",
                   "data": [
                     "a",
                     "b",
@@ -1935,7 +1935,7 @@
               "it": "round-trips with split",
               "assertions": [
                 {
-                  "query": "(split \":\" @ | join \":\") == @",
+                  "query": "(split \":\" @ | stringjoin \":\") == @",
                   "data": "hello:hi:cattt:",
                   "expected": true
                 }
