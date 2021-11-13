@@ -65,65 +65,6 @@ describe("index", () => {
     });
   });
 
-  describe("weird overwriting stuff", () => {
-    it("doesn't overwrite binary operators", () => {
-      assert.deepStrictEqual(
-        query("1 + 1 - 1 * 1 / 1", { "+": 1, "*": 1, "-": 1, "/": 1 }),
-        1
-      );
-    });
-
-    it("doesn't overwrite indexing", () => {
-      assert.deepStrictEqual(query("[1, 2, 3][1]", { index: "hello" }), 2);
-    });
-
-    it("allows us to filter on values that overlap with builtin names", () => {
-      assert.deepStrictEqual(
-        query('[{filter: "hp"}, {filter: "lp"}] | filter filter == "lp"', {
-          index: "hello",
-        }),
-        [{ filter: "lp" }]
-      );
-    });
-
-    it("gives us a method for un-overwriting", () => {
-      assert.deepStrictEqual(
-        query('[{filter: hp}, {filter: lp}] | $.filter filter == "lp"', {
-          filter: "hello",
-          hp: "hp",
-          lp: "lp",
-        }),
-        [{ filter: "lp" }]
-      );
-    });
-
-    it("gives us a method for un-overwriting things in the data param", () => {
-      assert.deepStrictEqual(
-        query("[{filter: hp}, {filter: lp}] | $.filter filter == $.@.filter", {
-          filter: "lp",
-          lp: "lp",
-          hp: "hp",
-        }),
-        [{ filter: "lp" }]
-      );
-    });
-
-    it("supports truth tables", () => {
-      assert.equal(query("!!{}", null), false);
-      assert.equal(query('!!{foo: "bar"}', null), true);
-      assert.equal(query("!![]", null), false);
-      assert.equal(query("!![0]", null), true);
-      assert.equal(query('!!""', null), false);
-      assert.equal(query('!!"hi"', null), true);
-      assert.equal(query("!!0", null), false);
-      assert.equal(query("!!1", null), true);
-      assert.equal(query('!!(regex "")', null), true);
-      assert.equal(query('!!(regex "hi")', null), true);
-      assert.equal(query('!!(regex "hi")', null), true);
-      assert.equal(query("!!float", null), true);
-    });
-  });
-
   describe("string parsing", () => {
     it("is a superset of JSON", () => {
       const bigOne = JSON.stringify([

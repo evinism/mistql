@@ -239,6 +239,135 @@
               ]
             }
           ]
+        },
+        {
+          "describe": "Misc behavior",
+          "cases": [
+            {
+              "it": "supports truth tables",
+              "assertions": [
+                {
+                  "query": "!!{}",
+                  "data": null,
+                  "expected": false
+                },
+                {
+                  "query": "!!{foo: \"bar\"}",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "!![]",
+                  "data": null,
+                  "expected": false
+                },
+                {
+                  "query": "!![0]",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "!!\"\"",
+                  "data": null,
+                  "expected": false
+                },
+                {
+                  "query": "!!\"hi\"",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "!!0",
+                  "data": null,
+                  "expected": false
+                },
+                {
+                  "query": "!!1",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "!!(regex \"\")",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "!!(regex \"hi\")",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "!!(regex \"hi\")",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "!!float",
+                  "data": null,
+                  "expected": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "describe": "weird overwriting stuff",
+          "cases": [
+            {
+              "it": "doesn't overwrite binary operators",
+              "assertions": [
+                {
+                  "query": "1 + 1 - 1 * 1 / 1",
+                  "data": { "+": 1, "*": 1, "-": 1, "/": 1 },
+                  "expected": 1
+                }
+              ]
+            },
+            {
+              "it": "doesn't overwrite indexing",
+              "assertions": [
+                {
+                  "query": "[1, 2, 3][1]",
+                  "data": { "index": "hello" },
+                  "expected": 2
+                }
+              ]
+            },
+            {
+              "it": "allows us to filter on values that overlap with builtin names",
+              "assertions": [
+                {
+                  "query": "[{filter: \"hp\"}, {filter: \"lp\"}] | filter filter == \"lp\"",
+                  "data": null,
+                  "expected": [{ "filter": "lp" }]
+                }
+              ]
+            },
+            {
+              "it": "allows accessing builtin functions via the $ key",
+              "assertions": [
+                {
+                  "query": "[{filter: \"hp\"}, {filter: \"lp\"}] | $.filter filter == \"lp\"",
+                  "data": null,
+                  "expected": [{ "filter": "lp" }]
+                }
+              ]
+            },
+            {
+              "it": "gives us a method for un-overwriting things in the data param",
+              "assertions": [
+                {
+                  "query": "[{filter: hp}, {filter: lp}] | $.filter filter == $.@.filter",
+                  "data": {
+                    "filter": "lp",
+                    "lp": "lp",
+                    "hp": "hp"
+                  },
+                  "expected": [{ "filter": "lp" }]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
