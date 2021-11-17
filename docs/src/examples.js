@@ -55,6 +55,63 @@ const usersWithAMessageEvent = {
   }
 };
 
+const usersWithMatchingEmails = {
+  name: "User emails that match a regex",
+  query: 'events | filter email =~ (regex "^[hf]")',
+  data: {
+    "events": [
+      {
+        "type": "like",
+        "email": "harold@example.com",
+        "post_number": 5831
+      },
+      {
+        "type": "send_message",
+        "email": "flora@example.com",
+        "message": "Hello, friend!",
+        "targetUser": 95813
+      },
+      {
+        "type": "like",
+        "email": "flora@example.com",
+        "post_number": 12385
+      },
+      {
+        "type": "send_message",
+        "email": "flora@example.com",
+        "message": "I think you are cool!",
+        "targetUser": 95813
+      },
+      {
+        "type": "send_message",
+        "email": "william@example.com",
+        "message": "You Too!",
+        "targetUser": 8381
+      },
+      {
+        "type": "like",
+        "email": "emma@example.com",
+        "post_number": 17245
+      },
+      {
+        "type": "like",
+        "email": "flora@example.com",
+        "post_number": 5831
+      },
+      {
+        "type": "like",
+        "email": "william@example.com",
+        "post_number": 5831
+      },
+      {
+        "type": "like",
+        "email": "pete@example.com",
+        "post_number": 17245
+      }
+    ]
+  }
+};
+
 const animalCounts = {
   name: "Animal Counts",
   query: "animals | groupby variety | mapvalues (count @)",
@@ -145,6 +202,7 @@ const oomBeforeConnect = {
 
 const examples = {
   usersWithAMessageEvent,
+  usersWithMatchingEmails,
   animalCounts,
   oomBeforeConnect,
 }
