@@ -257,20 +257,20 @@ const turnBinaryExpressionSequenceIntoASTExpression = (
 
   // First Stage: Simple Binary Expressions -> Applications
   for (let i = 0; i < simpleBinaryOperators.length; i++) {
-    const currentExpression = simpleBinaryOperators[i];
+    const currentPrecedenceLevel = simpleBinaryOperators[i];
     const newItems = [current.items[0]];
     const newJoiners = [];
 
     for (let j = 0; j < current.joiners.length; j++) {
       newItems.push(current.items[j + 1]);
-      if (current.joiners[j] === currentExpression) {
+      if (currentPrecedenceLevel.indexOf(current.joiners[j]) > -1) {
         const l = newItems[newItems.length - 2];
         const r = newItems[newItems.length - 1];
         newItems[newItems.length - 2] = {
           type: "application",
           function: {
             type: "reference",
-            ref: currentExpression,
+            ref: current.joiners[j],
             internal: true,
           },
           arguments: [l, r],
