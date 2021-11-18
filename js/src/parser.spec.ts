@@ -705,7 +705,9 @@ describe("parser", () => {
       it("respects all these associativity comparisons", () => {
         const comparisons: [string, string][] = [
           ["1 - 2 + 3 - 4 + 5", "(((1 - 2) + 3) - 4) + 5"],
-          ["1 - 2 + 3 - 4 + 5", "(((1 - 2) + 3) - 4) + 5"],
+          ["1 / 2 * 3 / 4 * 5", "(((1 / 2) * 3) / 4) * 5"],
+          ["!-1", "!(-1)"],
+          ["-!1", "-(!1)"],
           ["one - two - three", "(one - two) - three"],
           ["one - two * three", "one - (two * three)"],
           ["a == b * 5", "a == (b * 5)"],
