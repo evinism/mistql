@@ -36,3 +36,20 @@ Binary operators make up the vast majority of MistQL's operators.
 |`=~`| `string` or `regex` | `boolean` | Whether the left hand value matches the right hand value |
 |`&&`| `any` | `boolean` | Returns the first if the first is falsy, the second otherwiseotherwise. |
 |`\|\|`| `any` | `boolean` | Returns the first if the first is truthy, the second otherwise. NOTE: The backslashes aren't necessary. I just can't figure out how to format it properly for Docusaurus. |
+
+
+## Operator precedence and associativity
+All operators in MistQL are left-to-right associative. In order, from highest to lowest:
+
+| Operator |
+|---|
+| `.` |
+| unary `!`, unary `-` |
+| `*`, `/`, `%` |
+| `+`, `-` |
+| `<`, `>`, `<=`, `>=` |
+| `==`, `!=`, `=~` |
+| `&&` |
+| `||` |
+| `[function application]` |
+| `|` |
