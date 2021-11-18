@@ -4,25 +4,17 @@
 export const amalgamatingBinaryOperators = [" ", "|"];
 
 export const simpleBinaryOperators = [
-  ".",
-  "*",
-  "/",
-  "%",
-  "+",
-  "-",
-  "<",
-  ">",
-  "<=",
-  ">=",
-  "==",
-  "!=",
-  "&&",
-  "||",
-  "=~",
+  ["."],
+  ["*", "/", "%"],
+  ["+", "-"],
+  ["<", ">", "<=", ">="],
+  ["==", "!=", "=~"],
+  ["&&"],
+  ["||"],
 ];
 
 export const binaryExpressionStrings = [].concat(
-  simpleBinaryOperators,
+  simpleBinaryOperators.reduce((acc, cur) => [].concat(acc, cur), []),
   amalgamatingBinaryOperators
 );
 
