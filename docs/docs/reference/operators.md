@@ -39,17 +39,17 @@ Binary operators make up the vast majority of MistQL's operators.
 
 
 ## Operator precedence and associativity
-All operators in MistQL are left-to-right associative. In order, from highest to lowest:
+Below are in order from highest to lowest, where all operators on the same level are equal precedence. 
 
-| Operator |
-|---|
-| `.` |
-| unary `!`, unary `-` |
-| `*`, `/`, `%` |
-| `+`, `-` |
-| `<`, `>`, `<=`, `>=` |
-| `==`, `!=`, `=~` |
-| `&&` |
-| `||` |
-| `[function application]` |
-| `|` |
+| Operator | Associativity |
+|---|---|
+| `.` | ltr |
+| unary `!`, unary `-` | rtl |
+| `*`, `/`, `%` | ltr |
+| `+`, `-` | ltr |
+| `<`, `>`, `<=`, `>=` | ltr |
+| `==`, `!=`, `=~` | ltr |
+| `&&` | ltr |
+| `\|\|` | ltr |
+| `[function application]` | ltr |
+| `\|` | ltr |

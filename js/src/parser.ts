@@ -368,7 +368,7 @@ const consumeExpression: Parser = (tokens, ctx) => {
       current = current.slice(i);
       next = current[0];
       hackyUnaryPostProcess = (item) =>
-        unaries.reduce(
+        unaries.reduceRight(
           (acc, cur) => ({
             type: "application",
             function: {
