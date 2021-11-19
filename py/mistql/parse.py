@@ -3,20 +3,21 @@ from lark import Lark
 mistql_parser = Lark(r"""
 ?start: piped_expression
 
-?piped_expression: simple_expression ("|" simple_expression)*
+?piped_expression: simple_expression
+    | simple_expression ("|" simple_expression)+ -> pipe
 ?simple_expression : fncall | op_a
 ?simplevalue: reference | literal | "(" piped_expression ")"
 ?fncall: op_a (WS op_a)+ -> fncall
 
 
-namedref: NAME
-at: "@"
-dollar: "$"
+namedref: NAME -> namedref
+at: "@" -> at
+dollar: "$" -> dollar
 
-reference: namedref | at | dollar
-?literal: object
-    | array
-    | string
+?reference: namedref | at | dollar
+?literal: object         -> object
+    | array              -> array
+    | string             -> string
     | NUMBER             -> number
     | "true"             -> true
     | "false"            -> false
