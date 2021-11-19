@@ -1,39 +1,71 @@
 from lark import Lark
 
 mistql_parser = Lark(r"""
-?start: expression
+?start: piped_expression
 
-?expression: sum | literal
+?piped_expression: simple_expression ("|" simple_expression)*
+?simple_expression : fncall | op_a
+?simplevalue: reference | literal | "(" piped_expression ")"
+?fncall: op_a (WS op_a)+ -> fncall
 
+
+namedref: NAME
+at: "@"
+dollar: "$"
+
+reference: namedref | at | dollar
 ?literal: object
-      | array
-      | string
-      | SIGNED_NUMBER      -> number
-      | "true"             -> true
-      | "false"            -> false
-      | "null"             -> null
+    | array
+    | string
+    | NUMBER             -> number
+    | "true"             -> true
+    | "false"            -> false
+    | "null"             -> null
 
-array  : "[" [literal ("," literal)*] "]"
+array  : "[" [simple_expression ("," simple_expression)*] "]"
 object : "{" [pair ("," pair)*] "}"
-pair   : string ":" literal
+pair   : (string | NAME) ":" simple_expression
 string : ESCAPED_STRING
 
-?sum: product
-    | sum "+" product   -> add
-    | sum "-" product   -> sub
+indexing:  "[" piped_expression (":" piped_expression?)* "]"
 
-?product: atom
-    | product "*" atom  -> mul
-    | product "/" atom  -> div
+?op_a: op_b
+    | op_a "||" op_b -> or
 
-?atom: NUMBER           -> number
-     | "-" atom         -> neg
-     | "(" expression ")"
-     | literal
+?op_b: op_c
+    | op_b "&&" op_c -> and
+
+?op_c: op_d
+    | op_c "==" op_d -> eq
+    | op_c "!=" op_d -> neq
+    | op_c "=~" op_d -> match
+
+?op_d: op_e
+    | op_d ">" op_e -> gt
+    | op_d "<" op_e -> lt
+    | op_d ">=" op_e -> gte
+    | op_d "<=" op_e -> lte
+
+?op_e: op_f
+    | op_e "+" op_f -> plus
+    | op_e "-" op_f -> minus
+
+?op_f: op_g
+    | op_f "*" op_g -> mul
+    | op_f "/" op_g -> div
+    | op_f "%" op_g -> mod
+
+?op_g: op_h
+    | "!" op_g -> not
+    | "-" op_g -> neg
+
+?op_h: simplevalue
+    | op_h "." reference -> dot
+    | op_h indexing -> index
 
 %import common.ESCAPED_STRING
-%import common.SIGNED_NUMBER
 %import common.WS
+%import common.CNAME -> NAME
 %import common.NUMBER
 
 %ignore WS
