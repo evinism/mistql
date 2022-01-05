@@ -139,6 +139,12 @@ class RuntimeValue:
                 "Truthiness not yet implemented: " + str(self.type)
             )
 
+    def keys(self):
+        if self.type == RuntimeValueType.Object:
+            return [key for key in self.value]
+        else:
+            return []
+
     def access(self, string):
         """
         Access a property of this value
