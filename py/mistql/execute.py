@@ -79,6 +79,10 @@ def execute(ast: Expression, stack: Stack) -> RuntimeValue:
 
 
 def execute_outer(ast: Expression, data: RuntimeValue) -> RuntimeValue:
+
+    dollar_var = {
+        "@": data,
+    }
     top_stack_entry = {
         "@": data,
     }
@@ -86,6 +90,10 @@ def execute_outer(ast: Expression, data: RuntimeValue) -> RuntimeValue:
         for key, value in data.value.items():
             top_stack_entry[key] = value
     for builtin in builtins:
-        top_stack_entry[builtin] = RuntimeValue.create_function(builtins[builtin])
+        fn = RuntimeValue.create_function(builtins[builtin])
+        top_stack_entry[builtin] = fn
+        dollar_var[builtin] = fn
+    top_stack_entry["$"] = RuntimeValue.of(dollar_var)
+
     stack: Stack = [top_stack_entry]
     return execute(ast, stack)
