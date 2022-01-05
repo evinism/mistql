@@ -2,6 +2,7 @@ from typing import List, Dict, Callable
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
 from mistql.expression import Expression
 from mistql.stack import Stack
+from mistql.expression import RefExpression
 
 Args = List[Expression]
 Exec = Callable[[Expression, Stack], RuntimeValue]
@@ -152,7 +153,17 @@ def keys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"keys: {arg} is not an object")
     return RuntimeValue.of(list(arg.value.keys()))
 
+def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("dot takes two arguments")
+    left = execute(arguments[0], stack)
+    right = arguments[1]
+    if not isinstance(right, RefExpression):
+        raise Exception(f"dot: rhs is not a ref")
+    return left.access(right.name)
+
 builtins = {
+    ".": dot,
     "-/unary": unary_minus,
     "!/unary": unary_not,
     "+": add,

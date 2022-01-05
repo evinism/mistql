@@ -85,6 +85,7 @@ indexing:  "[" piped_expression (":" piped_expression?)* "]"
 )
 
 function_mappings = {
+    "dot": ".",
     "neg": "-/unary",
     "not": "!/unary",
     "gt": ">",
