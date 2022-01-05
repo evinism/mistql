@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Any
 from mistql.runtime_value import RuntimeValue
 import json
 
@@ -16,6 +16,7 @@ class ExpressionType(Enum):
 
 class BaseExpression:
     """Represents the MistQL expression, after parsing"""
+
     def __init__(self, type: ExpressionType):
         self.type = type
 
@@ -37,6 +38,10 @@ class ValueExpression(BaseExpression):
     def __init__(self, value: RuntimeValue):
         super().__init__(ExpressionType.Value)
         self.value = value
+
+    @classmethod
+    def of(cls, value: Any):
+        return cls(RuntimeValue.of(value))
 
 
 class ArrayExpression(BaseExpression):
