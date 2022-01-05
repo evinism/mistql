@@ -136,6 +136,22 @@ def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     else:
         return right
 
+def count(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("count takes one argument")
+    arg = execute(arguments[0], stack)
+    if arg.type != RuntimeValueType.Array:
+        raise Exception(f"count: {arg} is not an array")
+    return RuntimeValue.of(len(arg.value))
+
+def keys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("keys takes one argument")
+    arg = execute(arguments[0], stack)
+    if arg.type != RuntimeValueType.Object:
+        raise Exception(f"keys: {arg} is not an object")
+    return RuntimeValue.of(list(arg.value.keys()))
+
 builtins = {
     "-/unary": unary_minus,
     "!/unary": unary_not,
@@ -148,6 +164,8 @@ builtins = {
     "!=": neq,
     "&&": and_fn,
     "||": or_fn,
+    "count": count,
+    "keys": keys,
     "if": if_else,
     "reverse": reverse,
     "log": log,
