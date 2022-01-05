@@ -1,8 +1,8 @@
 from enum import Enum
 from lark import Lark, Tree, Token
 from mistql.runtime_value import RuntimeValue
-from mistql.expression import BaseExpression, RefExpression, FnExpression, ValueExpression, ArrayExpression, ObjectExpression, PipeExpression
-from typing import List, Union
+from mistql.expression import RefExpression, FnExpression, ValueExpression, ArrayExpression, ObjectExpression, PipeExpression
+from typing import Union
 import json
 
 mistql_parser = Lark(
@@ -15,7 +15,7 @@ mistql_parser = Lark(
 ?simplevalue: literal | reference | "(" piped_expression ")"
 ?fncall: op_a (WS op_a)+ -> fncall
 
-?reference: NAME | AT | DOLLAR
+?reference: CNAME | AT | DOLLAR
 ?literal: object
     | array
     | ESCAPED_STRING
@@ -30,9 +30,9 @@ TRUE: "true"
 FALSE: "false"
 NULL: "null"
 
-array  : "[" [simple_expression ("," simple_expression)*] "]" -> array
-object : "{" [object_entry ("," object_entry)*] "}" -> object
-object_entry   : (ESCAPED_STRING | NAME) ":" simple_expression -> object_entry
+array  : "[" (simple_expression ("," simple_expression)*)? "]" -> array
+object : "{" (object_entry ("," object_entry)*)? "}" -> object
+object_entry   : (ESCAPED_STRING | CNAME) ":" simple_expression -> object_entry
 
 indexing:  "[" piped_expression (":" piped_expression?)* "]"
 
@@ -72,7 +72,7 @@ indexing:  "[" piped_expression (":" piped_expression?)* "]"
 
 %import common.ESCAPED_STRING
 %import common.WS
-%import common.CNAME -> NAME
+%import common.CNAME
 %import common.NUMBER
 
 %ignore WS
@@ -114,7 +114,7 @@ def from_lark(lark_tree: Union[Tree, Token]):
             return ValueExpression(RuntimeValue.of(False))
         elif lark_tree.type == "NULL":
             return ValueExpression(RuntimeValue.of(None))
-        elif lark_tree.type == "NAME":
+        elif lark_tree.type == "CNAME":
             return RefExpression(lark_tree.value)
         elif lark_tree.type == "AT":
             return RefExpression("@")
@@ -128,11 +128,19 @@ def from_lark(lark_tree: Union[Tree, Token]):
                 [from_lark(child) for child in lark_tree.children]
             )
         elif lark_tree.data == "object":
+            obj = {}
+            for child in lark_tree.children:
+                key = from_lark(child.children[0])
+                if isinstance(key, ValueExpression):
+                    key = key.value.value
+                elif isinstance(key, RefExpression):
+                    key = key.name
+                else:
+                    raise Exception(f"Unknown key type {type(key)}")
+                value = from_lark(child.children[1])
+                obj[key] = value
             return ObjectExpression(
-                {
-                    child.children[0].value: from_lark(child.children[2])
-                    for child in lark_tree.children
-                }
+                obj
             )
         elif lark_tree.data == "pipe":
             return PipeExpression(
