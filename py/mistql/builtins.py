@@ -269,13 +269,14 @@ def _index_single(operand: RuntimeValue, index: RuntimeValue):
 def index(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) not in {2, 3}:
         raise Exception("index takes two to three arguments")
-    operand = execute(arguments[0], stack)
     if len(arguments) == 3:
         return _index_double(
-            operand, execute(arguments[1], stack), execute(arguments[2], stack)
+            execute(arguments[2], stack),
+            execute(arguments[0], stack),
+            execute(arguments[1], stack),
         )
     else:
-        return _index_single(operand, execute(arguments[1], stack))
+        return _index_single(execute(arguments[1], stack), execute(arguments[0], stack))
 
 
 def string(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
