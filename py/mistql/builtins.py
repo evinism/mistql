@@ -45,14 +45,14 @@ def unary_not(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
         raise Exception("unary not takes one argument")
     res = execute(arguments[0], stack)
-    return RuntimeValue.of(not res.truthy())
+    return RuntimeValue.of(not res)
 
 
 def if_else(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 3:
         raise Exception("if takes three arguments")
     condition = execute(arguments[0], stack)
-    if condition.truthy():
+    if condition:
         return execute(arguments[1], stack)
     else:
         return execute(arguments[2], stack)
@@ -119,7 +119,7 @@ def eq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception("eq takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
-    return RuntimeValue.of(RuntimeValue.eq(left, right))
+    return left == right
 
 
 def neq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
@@ -127,7 +127,7 @@ def neq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception("neq takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
-    return RuntimeValue.of(not RuntimeValue.eq(left, right).value)
+    return left != right
 
 
 def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
@@ -135,7 +135,7 @@ def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception("and takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
-    if left.truthy():
+    if left:
         return right
     else:
         return left
@@ -146,7 +146,7 @@ def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception("or takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
-    if left.truthy():
+    if left:
         return left
     else:
         return right
@@ -202,7 +202,7 @@ def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     out: List[RuntimeValue] = []
     for item in operand.value:
         res = execute(mutation, add_runtime_value_to_stack(item, stack))
-        if res.truthy():
+        if res:
             out.append(item)
     return RuntimeValue.of(out)
 
@@ -244,7 +244,7 @@ def _index_double(
 ):
     if operand.type != RuntimeValueType.Array:
         raise Exception(f"index: {operand} is not an array")
-    pass
+    return RuntimeValue.of(None)
 
 
 def _index_single(operand: RuntimeValue, index: RuntimeValue):

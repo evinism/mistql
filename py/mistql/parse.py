@@ -163,7 +163,6 @@ def process_lark_tree(lark_node: Tree) -> Expression:
                 prev_was_token = False
         if prev_was_token:
             fnexp_args.append(ValueExpression.of(None))
-        fnexp_args = [from_lark(child) for child in indexing.children]
         fnexp_args.append(from_lark(base))
         return FnExpression(RefExpression("index"), fnexp_args)
     else:
