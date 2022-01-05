@@ -3,6 +3,7 @@ from mistql.runtime_value import RuntimeValue, RuntimeValueType
 from mistql.expression import Expression
 from mistql.stack import Stack
 from mistql.expression import RefExpression
+from mistql.stack import add_runtime_value_to_stack
 
 Args = List[Expression]
 Exec = Callable[[Expression, Stack], RuntimeValue]
@@ -149,9 +150,7 @@ def keys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
         raise Exception("keys takes one argument")
     arg = execute(arguments[0], stack)
-    if arg.type != RuntimeValueType.Object:
-        raise Exception(f"keys: {arg} is not an object")
-    return RuntimeValue.of(list(arg.value.keys()))
+    return RuntimeValue.of(arg.keys())
 
 def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -161,6 +160,34 @@ def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if not isinstance(right, RefExpression):
         raise Exception(f"dot: rhs is not a ref")
     return left.access(right.name)
+
+def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("map takes two arguments")
+    mutation = arguments[0]
+    operand = execute(arguments[1], stack)
+    if operand.type != RuntimeValueType.Array:
+        raise Exception(f"map: {operand} is not an array")
+    out: List[RuntimeValue] = []
+    for item in operand.value:
+        res = execute(mutation, add_runtime_value_to_stack(item, stack))
+        out.append(res)
+    return RuntimeValue.of(out)
+
+def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("filter takes two arguments")
+    mutation = arguments[0]
+    operand = execute(arguments[1], stack)
+    if operand.type != RuntimeValueType.Array:
+        raise Exception(f"filter: {operand} is not an array")
+    out: List[RuntimeValue] = []
+    for item in operand.value:
+        res = execute(mutation, add_runtime_value_to_stack(item, stack))
+        if res.truthy():
+            out.append(item)
+    return RuntimeValue.of(out)
+
 
 builtins = {
     ".": dot,
@@ -177,6 +204,8 @@ builtins = {
     "||": or_fn,
     "count": count,
     "keys": keys,
+    "map": map,
+    "filter": filter,
     "if": if_else,
     "reverse": reverse,
     "log": log,
