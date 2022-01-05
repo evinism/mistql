@@ -19,7 +19,7 @@ mistql_parser = Lark(
 
 ?piped_expression: simple_expression
     | simple_expression ("|" simple_expression)+ -> pipe
-?simple_expression : fncall | op_a
+?simple_expression : op_a | fncall
 ?simplevalue: literal | reference | "(" piped_expression ")"
 ?fncall: op_a (WS op_a)+ -> fncall
 
