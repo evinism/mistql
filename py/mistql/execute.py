@@ -14,8 +14,11 @@ from mistql.builtins import FunctionDefinitionType, builtins
 from mistql.stack import add_runtime_value_to_stack
 from mistql.expression import BaseExpression
 
+from typeguard import typechecked
 
-def execute_fncall(head, arguments, stack: Stack):
+
+@typechecked
+def execute_fncall(head: Expression, arguments: List[Expression], stack: Stack):
     fn = execute(head, stack)
     if fn.type != RuntimeValueType.Function:
         raise Exception(f"Tried to call a non-function: {fn}")
@@ -24,22 +27,23 @@ def execute_fncall(head, arguments, stack: Stack):
     return function_definition(arguments, stack, execute)
 
 
+@typechecked
 def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
-    first = stages[0]
-    remaining = stages[1:]
+    first: Expression = stages[0]
+    remaining: List[Expression] = stages[1:]
     prev_value = execute(first, stack)
 
     for stage_ast in remaining:
         new_stack = add_runtime_value_to_stack(prev_value, stack)
-        fn = None
-        args = None
+        fn: Expression
+        args: List[Expression]
         if isinstance(stage_ast, FnExpression):
             fn = stage_ast.fn
             args = stage_ast.args.copy()
         else:
             fn = stage_ast
             args = []
-        args.append(prev_value)
+        args.append(ValueExpression(prev_value))
         stage = FnExpression(fn, args)
         data = execute(stage, new_stack)
 
@@ -53,6 +57,7 @@ def find_in_stack(stack: Stack, name: str) -> RuntimeValue:
     raise Exception(f"Could not find {name} in stack")
 
 
+@typechecked
 def execute(ast: Expression, stack: Stack) -> RuntimeValue:
     if not isinstance(ast, BaseExpression):
         raise Exception(f"Expected to evaluate an expression, got {ast}")
