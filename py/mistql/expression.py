@@ -3,6 +3,8 @@ from typing import Dict, List, Union, Any
 from mistql.runtime_value import RuntimeValue
 import json
 
+from typeguard import typechecked
+
 
 class ExpressionType(Enum):
     Fncall = "fncall"
@@ -17,11 +19,13 @@ class ExpressionType(Enum):
 class BaseExpression:
     """Represents the MistQL expression, after parsing"""
 
+    @typechecked
     def __init__(self, type: ExpressionType):
         self.type = type
 
 
 class FnExpression(BaseExpression):
+    @typechecked
     def __init__(self, fn: BaseExpression, args: List[BaseExpression]):
         super().__init__(ExpressionType.Fncall)
         self.fn = fn
@@ -29,12 +33,14 @@ class FnExpression(BaseExpression):
 
 
 class RefExpression(BaseExpression):
+    @typechecked
     def __init__(self, name: str):
         super().__init__(ExpressionType.Reference)
         self.name = name
 
 
 class ValueExpression(BaseExpression):
+    @typechecked
     def __init__(self, value: RuntimeValue):
         super().__init__(ExpressionType.Value)
         self.value = value
@@ -45,18 +51,21 @@ class ValueExpression(BaseExpression):
 
 
 class ArrayExpression(BaseExpression):
+    @typechecked
     def __init__(self, items: List[BaseExpression]):
         super().__init__(ExpressionType.Array)
         self.items = items
 
 
 class ObjectExpression(BaseExpression):
+    @typechecked
     def __init__(self, entries: Dict[str, BaseExpression]):
         super().__init__(ExpressionType.Object)
         self.entries = entries
 
 
 class PipeExpression(BaseExpression):
+    @typechecked
     def __init__(self, stages: List[BaseExpression]):
         super().__init__(ExpressionType.Pipe)
         self.stages = stages
