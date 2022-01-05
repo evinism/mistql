@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Callable, List
+import json
 
 
 class RuntimeValueType(Enum):
@@ -89,9 +90,7 @@ class RuntimeValue:
                     return False
             return True
         else:
-            raise ValueError(
-                "Equality not yet implemented: " + str(a.type)
-            )
+            raise ValueError("Equality not yet implemented: " + str(a.type))
 
     def __init__(self, type, value=None):
         self.type = type
@@ -135,9 +134,25 @@ class RuntimeValue:
         elif self.type == RuntimeValueType.Object:
             return len(self.value) > 0
         else:
-            raise ValueError(
-                "Truthiness not yet implemented: " + str(self.type)
-            )
+            raise ValueError("Truthiness not yet implemented: " + str(self.type))
+
+    def to_json(self) -> str:
+        """
+        Convert this value to JSON string
+        """
+        return json.dumps(self.to_python())
+
+    def to_string(self) -> str:
+        """
+        Convert this value to a string
+        """
+        if self.type == RuntimeValueType.String:
+            return self.value
+        else:
+            return self.to_json()
+
+    def __repr__(self) -> str:
+        return f"<mistql {self.to_string()}>"
 
     def keys(self):
         if self.type == RuntimeValueType.Object:
