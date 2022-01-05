@@ -81,7 +81,24 @@ indexing:  "[" piped_expression (":" piped_expression?)* "]"
     parser="earley",
 )
 
-
+function_mappings = {
+    "neg": "-/unary",
+    "not": "!/unary",
+    "gt": ">",
+    "lt": "<",
+    "gte": ">=",
+    "lte": "<=",
+    "eq": "==",
+    "neq": "!=",
+    "match": "=~",
+    "plus": "+",
+    "minus": "-",
+    "mul": "*",
+    "div": "/",
+    "mod": "%",
+    "and": "&&",
+    "or": "||",
+}
 
 def from_lark(lark_tree):
     if lark_tree.data == "namedref":
@@ -125,22 +142,12 @@ def from_lark(lark_tree):
                 if getattr(child, "type", None) != "WS"
             ],
         )
-    elif lark_tree.data == "neg":
+    elif lark_tree.data in function_mappings:
         return FnExpression(
-            RefExpression("-/unary"),
+            RefExpression(function_mappings[lark_tree.data]),
             [
                 from_lark(child)
                 for child in lark_tree.children[1:]
-                if getattr(child, "type", None) != "WS"
-            ],
-        )
-    elif lark_tree.data == "not":
-        return FnExpression(
-            RefExpression("!/unary"),
-            [
-                from_lark(child)
-                for child in lark_tree.children[1:]
-                if getattr(child, "type", None) != "WS"
             ],
         )
     else:
