@@ -28,7 +28,17 @@ def reverse(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(list(reversed(arg.value)))
 
 
+def unary_minus(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("unary minus takes one argument")
+    res = execute(arguments[0], stack)
+    if res.type != RuntimeValueType.Number:
+        raise Exception(f"unary_minus takes a number, got {res}")
+    return RuntimeValue.of(-res.value)
+
+
 builtins = {
+    "-/unary": unary_minus,
     "reverse": reverse,
     "log": log,
 }

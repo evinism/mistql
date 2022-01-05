@@ -15,4 +15,6 @@ def query(query: str, raw_data: Any) -> Any:
     """
     ast = parse(query)
     data = input_garden_wall(raw_data)
-    return output_garden_wall(execute_outer(ast, data))
+    result = execute_outer(ast, data)
+    return_value = output_garden_wall(result)
+    return return_value
