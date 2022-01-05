@@ -188,6 +188,33 @@ def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
             out.append(item)
     return RuntimeValue.of(out)
 
+def mapvalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("mapvalues takes two arguments")
+    mutation = arguments[0]
+    operand = execute(arguments[1], stack)
+    if operand.type != RuntimeValueType.Object:
+        raise Exception(f"mapvalues: {operand} is not an object")
+    out: Dict[str, RuntimeValue] = {}
+    for key, value in operand.value.items():
+        res = execute(mutation, add_runtime_value_to_stack(value, stack))
+        out[key] = res
+    return RuntimeValue.of(out)
+
+def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("mapkeys takes two arguments")
+    mutation = arguments[0]
+    operand = execute(arguments[1], stack)
+    if operand.type != RuntimeValueType.Object:
+        raise Exception(f"mapkeys: {operand} is not an object")
+    out: Dict[str, RuntimeValue] = {}
+    for key, value in operand.value.items():
+        res = execute(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
+        if res.type != RuntimeValueType.String:
+            raise Exception(f"mapkeys: {res} is not a string")
+        out[res.value] = value
+    return RuntimeValue.of(out)
 
 builtins = {
     ".": dot,
@@ -206,6 +233,8 @@ builtins = {
     "keys": keys,
     "map": map,
     "filter": filter,
+    "mapvalues": mapvalues,
+    "mapkeys": mapkeys,
     "if": if_else,
     "reverse": reverse,
     "log": log,
