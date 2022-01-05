@@ -97,12 +97,50 @@ class RuntimeValue:
         else:
             raise ValueError("Equality not yet implemented: " + str(a.type))
 
-    def __eq__(self, __o: object) -> bool:
+    @staticmethod
+    def compare(a, b) -> int:
+        """
+        Compare two values
+        """
+        if a.type != b.type:
+            raise ValueError("Cannot compare MistQL values of different types")
+        if a.type == RuntimeValueType.Null:
+            return 0
+        elif a.type == RuntimeValueType.Boolean:
+            return int(a.value) - int(b.value)
+        elif a.type == RuntimeValueType.Number:
+            return a.value - b.value
+        elif a.type == RuntimeValueType.String:
+            return (a.value > b.value) - (a.value < b.value)
+        else:
+            raise ValueError("Cannot compare MistQL values of type " + str(a.type))
+
+    def __lt__(self, __o: object):
+        if not isinstance(__o, RuntimeValue):
+            raise ValueError("Cannot compare MistQL value to non-MistQL value")
+        return RuntimeValue.of(self.compare(self, __o) < 0)
+
+    def __le__(self, __o: object):
+        if not isinstance(__o, RuntimeValue):
+            raise ValueError("Cannot compare MistQL value to non-MistQL value")
+        return RuntimeValue.of(self.compare(self, __o) <= 0)
+
+    def __gt__(self, __o: object):
+        if not isinstance(__o, RuntimeValue):
+            raise ValueError("Cannot compare MistQL value to non-MistQL value")
+        return RuntimeValue.of(self.compare(self, __o) > 0)
+
+    def __ge__(self, __o: object):
+        if not isinstance(__o, RuntimeValue):
+            raise ValueError("Cannot compare MistQL value to non-MistQL value")
+        return RuntimeValue.of(self.compare(self, __o) >= 0)
+
+    def __eq__(self, __o: object):
         if not isinstance(__o, RuntimeValue):
             raise ValueError("Cannot compare MistQL value to non-MistQL value")
         return RuntimeValue.of(RuntimeValue.eq(self, __o))
 
-    def __ne__(self, __o: object) -> bool:
+    def __ne__(self, __o: object):
         if not isinstance(__o, RuntimeValue):
             raise ValueError("Cannot compare MistQL value to non-MistQL value")
         return RuntimeValue.of(not RuntimeValue.eq(self, __o))

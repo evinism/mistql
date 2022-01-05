@@ -237,6 +237,36 @@ def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
+def filtervalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("filtervalues takes two arguments")
+    mutation = arguments[0]
+    operand = execute(arguments[1], stack)
+    if operand.type != RuntimeValueType.Object:
+        raise Exception(f"filtervalues: {operand} is not an object")
+    out: Dict[str, RuntimeValue] = {}
+    for key, value in operand.value.items():
+        res = execute(mutation, add_runtime_value_to_stack(value, stack))
+        if res:
+            out[key] = value
+    return RuntimeValue.of(out)
+
+
+def filterkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("filterkeys takes two arguments")
+    mutation = arguments[0]
+    operand = execute(arguments[1], stack)
+    if operand.type != RuntimeValueType.Object:
+        raise Exception(f"filterkeys: {operand} is not an object")
+    out: Dict[str, RuntimeValue] = {}
+    for key, value in operand.value.items():
+        res = execute(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
+        if res:
+            out[key] = value
+    return RuntimeValue.of(out)
+
+
 def _index_double(
     operand: RuntimeValue,
     index_one: RuntimeValue,
@@ -334,6 +364,39 @@ def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue(RuntimeValueType.Regex, re.compile(pattern.value, flags=0))
 
 
+def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("stringjoin takes one argument")
+    arg = execute(arguments[0], stack)
+    if arg.type != RuntimeValueType.Array:
+        raise Exception(f"stringjoin: {arg} is not an array")
+    return RuntimeValue.of("".join(x.to_string() for x in arg.value))
+
+
+def lt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("lt takes two arguments")
+    return execute(arguments[0], stack) < execute(arguments[1], stack)
+
+
+def lte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("lte takes two arguments")
+    return execute(arguments[0], stack) <= execute(arguments[1], stack)
+
+
+def gt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("gt takes two arguments")
+    return execute(arguments[0], stack) > execute(arguments[1], stack)
+
+
+def gte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("gte takes two arguments")
+    return execute(arguments[0], stack) >= execute(arguments[1], stack)
+
+
 builtins = {
     ".": dot,
     "-/unary": unary_minus,
@@ -345,6 +408,10 @@ builtins = {
     "%": mod,
     "==": eq,
     "!=": neq,
+    ">": gt,
+    ">=": gte,
+    "<": lt,
+    "<=": lte,
     "&&": and_fn,
     "||": or_fn,
     "count": count,
@@ -356,6 +423,8 @@ builtins = {
     "string": string,
     "mapvalues": mapvalues,
     "mapkeys": mapkeys,
+    "filtervalues": filtervalues,
+    "filterkeys": filterkeys,
     "if": if_else,
     "reverse": reverse,
     "regex": regex,
