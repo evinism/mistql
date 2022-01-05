@@ -11,6 +11,13 @@ FunctionDefinitionType = Callable[
     RuntimeValue,
 ]
 
+def log(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("log takes one argument")
+    res = execute(arguments[0], stack)
+    print(res)
+    return res
+
 
 def reverse(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
@@ -18,12 +25,10 @@ def reverse(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"reverse takes an array, got {arg}")
-    import pdb
-
-    pdb.set_trace()
     return RuntimeValue.of(list(reversed(arg.value)))
 
 
 builtins = {
     "reverse": reverse,
+    "log": log,
 }

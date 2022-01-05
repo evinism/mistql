@@ -62,9 +62,6 @@ def execute(ast: Expression, stack: Stack) -> RuntimeValue:
 def execute_outer(ast: Expression, data: RuntimeValue) -> RuntimeValue:
     top_stack_entry = {
         "@": data,
-        "null": RuntimeValue.of(None),
-        "true": RuntimeValue.of(True),
-        "false": RuntimeValue.of(False),
     }
     for builtin in builtins:
         top_stack_entry[builtin] = RuntimeValue.create_function(builtins[builtin])
