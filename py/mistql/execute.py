@@ -12,6 +12,7 @@ from mistql.expression import (
 from mistql.stack import Stack
 from mistql.builtins import FunctionDefinitionType, builtins
 from mistql.stack import add_runtime_value_to_stack
+from mistql.expression import BaseExpression
 
 
 def execute_fncall(head, arguments, stack: Stack):
@@ -53,6 +54,8 @@ def find_in_stack(stack: Stack, name: str) -> RuntimeValue:
 
 
 def execute(ast: Expression, stack: Stack) -> RuntimeValue:
+    if not isinstance(ast, BaseExpression):
+        raise Exception(f"Expected to evaluate an expression, got {ast}")
     if isinstance(ast, ValueExpression):
         return ast.value
     elif isinstance(ast, RefExpression):

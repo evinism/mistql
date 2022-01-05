@@ -89,6 +89,11 @@ class RuntimeValue:
                 if not RuntimeValue.eq(value, b.value[key]):
                     return False
             return True
+        elif a.type == RuntimeValueType.Regex:
+            return a.value.pattern == b.value.pattern and a.value.flags == b.value.flags
+        elif a.type == RuntimeValueType.Function:
+            # referential equality
+            return a.value == b.value
         else:
             raise ValueError("Equality not yet implemented: " + str(a.type))
 
@@ -133,6 +138,10 @@ class RuntimeValue:
             return len(self.value) > 0
         elif self.type == RuntimeValueType.Object:
             return len(self.value) > 0
+        elif self.type == RuntimeValueType.Function:
+            return True
+        elif self.type == RuntimeValueType.Regex:
+            return True
         else:
             raise ValueError("Truthiness not yet implemented: " + str(self.type))
 
@@ -151,7 +160,23 @@ class RuntimeValue:
         else:
             return self.to_json()
 
+    def to_float(self) -> float:
+        if self.type == RuntimeValueType.Number:
+            return self.value
+        elif self.type == RuntimeValueType.String:
+            return float(self.value)
+        elif self.type == RuntimeValueType.Boolean:
+            return float(self.value)
+        elif self.type == RuntimeValueType.Null:
+            return float(0)
+        else:
+            return float("nan")
+
     def __repr__(self) -> str:
+        if self.type == RuntimeValueType.Function:
+            return "<mistql [function]>"
+        if self.type == RuntimeValueType.Regex:
+            return "<mistql [regex]>"
         return f"<mistql {self.to_string()}>"
 
     def keys(self):

@@ -4,6 +4,7 @@ from mistql.expression import Expression
 from mistql.stack import Stack
 from mistql.expression import RefExpression
 from mistql.stack import add_runtime_value_to_stack
+import re
 
 Args = List[Expression]
 Exec = Callable[[Expression, Stack], RuntimeValue]
@@ -284,6 +285,30 @@ def string(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(arg.to_string())
 
 
+def float(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("float takes one argument")
+    arg = execute(arguments[0], stack)
+    return RuntimeValue.of(arg.to_float())
+
+
+def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) not in {1, 2}:
+        raise Exception("regex takes one to two arguments")
+    pattern = execute(arguments[0], stack)
+    if pattern.type != RuntimeValueType.String:
+        raise Exception(f"regex: {pattern} is not a string")
+
+    if len(arguments) == 2:
+        # TODO: flags
+        flags = execute(arguments[1], stack)
+        if flags.type != RuntimeValueType.String:
+            raise Exception(f"regex: {flags} is not a string")
+    else:
+        flags = RuntimeValue.of("")
+    return RuntimeValue(RuntimeValueType.Regex, re.compile(pattern.value, flags=0))
+
+
 builtins = {
     ".": dot,
     "-/unary": unary_minus,
@@ -299,6 +324,7 @@ builtins = {
     "||": or_fn,
     "count": count,
     "keys": keys,
+    "float": float,
     "map": map,
     "filter": filter,
     "index": index,
@@ -307,5 +333,6 @@ builtins = {
     "mapkeys": mapkeys,
     "if": if_else,
     "reverse": reverse,
+    "regex": regex,
     "log": log,
 }
