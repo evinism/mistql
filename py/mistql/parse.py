@@ -1,6 +1,5 @@
 from enum import Enum
 from lark import Lark, Tree, Token
-from mistql.runtime_value import RuntimeValue
 from mistql.expression import (
     RefExpression,
     FnExpression,
