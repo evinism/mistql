@@ -192,6 +192,21 @@ def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
+def reduce(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 3:
+        raise Exception("reduce takes three arguments")
+    initial = execute(arguments[1], stack)
+    mutation = arguments[0]
+    operand = execute(arguments[2], stack)
+    if operand.type != RuntimeValueType.Array:
+        raise Exception(f"reduce: {operand} is not an array")
+    out = initial
+    for item in operand.value:
+        acc_cur = RuntimeValue.of([out, item])
+        out = execute(mutation, add_runtime_value_to_stack(acc_cur, stack))
+    return out
+
+
 def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("filter takes two arguments")
@@ -265,6 +280,20 @@ def filterkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         if res:
             out[key] = value
     return RuntimeValue.of(out)
+
+
+def find(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("find takes two arguments")
+    mutation = arguments[0]
+    operand = execute(arguments[1], stack)
+    if operand.type != RuntimeValueType.Array:
+        raise Exception(f"find: {operand} is not an array")
+    for item in operand.value:
+        res = execute(mutation, add_runtime_value_to_stack(item, stack))
+        if res:
+            return item
+    return RuntimeValue.of(None)
 
 
 def _index_double(
@@ -419,6 +448,8 @@ builtins = {
     "float": float,
     "map": map,
     "filter": filter,
+    "reduce": reduce,
+    "find": find,
     "index": index,
     "string": string,
     "mapvalues": mapvalues,
