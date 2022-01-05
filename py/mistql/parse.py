@@ -43,7 +43,7 @@ object : "{" (object_entry ("," object_entry)*)? "}" -> object
 object_entry   : (ESCAPED_STRING | CNAME) ":" simple_expression -> object_entry
 
 ?indexing:  "[" index_innards "]" -> indexing
-!index_innards: piped_expression (":" piped_expression?)* -> index_innards
+!index_innards: piped_expression? (":" piped_expression?)* -> index_innards
 
 
 ?op_a: op_b
