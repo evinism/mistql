@@ -11,7 +11,7 @@ from mistql.expression import (
 )
 from mistql.stack import Stack
 from mistql.builtins import FunctionDefinitionType, builtins
-from mistql.stack import add_runtime_value_to_stack
+from mistql.stack import add_runtime_value_to_stack, build_initial_stack
 from mistql.expression import BaseExpression
 
 from typeguard import typechecked
@@ -50,6 +50,7 @@ def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
     return data
 
 
+@typechecked
 def find_in_stack(stack: Stack, name: str) -> RuntimeValue:
     for frame in reversed(stack):
         if name in frame:
@@ -79,21 +80,4 @@ def execute(ast: Expression, stack: Stack) -> RuntimeValue:
 
 
 def execute_outer(ast: Expression, data: RuntimeValue) -> RuntimeValue:
-
-    dollar_var = {
-        "@": data,
-    }
-    top_stack_entry = {
-        "@": data,
-    }
-    if data.type == RuntimeValueType.Object:
-        for key, value in data.value.items():
-            top_stack_entry[key] = value
-    for builtin in builtins:
-        fn = RuntimeValue.create_function(builtins[builtin])
-        top_stack_entry[builtin] = fn
-        dollar_var[builtin] = fn
-    top_stack_entry["$"] = RuntimeValue.of(dollar_var)
-
-    stack: Stack = [top_stack_entry]
-    return execute(ast, stack)
+    return execute(ast, build_initial_stack(data, builtins))
