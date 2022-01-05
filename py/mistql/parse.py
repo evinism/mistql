@@ -1,6 +1,11 @@
+from enum import Enum
 from lark import Lark
+from mistql.runtime_value import RuntimeValue
+from mistql.expression import BaseExpression
+from typing import List
 
-mistql_parser = Lark(r"""
+mistql_parser = Lark(
+    r"""
 ?start: piped_expression
 
 ?piped_expression: simple_expression
@@ -72,9 +77,12 @@ indexing:  "[" piped_expression (":" piped_expression?)* "]"
 %ignore WS
 
 
-""", parser="earley")
+""",
+    parser="earley",
+)
+
 
 def parse(raw):
     parsed = mistql_parser.parse(raw)
     print(parsed.pretty())
-    return parsed
+    return BaseExpression.from_lark(parsed)
