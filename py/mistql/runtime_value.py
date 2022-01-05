@@ -138,3 +138,15 @@ class RuntimeValue:
             raise ValueError(
                 "Truthiness not yet implemented: " + str(self.type)
             )
+
+    def access(self, string):
+        """
+        Access a property of this value
+        """
+        if self.type == RuntimeValueType.Object:
+            if string in self.value:
+                return self.value[string]
+            else:
+                return RuntimeValue(RuntimeValueType.Null)
+        else:
+            return None

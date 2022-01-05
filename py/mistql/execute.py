@@ -63,6 +63,9 @@ def execute_outer(ast: Expression, data: RuntimeValue) -> RuntimeValue:
     top_stack_entry = {
         "@": data,
     }
+    if data.type == RuntimeValueType.Object:
+        for key, value in data.value.items():
+            top_stack_entry[key] = value
     for builtin in builtins:
         top_stack_entry[builtin] = RuntimeValue.create_function(builtins[builtin])
     stack: Stack = [top_stack_entry]
