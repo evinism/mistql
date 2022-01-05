@@ -11,6 +11,7 @@ from mistql.expression import (
 )
 from mistql.stack import Stack
 from mistql.builtins import FunctionDefinitionType, builtins
+from mistql.stack import add_runtime_value_to_stack
 
 
 def execute_fncall(head, arguments, stack: Stack):
@@ -23,14 +24,24 @@ def execute_fncall(head, arguments, stack: Stack):
 
 
 def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
-    for stage in stages:
-        new_stack = stack.copy()
-        data = execute(stage, stack)
-        new_stack.append(
-            {
-                "@": data,
-            }
-        )
+    first = stages[0]
+    remaining = stages[1:]
+    prev_value = execute(first, stack)
+
+    for stage_ast in remaining:
+        new_stack = add_runtime_value_to_stack(prev_value, stack)
+        fn = None
+        args = None
+        if isinstance(stage_ast, FnExpression):
+            fn = stage_ast.fn
+            args = stage_ast.args.copy()
+        else:
+            fn = stage_ast
+            args = []
+        args.append(prev_value)
+        stage = FnExpression(fn, args)
+        data = execute(stage, new_stack)
+
     return data
 
 
