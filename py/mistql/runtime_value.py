@@ -60,6 +60,39 @@ class RuntimeValue:
             definition,
         )
 
+    @staticmethod
+    def eq(a, b):
+        if a.type != b.type:
+            return False
+        if a.type == RuntimeValueType.Null:
+            return True
+        elif a.type == RuntimeValueType.Boolean:
+            return a.value == b.value
+        elif a.type == RuntimeValueType.Number:
+            return a.value == b.value
+        elif a.type == RuntimeValueType.String:
+            return a.value == b.value
+        elif a.type == RuntimeValueType.Array:
+            if len(a.value) != len(b.value):
+                return False
+            for i in range(len(a.value)):
+                if not RuntimeValue.eq(a.value[i], b.value[i]):
+                    return False
+            return True
+        elif a.type == RuntimeValueType.Object:
+            if len(a.value) != len(b.value):
+                return False
+            for key, value in a.value.items():
+                if key not in b.value:
+                    return False
+                if not RuntimeValue.eq(value, b.value[key]):
+                    return False
+            return True
+        else:
+            raise ValueError(
+                "Equality not yet implemented: " + str(a.type)
+            )
+
     def __init__(self, type, value=None):
         self.type = type
         self.value = value
@@ -83,4 +116,25 @@ class RuntimeValue:
         else:
             raise ValueError(
                 "Cannot convert MistQL value type to Python: " + str(self.type)
+            )
+
+    def truthy(self) -> bool:
+        """
+        Return whether this value is truthy
+        """
+        if self.type == RuntimeValueType.Null:
+            return False
+        elif self.type == RuntimeValueType.Boolean:
+            return self.value
+        elif self.type == RuntimeValueType.Number:
+            return bool(self.value)
+        elif self.type == RuntimeValueType.String:
+            return self.value != ""
+        elif self.type == RuntimeValueType.Array:
+            return len(self.value) > 0
+        elif self.type == RuntimeValueType.Object:
+            return len(self.value) > 0
+        else:
+            raise ValueError(
+                "Truthiness not yet implemented: " + str(self.type)
             )
