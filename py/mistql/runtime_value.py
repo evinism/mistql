@@ -97,6 +97,19 @@ class RuntimeValue:
         else:
             raise ValueError("Equality not yet implemented: " + str(a.type))
 
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RuntimeValue):
+            raise ValueError("Cannot compare MistQL value to non-MistQL value")
+        return RuntimeValue.of(RuntimeValue.eq(self, __o))
+
+    def __ne__(self, __o: object) -> bool:
+        if not isinstance(__o, RuntimeValue):
+            raise ValueError("Cannot compare MistQL value to non-MistQL value")
+        return RuntimeValue.of(not RuntimeValue.eq(self, __o))
+
+    def __bool__(self):
+        return self.truthy()
+
     def __init__(self, type, value=None):
         self.type = type
         self.value = value
