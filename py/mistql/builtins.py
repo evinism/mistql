@@ -242,9 +242,33 @@ def _index_double(
     index_one: RuntimeValue,
     index_two: RuntimeValue,
 ):
-    if operand.type != RuntimeValueType.Array:
-        raise Exception(f"index: {operand} is not an array")
-    return RuntimeValue.of(None)
+    if (
+        operand.type == RuntimeValueType.Array
+        or operand.type == RuntimeValueType.String
+    ):
+        if index_one.type == RuntimeValueType.Null:
+            index_one = RuntimeValue.of(0)
+        if index_two.type == RuntimeValueType.Null:
+            # This is terrible. I'm sorry.
+            index_two = RuntimeValue.of(10000000000000)
+        if (
+            index_one.type != RuntimeValueType.Number
+            or index_two.type != RuntimeValueType.Number
+        ):
+            raise Exception(f"index: Non-numbers cannot be used on arrays")
+        index_one_num = index_one.value
+        if index_one_num % 1 != 0:
+            raise Exception(f"index: Non-integers cannot be used on arrays")
+        if index_one_num < 0:
+            index_one_num = len(operand.value) + index_one_num
+        index_two_num = index_two.value
+        if index_two_num % 1 != 0:
+            raise Exception(f"index: Non-integers cannot be used on arrays")
+        if index_two_num < 0:
+            index_two_num = len(operand.value) + index_two_num
+        return RuntimeValue.of(operand.value[int(index_one_num) : int(index_two_num)])
+    else:
+        raise Exception(f"index: {operand} is not an array or string")
 
 
 def _index_single(operand: RuntimeValue, index: RuntimeValue):
@@ -261,7 +285,7 @@ def _index_single(operand: RuntimeValue, index: RuntimeValue):
             index_num = len(operand.value) + index_num
         if index_num < 0 or index_num >= len(operand.value):
             return RuntimeValue.of(None)
-        return operand.value[index_num]
+        return RuntimeValue.of(operand.value[int(index_num)])
     else:
         return operand.access(index.to_string())
 
