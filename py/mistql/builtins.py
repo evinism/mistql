@@ -13,6 +13,7 @@ FunctionDefinitionType = Callable[
     RuntimeValue,
 ]
 
+
 def log(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
         raise Exception("log takes one argument")
@@ -38,11 +39,13 @@ def unary_minus(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"unary_minus takes a number, got {res}")
     return RuntimeValue.of(-res.value)
 
+
 def unary_not(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
         raise Exception("unary not takes one argument")
     res = execute(arguments[0], stack)
     return RuntimeValue.of(not res.truthy())
+
 
 def if_else(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 3:
@@ -52,6 +55,7 @@ def if_else(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         return execute(arguments[1], stack)
     else:
         return execute(arguments[2], stack)
+
 
 def add(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -68,6 +72,7 @@ def add(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         return RuntimeValue.of(left.value + right.value)
     raise Exception(f"add: {left.type} is not supported")
 
+
 def subtract(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("subtract takes two arguments")
@@ -76,6 +81,7 @@ def subtract(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
         raise Exception(f"subtract: {left} and {right} are not both numbers")
     return RuntimeValue.of(left.value - right.value)
+
 
 def multiply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -86,6 +92,7 @@ def multiply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"multiply: {left} and {right} are not both numbers")
     return RuntimeValue.of(left.value * right.value)
 
+
 def divide(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("divide takes two arguments")
@@ -94,6 +101,7 @@ def divide(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
         raise Exception(f"divide: {left} and {right} are not both numbers")
     return RuntimeValue.of(left.value / right.value)
+
 
 def mod(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -104,6 +112,7 @@ def mod(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"mod: {left} and {right} are not both numbers")
     return RuntimeValue.of(left.value % right.value)
 
+
 def eq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("eq takes two arguments")
@@ -111,12 +120,14 @@ def eq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     right = execute(arguments[1], stack)
     return RuntimeValue.of(RuntimeValue.eq(left, right))
 
+
 def neq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("neq takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
     return RuntimeValue.of(not RuntimeValue.eq(left, right).value)
+
 
 def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -128,6 +139,7 @@ def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     else:
         return left
 
+
 def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("or takes two arguments")
@@ -138,6 +150,7 @@ def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     else:
         return right
 
+
 def count(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
         raise Exception("count takes one argument")
@@ -146,11 +159,13 @@ def count(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"count: {arg} is not an array")
     return RuntimeValue.of(len(arg.value))
 
+
 def keys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
         raise Exception("keys takes one argument")
     arg = execute(arguments[0], stack)
     return RuntimeValue.of(arg.keys())
+
 
 def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -160,6 +175,7 @@ def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if not isinstance(right, RefExpression):
         raise Exception(f"dot: rhs is not a ref")
     return left.access(right.name)
+
 
 def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -173,6 +189,7 @@ def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         res = execute(mutation, add_runtime_value_to_stack(item, stack))
         out.append(res)
     return RuntimeValue.of(out)
+
 
 def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -188,6 +205,7 @@ def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
             out.append(item)
     return RuntimeValue.of(out)
 
+
 def mapvalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("mapvalues takes two arguments")
@@ -200,6 +218,7 @@ def mapvalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         res = execute(mutation, add_runtime_value_to_stack(value, stack))
         out[key] = res
     return RuntimeValue.of(out)
+
 
 def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -215,6 +234,55 @@ def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
             raise Exception(f"mapkeys: {res} is not a string")
         out[res.value] = value
     return RuntimeValue.of(out)
+
+
+def _index_double(
+    operand: RuntimeValue,
+    index_one: RuntimeValue,
+    index_two: RuntimeValue,
+):
+    if operand.type != RuntimeValueType.Array:
+        raise Exception(f"index: {operand} is not an array")
+    pass
+
+
+def _index_single(operand: RuntimeValue, index: RuntimeValue):
+    if (
+        operand.type == RuntimeValueType.Array
+        or operand.type == RuntimeValueType.String
+    ):
+        if index.type != RuntimeValueType.Number:
+            raise Exception(f"index: Non-numbers cannot be used on arrays")
+        index_num = index.value
+        if index_num % 1 != 0:
+            raise Exception(f"index: Non-integers cannot be used on arrays")
+        if index_num < 0:
+            index_num = len(operand.value) + index_num
+        if index_num < 0 or index_num >= len(operand.value):
+            return RuntimeValue.of(None)
+        return operand.value[index_num]
+    else:
+        return operand.access(index.to_string())
+
+
+def index(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) not in {2, 3}:
+        raise Exception("index takes two to three arguments")
+    operand = execute(arguments[0], stack)
+    if len(arguments) == 3:
+        return _index_double(
+            operand, execute(arguments[1], stack), execute(arguments[2], stack)
+        )
+    else:
+        return _index_single(operand, execute(arguments[1], stack))
+
+
+def string(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("string takes one argument")
+    arg = execute(arguments[0], stack)
+    return RuntimeValue.of(arg.to_string())
+
 
 builtins = {
     ".": dot,
@@ -233,6 +301,8 @@ builtins = {
     "keys": keys,
     "map": map,
     "filter": filter,
+    "index": index,
+    "string": string,
     "mapvalues": mapvalues,
     "mapkeys": mapkeys,
     "if": if_else,

@@ -1,8 +1,15 @@
 from enum import Enum
 from lark import Lark, Tree, Token
 from mistql.runtime_value import RuntimeValue
-from mistql.expression import RefExpression, FnExpression, ValueExpression, ArrayExpression, ObjectExpression, PipeExpression
-from typing import Union
+from mistql.expression import (
+    RefExpression,
+    FnExpression,
+    ValueExpression,
+    ArrayExpression,
+    ObjectExpression,
+    PipeExpression,
+)
+from typing import Union, List
 import json
 
 from mistql.expression import Expression
@@ -36,7 +43,9 @@ array  : "[" (simple_expression ("," simple_expression)*)? "]" -> array
 object : "{" (object_entry ("," object_entry)*)? "}" -> object
 object_entry   : (ESCAPED_STRING | CNAME) ":" simple_expression -> object_entry
 
-indexing:  "[" piped_expression (":" piped_expression?)* "]"
+?indexing:  "[" index_innards "]" -> indexing
+!index_innards: piped_expression (":" piped_expression?)* -> index_innards
+
 
 ?op_a: op_b
     | op_a "||" op_b -> or
@@ -104,11 +113,10 @@ function_mappings = {
     "or": "||",
 }
 
+
 def process_lark_tree(lark_node: Tree) -> Expression:
     if lark_node.data == "array":
-        return ArrayExpression(
-            [from_lark(child) for child in lark_node.children]
-        )
+        return ArrayExpression([from_lark(child) for child in lark_node.children])
     elif lark_node.data == "object":
         obj = {}
         for child in lark_node.children:
@@ -121,13 +129,9 @@ def process_lark_tree(lark_node: Tree) -> Expression:
                 raise Exception(f"Unknown key type {type(key)}")
             value = from_lark(child.children[1])
             obj[key] = value
-        return ObjectExpression(
-            obj
-        )
+        return ObjectExpression(obj)
     elif lark_node.data == "pipe":
-        return PipeExpression(
-            [from_lark(child) for child in lark_node.children]
-        )
+        return PipeExpression([from_lark(child) for child in lark_node.children])
     elif lark_node.data == "fncall":
         return FnExpression(
             from_lark(lark_node.children[0]),
@@ -140,27 +144,45 @@ def process_lark_tree(lark_node: Tree) -> Expression:
     elif lark_node.data in function_mappings:
         return FnExpression(
             RefExpression(function_mappings[lark_node.data]),
-            [
-                from_lark(child)
-                for child in lark_node.children[:]
-            ],
+            [from_lark(child) for child in lark_node.children[:]],
         )
+    elif lark_node.data == "index":
+        # This is gross becase i can't figure out how to get the tree to look a little more
+        # sensible.
+        base, indexing = lark_node.children
+        innards = indexing.children[0]
+        fnexp_args: List[Expression] = []
+        prev_was_token = True
+        for child in innards.children:
+            if isinstance(child, Token) and child.value == ":":
+                if prev_was_token:
+                    fnexp_args.append(ValueExpression.of(None))
+                prev_was_token = True
+                continue
+            else:
+                fnexp_args.append(from_lark(child))
+                prev_was_token = False
+        if prev_was_token:
+            fnexp_args.append(ValueExpression.of(None))
+        fnexp_args = [from_lark(child) for child in indexing.children]
+        fnexp_args.append(from_lark(base))
+        return FnExpression(RefExpression("index"), fnexp_args)
     else:
         raise Exception(f"Unknown lark expression type: {lark_node.data}")
 
 
 def process_lark_token(lark_node: Token) -> Expression:
     if lark_node.type == "NUMBER":
-        return ValueExpression(RuntimeValue.of(float(lark_node.value)))
+        return ValueExpression.of(float(lark_node.value))
     elif lark_node.type == "ESCAPED_STRING":
         value = json.loads(lark_node.value)
-        return ValueExpression(RuntimeValue.of(value))
+        return ValueExpression.of(value)
     elif lark_node.type == "TRUE":
-        return ValueExpression(RuntimeValue.of(True))
+        return ValueExpression.of(True)
     elif lark_node.type == "FALSE":
-        return ValueExpression(RuntimeValue.of(False))
+        return ValueExpression.of(False)
     elif lark_node.type == "NULL":
-        return ValueExpression(RuntimeValue.of(None))
+        return ValueExpression.of(None)
     elif lark_node.type == "CNAME":
         return RefExpression(lark_node.value)
     elif lark_node.type == "AT":
@@ -178,6 +200,7 @@ def from_lark(lark_node: Union[Tree, Token]):
         return process_lark_tree(lark_node)
     else:
         raise Exception(f"Unknown lark node type: {type(lark_node)}")
+
 
 def parse(raw):
     parsed = mistql_parser.parse(raw)
