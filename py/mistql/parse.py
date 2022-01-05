@@ -1,8 +1,9 @@
 from enum import Enum
 from lark import Lark
 from mistql.runtime_value import RuntimeValue
-from mistql.expression import BaseExpression
+from mistql.expression import BaseExpression, RefExpression, FnExpression, ValueExpression, ArrayExpression, ObjectExpression, PipeExpression
 from typing import List
+import json
 
 mistql_parser = Lark(
     r"""
@@ -81,7 +82,73 @@ indexing:  "[" piped_expression (":" piped_expression?)* "]"
 )
 
 
+
+def from_lark(lark_tree):
+    if lark_tree.data == "namedref":
+        return RefExpression(lark_tree.children[0])
+    elif lark_tree.data == "at":
+        return RefExpression("@")
+    elif lark_tree.data == "dollar":
+        return RefExpression("$")
+    elif lark_tree.data == "number":
+        return ValueExpression(RuntimeValue.of(float(lark_tree.children[0].value)))
+    elif lark_tree.data == "string":
+        value = json.loads(lark_tree.children[0].value)
+        return ValueExpression(RuntimeValue.of(value))
+    elif lark_tree.data == "array":
+        return ArrayExpression(
+            [from_lark(child) for child in lark_tree.children]
+        )
+    elif lark_tree.data == "true":
+        return ValueExpression(RuntimeValue.of(True))
+    elif lark_tree.data == "false":
+        return ValueExpression(RuntimeValue.of(False))
+    elif lark_tree.data == "null":
+        return ValueExpression(RuntimeValue.of(None))
+    elif lark_tree.data == "object":
+        return ObjectExpression(
+            {
+                child.children[0].value: from_lark(child.children[2])
+                for child in lark_tree.children
+            }
+        )
+    elif lark_tree.data == "pipe":
+        return PipeExpression(
+            [from_lark(child) for child in lark_tree.children]
+        )
+    elif lark_tree.data == "fncall":
+        return FnExpression(
+            from_lark(lark_tree.children[0]),
+            [
+                from_lark(child)
+                for child in lark_tree.children[1:]
+                if getattr(child, "type", None) != "WS"
+            ],
+        )
+    elif lark_tree.data == "neg":
+        return FnExpression(
+            RefExpression("-/unary"),
+            [
+                from_lark(child)
+                for child in lark_tree.children[1:]
+                if getattr(child, "type", None) != "WS"
+            ],
+        )
+    elif lark_tree.data == "not":
+        return FnExpression(
+            RefExpression("!/unary"),
+            [
+                from_lark(child)
+                for child in lark_tree.children[1:]
+                if getattr(child, "type", None) != "WS"
+            ],
+        )
+    else:
+        raise Exception(f"Unknown lark expression type: {lark_tree.data}")
+
+
+
 def parse(raw):
     parsed = mistql_parser.parse(raw)
     print(parsed.pretty())
-    return BaseExpression.from_lark(parsed)
+    return from_lark(parsed)
