@@ -11,7 +11,7 @@ mistql_parser = Lark(
 ?piped_expression: simple_expression
     | simple_expression ("|" simple_expression)+ -> pipe
 ?simple_expression : fncall | op_a
-?simplevalue: reference | literal | "(" piped_expression ")"
+?simplevalue: literal | reference | "(" piped_expression ")"
 ?fncall: op_a (WS op_a)+ -> fncall
 
 
@@ -20,9 +20,9 @@ at: "@" -> at
 dollar: "$" -> dollar
 
 ?reference: namedref | at | dollar
-?literal: object         -> object
+?literal: object
     | array              -> array
-    | string             -> string
+    | ESCAPED_STRING     -> string
     | NUMBER             -> number
     | "true"             -> true
     | "false"            -> false
@@ -30,8 +30,7 @@ dollar: "$" -> dollar
 
 array  : "[" [simple_expression ("," simple_expression)*] "]"
 object : "{" [pair ("," pair)*] "}"
-pair   : (string | NAME) ":" simple_expression
-string : ESCAPED_STRING
+pair   : (ESCAPED_STRING | NAME) ":" simple_expression
 
 indexing:  "[" piped_expression (":" piped_expression?)* "]"
 

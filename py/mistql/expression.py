@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Dict, List, Union
 from mistql.runtime_value import RuntimeValue
+import json
 
 
 class ExpressionType(Enum):
@@ -27,7 +28,8 @@ class BaseExpression:
         elif lark_tree.data == "number":
             return ValueExpression(RuntimeValue.of(float(lark_tree.children[0].value)))
         elif lark_tree.data == "string":
-            return ValueExpression(RuntimeValue.of(lark_tree.children[0].value))
+            value = json.loads(lark_tree.children[0].value)
+            return ValueExpression(RuntimeValue.of(value))
         elif lark_tree.data == "array":
             return ArrayExpression(
                 [cls.from_lark(child) for child in lark_tree.children]
@@ -52,6 +54,24 @@ class BaseExpression:
         elif lark_tree.data == "fncall":
             return FnExpression(
                 cls.from_lark(lark_tree.children[0]),
+                [
+                    cls.from_lark(child)
+                    for child in lark_tree.children[1:]
+                    if getattr(child, "type", None) != "WS"
+                ],
+            )
+        elif lark_tree.data == "neg":
+            return FnExpression(
+                RefExpression("-/unary"),
+                [
+                    cls.from_lark(child)
+                    for child in lark_tree.children[1:]
+                    if getattr(child, "type", None) != "WS"
+                ],
+            )
+        elif lark_tree.data == "not":
+            return FnExpression(
+                RefExpression("!/unary"),
                 [
                     cls.from_lark(child)
                     for child in lark_tree.children[1:]
