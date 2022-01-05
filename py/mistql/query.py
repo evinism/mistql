@@ -1,6 +1,6 @@
 from typing import Any
 
-from .execute import execute
+from .execute import execute_outer
 from .gardenwall import input_garden_wall, output_garden_wall
 from .parse import parse
 
@@ -15,4 +15,4 @@ def query(query: str, raw_data: Any) -> Any:
     """
     ast = parse(query)
     data = input_garden_wall(raw_data)
-    return output_garden_wall(execute(ast, data))
+    return output_garden_wall(execute_outer(ast, data))

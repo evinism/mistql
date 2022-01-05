@@ -1,34 +1,61 @@
-from lark import Tree
+from typing import List, Dict, Callable
+from mistql.runtime_value import RuntimeValue, RuntimeValueType
+from mistql.expression import (
+    Expression,
+    RefExpression,
+    FnExpression,
+    ValueExpression,
+    ArrayExpression,
+    ObjectExpression,
+    PipeExpression,
+)
+
+StackFrame = Dict[str, RuntimeValue]
+Stack = List[StackFrame]
 
 
-def execute(ast: Tree, data):
-    # This is all wrong but damn 
-    stack = [
+FunctionDefinitionType = Callable[
+    [
+        List[Expression],
+        Stack,
+        Callable[[Expression, Stack], RuntimeValue],
+    ],
+    RuntimeValue,
+]
+
+
+def execute_fncall(head, arguments, stack: Stack):
+    fn = execute(head, stack)
+    if fn.type != RuntimeValueType.Function:
+        raise Exception(f"Tried to call a non-function: {fn}")
+    # Not enforced, but definitely should be.
+    function_definition: FunctionDefinitionType = fn.value
+    return function_definition(arguments, stack, execute)
+
+
+def execute(ast: Expression, stack: Stack) -> RuntimeValue:
+    if isinstance(ast, ValueExpression):
+        return ast.value
+    elif isinstance(ast, RefExpression):
+        return stack[-1][ast.name]
+    elif isinstance(ast, FnExpression):
+        return execute_fncall(ast.fn, ast.args, stack)
+    elif isinstance(ast, ArrayExpression):
+        return RuntimeValue.of([execute(item, stack) for item in ast.items])
+    elif isinstance(ast, ObjectExpression):
+        return RuntimeValue.of(
+            {key: execute(value, stack) for key, value in ast.entries.items()}
+        )
+    raise NotImplementedError("execute() not implemented for " + ast.type)
+
+
+def execute_outer(ast: Expression, data: RuntimeValue) -> RuntimeValue:
+    stack: Stack = [
         {
             "@": data,
-            "null": None,
-            "true": True,
-            "false": False,
+            "null": RuntimeValue.of(None),
+            "true": RuntimeValue.of(True),
+            "false": RuntimeValue.of(False),
         }
     ]
-    if ast.data == "namedref":
-        return stack[-1][ast.children[0].value]
-    elif ast.data == "at":
-        return stack[-1]["@"]
-    elif ast.data == "dollar":
-        return stack[-1]["$"]
-    if ast.data == "number":
-        return float(ast.children[0].value)
-    elif ast.data == "string":
-        return ast.children[0].value
-    elif ast.data == "array":
-        return [execute(child, stack) for child in ast.children]
-    elif ast.data == "true":
-        return True
-    elif ast.data == "false":
-        return False
-    elif ast.data == "null":
-        return None
-
-
-    raise NotImplementedError("execute() not implemented for " + ast.data)
+    return execute(ast, stack)
