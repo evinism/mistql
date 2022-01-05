@@ -23,8 +23,8 @@ def execute_fncall(head, arguments, stack: Stack):
 
 
 def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
-    new_stack = stack.copy()
     for stage in stages:
+        new_stack = stack.copy()
         data = execute(stage, stack)
         new_stack.append(
             {
