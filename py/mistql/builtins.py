@@ -1,4 +1,4 @@
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Tuple
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
 from mistql.expression import Expression
 from mistql.stack import Stack
@@ -416,7 +416,29 @@ def sort(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"sort: {arg} is not an array")
-    return RuntimeValue.of(sorted(arg.value, key=cmp_to_key(RuntimeValue.compare)))
+    return RuntimeValue.of(
+        list(sorted(arg.value, key=cmp_to_key(RuntimeValue.compare)))
+    )
+
+
+def sortby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("sortby takes two arguments")
+    target = execute(arguments[1], stack)
+    if target.type != RuntimeValueType.Array:
+        raise Exception(f"sortby: {target} is not an array")
+
+    WithKey = List[Tuple[RuntimeValue, RuntimeValue]]
+    with_key: WithKey = []
+    for item in target.value:
+        key = execute(arguments[0], add_runtime_value_to_stack(item, stack))
+        with_key.append((key, item))
+
+    def cmp(a: Tuple[RuntimeValue, RuntimeValue], b: Tuple[RuntimeValue, RuntimeValue]):
+        return RuntimeValue.compare(a[0], b[0])
+
+    post_sort = list(sorted(with_key, key=cmp_to_key(cmp)))
+    return RuntimeValue.of([value for key, value in post_sort])
 
 
 def lt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
@@ -498,6 +520,7 @@ builtins = {
     "index": index,
     "string": string,
     "sort": sort,
+    "sortby": sortby,
     "mapvalues": mapvalues,
     "mapkeys": mapkeys,
     "filtervalues": filtervalues,
