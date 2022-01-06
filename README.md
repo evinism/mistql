@@ -44,7 +44,8 @@ MistQL's directory struture is a monorepo, currently consisting of these main di
 
 1. `/docs`: Documentation Site (hosted at [mistql.com](https://www.mistql.com/))
 2. `/js`: MistQL's browser implementation (e.g. `mistql` on npm).
-3. `/shared`: Shared assets between all implementation. Contains the language-independent test suite.
+3. `/py`: MistQL's python implementation (e.g. `mistql` on pypi).
+4. `/shared`: Shared assets between all implementation. Contains the language-independent test suite.
 
 ## Developing for the docs site
 
@@ -57,3 +58,9 @@ Docs are built via a fairly standard [Docusaurus 2](https://docusaurus.io/) impl
 For all major improvements, it is strongly encouraged to run `yarn bundlesize` to estimate gzipped impact of MistQL on a browser. MistQL for the browser should, in general, remain relatively close to 5kb.
 
 The directory structure is relatively flat, except for the single `src/builtins` folder, which contains the implementation of all of MistQL's internal functions.
+
+## Developing for `mistql` on pypi
+
+`mistql` is a fairly standard python package managed with [poetry](https://python-poetry.org/).
+
+Tests can be run using pytest, e.g. `poetry run pytest` from within the `/py` directory.
