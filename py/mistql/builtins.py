@@ -393,7 +393,6 @@ def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"regex: {pattern} is not a string")
 
     if len(arguments) == 2:
-        # TODO: flags
         flags = execute(arguments[1], stack)
         if flags.type != RuntimeValueType.String:
             raise Exception(f"regex: {flags} is not a string")
@@ -417,7 +416,7 @@ def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
     return RuntimeValue(
         RuntimeValueType.Regex,
-        re.compile(pattern.value, flags=0),
+        re.compile(pattern.value, flags=flags_int),
         modifiers={"global": is_global},
     )
 
