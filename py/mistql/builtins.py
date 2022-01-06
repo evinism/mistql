@@ -399,7 +399,27 @@ def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
             raise Exception(f"regex: {flags} is not a string")
     else:
         flags = RuntimeValue.of("")
-    return RuntimeValue(RuntimeValueType.Regex, re.compile(pattern.value, flags=0))
+
+    flags_int = 0
+    # Supported flags are /gims/
+    if flags.value.find("i") != -1:
+        flags_int |= re.IGNORECASE
+    if flags.value.find("m") != -1:
+        flags_int |= re.MULTILINE
+    if flags.value.find("s") != -1:
+        flags_int |= re.DOTALL
+
+    # This is because python doesn't have a global flag.
+    if flags.value.find("g") != -1:
+        is_global = True
+    else:
+        is_global = False
+
+    return RuntimeValue(
+        RuntimeValueType.Regex,
+        re.compile(pattern.value, flags=0),
+        modifiers={"global": is_global},
+    )
 
 
 def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
@@ -497,17 +517,15 @@ def withindices(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"withindices: {target} is not an array")
-    return RuntimeValue.of(
-        list(enumerate(target.value))
-    )
+    return RuntimeValue.of(list(enumerate(target.value)))
+
 
 def entries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
         raise Exception("entries takes one argument")
     target = execute(arguments[0], stack)
-    return RuntimeValue.of(
-        [[key, target.access(key)] for key in target.keys()]
-    )
+    return RuntimeValue.of([[key, target.access(key)] for key in target.keys()])
+
 
 def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
@@ -532,6 +550,7 @@ def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         res[first.to_string()] = second
     return RuntimeValue.of(res)
 
+
 def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("match takes two arguments")
@@ -539,10 +558,11 @@ def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     pattern = execute(arguments[0], stack)
     if pattern.type == RuntimeValueType.Regex:
         return RuntimeValue.of(bool(pattern.value.match(target.value)))
-    elif target.type == RuntimeValueType.String:
+    elif pattern.type == RuntimeValueType.String:
         return RuntimeValue.of(target == pattern)
     else:
         raise Exception(f"match: {target} is not a string or regex")
+
 
 def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 3:
@@ -551,11 +571,18 @@ def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     pattern = execute(arguments[0], stack)
     replacement = execute(arguments[1], stack)
     if pattern.type == RuntimeValueType.Regex:
-        return RuntimeValue.of(pattern.value.sub(replacement.value, target.value))
+        if pattern.modifiers["global"]:
+            res = pattern.value.sub(replacement.value, target.value)
+        else:
+            res = pattern.value.sub(replacement.value, target.value, 1)
+        return RuntimeValue.of(res)
     elif pattern.type == RuntimeValueType.String:
-        return RuntimeValue.of(target.value.replace(pattern.value, replacement.value))
+        return RuntimeValue.of(
+            target.value.replace(pattern.value, replacement.value, 1)
+        )
     else:
         raise Exception(f"replace: {target} is not a string or regex")
+
 
 def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -564,12 +591,16 @@ def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if target.type != RuntimeValueType.String:
         raise Exception(f"split: {target} is not a string")
     delimiter = execute(arguments[0], stack)
-    if delimiter.type != RuntimeValueType.String and delimiter.type != RuntimeValueType.Regex:
+    if (
+        delimiter.type != RuntimeValueType.String
+        and delimiter.type != RuntimeValueType.Regex
+    ):
         raise Exception(f"split: {delimiter} is not a string or regex")
     separator = delimiter.value
-    if separator == '':
+    if separator == "":
         return RuntimeValue.of(list(target.value))
     return RuntimeValue.of(target.value.split(separator))
+
 
 def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
@@ -582,6 +613,7 @@ def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"stringjoin: {delimiter} is not a string")
     arr = [entry.to_string() for entry in target.value]
     return RuntimeValue.of(delimiter.value.join(arr))
+
 
 def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 1:
@@ -602,6 +634,7 @@ def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         "stddev": statistics.stdev(arr),
     }
     return RuntimeValue.of(summary)
+
 
 builtins = {
     ".": dot,

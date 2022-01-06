@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable, List
+from typing import Any, Callable, List, Dict
 import json
 
 
@@ -90,7 +90,11 @@ class RuntimeValue:
                     return False
             return True
         elif a.type == RuntimeValueType.Regex:
-            return a.value.pattern == b.value.pattern and a.value.flags == b.value.flags
+            return (
+                a.value.pattern == b.value.pattern
+                and a.value.flags == b.value.flags
+                and a.modifiers == b.modifiers  # due to py not having global flag
+            )
         elif a.type == RuntimeValueType.Function:
             # referential equality
             return a.value == b.value
@@ -148,9 +152,10 @@ class RuntimeValue:
     def __bool__(self):
         return self.truthy()
 
-    def __init__(self, type, value=None):
+    def __init__(self, type, value=None, modifiers=None):
         self.type = type
         self.value = value
+        self.modifiers: Dict[str, Any] = modifiers if modifiers else {}
 
     def to_python(self):
         """
@@ -200,7 +205,7 @@ class RuntimeValue:
         """
         Convert this value to JSON string
         """
-        return json.dumps(self.to_python(), separators=(',', ':'))
+        return json.dumps(self.to_python(), separators=(",", ":"))
 
     def to_string(self) -> str:
         """
