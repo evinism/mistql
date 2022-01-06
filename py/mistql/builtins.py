@@ -500,6 +500,75 @@ def withindices(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         list(enumerate(target.value))
     )
 
+def entries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("entries takes one argument")
+    target = execute(arguments[0], stack)
+    return RuntimeValue.of(
+        [[key, target.access(key)] for key in target.keys()]
+    )
+
+def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("fromentries takes one argument")
+    target = execute(arguments[0], stack)
+    if target.type != RuntimeValueType.Array:
+        raise Exception(f"fromentries: {target} is not an array")
+    res = {}
+    for entry in target.value:
+        if entry.type != RuntimeValueType.Array:
+            raise Exception(f"fromentries: {entry} is not an array")
+
+        if len(entry.value) > 0:
+            first = entry.value[0]
+        else:
+            first = RuntimeValue.of(None)
+
+        if len(entry.value) > 1:
+            second = entry.value[1]
+        else:
+            second = RuntimeValue.of(None)
+        res[first.to_string()] = second
+    return RuntimeValue.of(res)
+
+def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("match takes two arguments")
+    target = execute(arguments[1], stack)
+    pattern = execute(arguments[0], stack)
+    if pattern.type == RuntimeValueType.Regex:
+        return RuntimeValue.of(bool(pattern.value.match(target.value)))
+    elif target.type == RuntimeValueType.String:
+        return RuntimeValue.of(target == pattern)
+    else:
+        raise Exception(f"match: {target} is not a string or regex")
+
+def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("split takes two arguments")
+    target = execute(arguments[1], stack)
+    if target.type != RuntimeValueType.String:
+        raise Exception(f"split: {target} is not a string")
+    delimiter = execute(arguments[0], stack)
+    if delimiter.type != RuntimeValueType.String and delimiter.type != RuntimeValueType.Regex:
+        raise Exception(f"split: {delimiter} is not a string or regex")
+    separator = delimiter.value
+    if separator == '':
+        return RuntimeValue.of(list(target.value))
+    return RuntimeValue.of(target.value.split(separator))
+
+def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("stringjoin takes two arguments")
+    target = execute(arguments[1], stack)
+    if target.type != RuntimeValueType.Array:
+        raise Exception(f"stringjoin: {target} is not an array")
+    delimiter = execute(arguments[0], stack)
+    if delimiter.type != RuntimeValueType.String:
+        raise Exception(f"stringjoin: {delimiter} is not a string")
+    arr = [entry.to_string() for entry in target.value]
+    return RuntimeValue.of(delimiter.value.join(arr))
+
 builtins = {
     ".": dot,
     "-/unary": unary_minus,
@@ -517,9 +586,14 @@ builtins = {
     "<=": lte,
     "&&": and_fn,
     "||": or_fn,
+    "=~": match,
     "apply": apply,
     "count": count,
     "keys": keys,
+    "entries": entries,
+    "fromentries": fromentries,
+    "match": match,
+    "split": split,
     "values": values,
     "groupby": groupby,
     "float": float,
@@ -539,5 +613,6 @@ builtins = {
     "reverse": reverse,
     "regex": regex,
     "log": log,
+    "stringjoin": stringjoin,
     "withindices": withindices,
 }
