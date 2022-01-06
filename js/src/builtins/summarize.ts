@@ -14,10 +14,11 @@ const _getMedian = (array: number[]) => {
 }
 
 const _getVariance = (array: number[]) => {
-  var mean = _getMean(array);
-  return _getMean(array.map(function (num) {
+  const  mean = _getMean(array);
+  const errors = array.map(function (num) {
     return Math.pow(num - mean, 2);
-  }));
+  });
+  return errors.reduce((a, b) => a + b, 0) / (errors.length - 1);
 };
 
 const _getStandardDeviation = (array: number[]) => Math.sqrt(_getVariance(array));
