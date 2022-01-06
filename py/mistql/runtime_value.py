@@ -36,7 +36,7 @@ class RuntimeValue:
             return RuntimeValue(RuntimeValueType.Number, value)
         elif isinstance(value, str):
             return RuntimeValue(RuntimeValueType.String, value)
-        elif isinstance(value, list):
+        elif isinstance(value, list) or isinstance(value, tuple):
             return RuntimeValue(
                 RuntimeValueType.Array,
                 [RuntimeValue.of(item) for item in value],
