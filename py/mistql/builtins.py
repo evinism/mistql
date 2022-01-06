@@ -597,15 +597,14 @@ def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if target.type != RuntimeValueType.String:
         raise Exception(f"split: {target} is not a string")
     delimiter = execute(arguments[0], stack)
-    if (
-        delimiter.type != RuntimeValueType.String
-        and delimiter.type != RuntimeValueType.Regex
-    ):
-        raise Exception(f"split: {delimiter} is not a string or regex")
-    separator = delimiter.value
-    if separator == "":
-        return RuntimeValue.of(list(target.value))
-    return RuntimeValue.of(target.value.split(separator))
+    if delimiter.type == RuntimeValueType.String:
+        separator = delimiter.value
+        if separator == "":
+            return RuntimeValue.of(list(target.value))
+        return RuntimeValue.of(target.value.split(separator))
+    elif delimiter.type == RuntimeValueType.Regex:
+        return RuntimeValue.of(list(delimiter.value.split(target.value)))
+    raise Exception(f"split: {delimiter} is not a string or regex")
 
 
 def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
