@@ -200,7 +200,7 @@ class RuntimeValue:
         """
         Convert this value to JSON string
         """
-        return json.dumps(self.to_python())
+        return json.dumps(self.to_python(), separators=(',', ':'))
 
     def to_string(self) -> str:
         """
