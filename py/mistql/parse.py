@@ -15,13 +15,25 @@ from mistql.expression import Expression
 
 mistql_parser = Lark(
     r"""
+
+_W: WS
+AT: "@"
+DOLLAR: "$"
+TRUE: "true"
+FALSE: "false"
+NULL: "null"
+
+_wsl{param}: _W? param
+_wsr{param}: param _W?
+_wslr{param}: _W? param _W?
+
 ?start: piped_expression
 
 ?piped_expression: simple_expression
     | simple_expression ("|" simple_expression)+ -> pipe
-?simple_expression : op_a | fncall
-?simplevalue: literal | reference | "(" piped_expression ")"
-?fncall: op_a (WS op_a)+ -> fncall
+?simple_expression : _wslr{op_a} | _wslr{fncall}
+?simplevalue: literal | reference | _wsr{"("} piped_expression _wsl{")"}
+?fncall: op_a (_W op_a)+ -> fncall
 
 ?reference: CNAME | AT | DOLLAR
 ?literal: object
@@ -32,61 +44,54 @@ mistql_parser = Lark(
     | FALSE
     | NULL
 
-AT: "@"
-DOLLAR: "$"
-TRUE: "true"
-FALSE: "false"
-NULL: "null"
+array  : _wsr{"["} (simple_expression (_wslr{","} simple_expression)*)? _wsl{"]"} -> array
+object : _wsr{"{"} (object_entry (_wslr{","} object_entry)*)? _wsl{"}"} -> object
+object_entry : (ESCAPED_STRING | CNAME) _wslr{":"} simple_expression -> object_entry
 
-array  : "[" (simple_expression ("," simple_expression)*)? "]" -> array
-object : "{" (object_entry ("," object_entry)*)? "}" -> object
-object_entry   : (ESCAPED_STRING | CNAME) ":" simple_expression -> object_entry
+WCOLON: WS? ":" WS?
 
-?indexing:  "[" index_innards "]" -> indexing
-!index_innards: piped_expression? (":" piped_expression?)* -> index_innards
+?indexing:  _wsr{"["} index_innards _wsl{"]"} -> indexing
+!index_innards: piped_expression? (WCOLON piped_expression?)* -> index_innards
 
 
 ?op_a: op_b
-    | op_a "||" op_b -> or
+    | op_a _wslr{"||"} op_b -> or
 
 ?op_b: op_c
-    | op_b "&&" op_c -> and
+    | op_b _wslr{"&&"} op_c -> and
 
 ?op_c: op_d
-    | op_c "==" op_d -> eq
-    | op_c "!=" op_d -> neq
-    | op_c "=~" op_d -> match
+    | op_c _wslr{"=="} op_d -> eq
+    | op_c _wslr{"!="} op_d -> neq
+    | op_c _wslr{"=~"} op_d -> match
 
 ?op_d: op_e
-    | op_d ">" op_e -> gt
-    | op_d "<" op_e -> lt
-    | op_d ">=" op_e -> gte
-    | op_d "<=" op_e -> lte
+    | op_d _wslr{">"} op_e -> gt
+    | op_d _wslr{"<"} op_e -> lt
+    | op_d _wslr{">="} op_e -> gte
+    | op_d _wslr{"<="} op_e -> lte
 
 ?op_e: op_f
-    | op_e "+" op_f -> plus
-    | op_e "-" op_f -> minus
+    | op_e _wslr{"+"} op_f -> plus
+    | op_e _wslr{"-"} op_f -> minus
 
 ?op_f: op_g
-    | op_f "*" op_g -> mul
-    | op_f "/" op_g -> div
-    | op_f "%" op_g -> mod
+    | op_f _wslr{"*"} op_g -> mul
+    | op_f _wslr{"/"} op_g -> div
+    | op_f _wslr{"%"} op_g -> mod
 
 ?op_g: op_h
-    | "!" op_g -> not
-    | "-" op_g -> neg
+    | _wsr{"!"} op_g -> not
+    | _wsr{"-"} op_g -> neg
 
 ?op_h: simplevalue
-    | op_h "." reference -> dot
+    | op_h _wslr{"."} reference -> dot
     | op_h indexing -> index
 
 %import common.ESCAPED_STRING
 %import common.WS
 %import common.CNAME
 %import common.NUMBER
-
-%ignore WS
-
 
 """,
     parser="earley",
@@ -134,11 +139,7 @@ def process_lark_tree(lark_node: Tree) -> Expression:
     elif lark_node.data == "fncall":
         return FnExpression(
             from_lark(lark_node.children[0]),
-            [
-                from_lark(child)
-                for child in lark_node.children[1:]
-                if getattr(child, "type", None) != "WS"
-            ],
+            [from_lark(child) for child in lark_node.children[1:]],
         )
     elif lark_node.data in function_mappings:
         return FnExpression(
