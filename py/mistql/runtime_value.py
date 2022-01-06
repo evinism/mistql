@@ -205,7 +205,32 @@ class RuntimeValue:
         """
         Convert this value to JSON string
         """
-        return json.dumps(self.to_python(), separators=(",", ":"))
+        if self.type == RuntimeValueType.Null:
+            return "null"
+        elif self.type == RuntimeValueType.Boolean:
+            return "true" if self.value else "false"
+        elif self.type == RuntimeValueType.Number:
+            num = self.value
+            if num == int(num):
+                num = int(num)
+            return str(num)
+        elif self.type == RuntimeValueType.String:
+            return json.dumps(self.value)
+        elif self.type == RuntimeValueType.Array:
+            return "[" + ",".join([item.to_json() for item in self.value]) + "]"
+        elif self.type == RuntimeValueType.Object:
+            return (
+                "{"
+                + ",".join(
+                    [
+                        json.dumps(key) + ": " + item.to_json()
+                        for key, item in self.value.items()
+                    ]
+                )
+                + "}"
+            )
+        else:
+            raise ValueError("Cannot convert MistQL value to JSON: " + str(self.type))
 
     def to_string(self) -> str:
         """
