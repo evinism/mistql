@@ -563,6 +563,13 @@ def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"match: {target} is not a string or regex")
 
 
+def match_operator(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("match takes two arguments")
+    reversed_args = arguments[::-1]
+    return match(reversed_args, stack, execute)
+
+
 def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 3:
         raise Exception("replace takes three arguments")
@@ -688,7 +695,7 @@ builtins = {
     "<=": lte,
     "&&": and_fn,
     "||": or_fn,
-    "=~": match,
+    "=~": match_operator,
     "apply": apply,
     "count": count,
     "keys": keys,
