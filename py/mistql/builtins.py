@@ -5,6 +5,7 @@ from mistql.stack import Stack
 from mistql.expression import RefExpression
 from mistql.stack import add_runtime_value_to_stack
 import re
+from functools import cmp_to_key
 
 Args = List[Expression]
 Exec = Callable[[Expression, Stack], RuntimeValue]
@@ -409,6 +410,15 @@ def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of("".join(x.to_string() for x in arg.value))
 
 
+def sort(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("sort takes one argument")
+    arg = execute(arguments[0], stack)
+    if arg.type != RuntimeValueType.Array:
+        raise Exception(f"sort: {arg} is not an array")
+    return RuntimeValue.of(sorted(arg.value, key=cmp_to_key(RuntimeValue.compare)))
+
+
 def lt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("lt takes two arguments")
@@ -433,6 +443,31 @@ def gte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return execute(arguments[0], stack) >= execute(arguments[1], stack)
 
 
+def values(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("values takes one argument")
+    target = execute(arguments[0], stack)
+    keys = target.keys()
+    values = [target.access(key) for key in keys]
+    return RuntimeValue.of(values)
+
+
+def groupby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("groupby takes two arguments")
+    target = execute(arguments[1], stack)
+    if target.type != RuntimeValueType.Array:
+        raise Exception(f"groupby: {target} is not an array")
+    mut = arguments[0]
+    groups = {}
+    for item in target.value:
+        key = execute(mut, add_runtime_value_to_stack(item, stack)).to_string()
+        if key not in groups:
+            groups[key] = []
+        groups[key].append(item)
+    return RuntimeValue.of(groups)
+
+
 builtins = {
     ".": dot,
     "-/unary": unary_minus,
@@ -453,6 +488,8 @@ builtins = {
     "apply": apply,
     "count": count,
     "keys": keys,
+    "values": values,
+    "groupby": groupby,
     "float": float,
     "map": map,
     "filter": filter,
@@ -460,6 +497,7 @@ builtins = {
     "find": find,
     "index": index,
     "string": string,
+    "sort": sort,
     "mapvalues": mapvalues,
     "mapkeys": mapkeys,
     "filtervalues": filtervalues,
