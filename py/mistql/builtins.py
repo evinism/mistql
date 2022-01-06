@@ -636,6 +636,42 @@ def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(summary)
 
 
+def _sequence_helper(arr: List[List[bool]], start=0) -> List[List[int]]:
+    firstArray = arr[0]
+    result: List[List[int]] = []
+    for idx in range(start, len(firstArray)):
+        if firstArray[idx]:
+            if len(arr) == 1:
+                result.append([idx])
+            else:
+                subResult = _sequence_helper(arr[1:], idx + 1)
+                for i in range(len(subResult)):
+                    result.append([idx] + subResult[i])
+    return result
+
+
+def sequence(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) < 2:
+        raise Exception("sequence takes at least two arguments")
+    target = execute(arguments[-1], stack)
+    predicates = arguments[:-1]
+    if target.type != RuntimeValueType.Array:
+        raise Exception(f"sequence: {target} is not an array")
+    bitmasks: List[List[bool]] = []
+    for predicate in predicates:
+        bitmask = []
+        for i in range(len(target.value)):
+            item = target.value[i]
+            value = execute(predicate, add_runtime_value_to_stack(item, stack))
+            bitmask.append(value.truthy())
+        bitmasks.append(bitmask)
+    indices_map = _sequence_helper(bitmasks)
+    result: List[List[int]] = [
+        [target.value[idx] for idx in indices] for indices in indices_map
+    ]
+    return RuntimeValue.of(result)
+
+
 builtins = {
     ".": dot,
     "-/unary": unary_minus,
@@ -684,4 +720,5 @@ builtins = {
     "withindices": withindices,
     "replace": replace,
     "summarize": summarize,
+    "sequence": sequence,
 }
