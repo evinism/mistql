@@ -543,6 +543,19 @@ def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     else:
         raise Exception(f"match: {target} is not a string or regex")
 
+def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 3:
+        raise Exception("replace takes three arguments")
+    target = execute(arguments[2], stack)
+    pattern = execute(arguments[0], stack)
+    replacement = execute(arguments[1], stack)
+    if pattern.type == RuntimeValueType.Regex:
+        return RuntimeValue.of(pattern.value.sub(replacement.value, target.value))
+    elif pattern.type == RuntimeValueType.String:
+        return RuntimeValue.of(target.value.replace(pattern.value, replacement.value))
+    else:
+        raise Exception(f"replace: {target} is not a string or regex")
+
 def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("split takes two arguments")
@@ -615,4 +628,5 @@ builtins = {
     "log": log,
     "stringjoin": stringjoin,
     "withindices": withindices,
+    "replace": replace,
 }
