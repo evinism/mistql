@@ -490,6 +490,16 @@ def groupby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(groups)
 
 
+def withindices(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("withindices takes one argument")
+    target = execute(arguments[0], stack)
+    if target.type != RuntimeValueType.Array:
+        raise Exception(f"withindices: {target} is not an array")
+    return RuntimeValue.of(
+        list(enumerate(target.value))
+    )
+
 builtins = {
     ".": dot,
     "-/unary": unary_minus,
@@ -529,4 +539,5 @@ builtins = {
     "reverse": reverse,
     "regex": regex,
     "log": log,
+    "withindices": withindices,
 }
