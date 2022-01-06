@@ -592,11 +592,7 @@ def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     for entry in target.value:
         if entry.type != RuntimeValueType.Number:
             raise Exception(f"summarize: inner value {entry} is not a number")
-
     arr = target.to_python()
-
-    import pdb
-    pdb.set_trace()
     summary = {
         "max": max(arr),
         "min": min(arr),
@@ -605,7 +601,6 @@ def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         "variance": statistics.variance(arr),
         "stddev": statistics.stdev(arr),
     }
-
     return RuntimeValue.of(summary)
 
 builtins = {
