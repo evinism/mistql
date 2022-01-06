@@ -208,6 +208,8 @@ class RuntimeValue:
         """
         if self.type == RuntimeValueType.String:
             return self.value
+        elif self.type == RuntimeValueType.Number and self.value == int(self.value):
+            return str(int(self.value))
         else:
             return self.to_json()
 
