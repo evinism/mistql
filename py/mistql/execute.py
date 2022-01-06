@@ -31,10 +31,10 @@ def execute_fncall(head: Expression, arguments: List[Expression], stack: Stack):
 def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
     first: Expression = stages[0]
     remaining: List[Expression] = stages[1:]
-    prev_value = execute(first, stack)
+    data = execute(first, stack)
 
     for stage_ast in remaining:
-        new_stack = add_runtime_value_to_stack(prev_value, stack)
+        new_stack = add_runtime_value_to_stack(data, stack)
         fn: Expression
         args: List[Expression]
         if isinstance(stage_ast, FnExpression):
@@ -43,7 +43,7 @@ def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
         else:
             fn = stage_ast
             args = []
-        args.append(ValueExpression(prev_value))
+        args.append(ValueExpression(data))
         stage = FnExpression(fn, args)
         data = execute(stage, new_stack)
 
