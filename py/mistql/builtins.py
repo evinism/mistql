@@ -6,6 +6,7 @@ from mistql.expression import RefExpression
 from mistql.stack import add_runtime_value_to_stack
 import re
 from functools import cmp_to_key
+import statistics
 
 Args = List[Expression]
 Exec = Callable[[Expression, Stack], RuntimeValue]
@@ -582,6 +583,31 @@ def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arr = [entry.to_string() for entry in target.value]
     return RuntimeValue.of(delimiter.value.join(arr))
 
+def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 1:
+        raise Exception("summarize takes one argument")
+    target = execute(arguments[0], stack)
+    if target.type != RuntimeValueType.Array:
+        raise Exception(f"summarize: {target} is not an array")
+    for entry in target.value:
+        if entry.type != RuntimeValueType.Number:
+            raise Exception(f"summarize: inner value {entry} is not a number")
+
+    arr = target.to_python()
+
+    import pdb
+    pdb.set_trace()
+    summary = {
+        "max": max(arr),
+        "min": min(arr),
+        "mean": statistics.mean(arr),
+        "median": statistics.median(arr),
+        "variance": statistics.variance(arr),
+        "stddev": statistics.stdev(arr),
+    }
+
+    return RuntimeValue.of(summary)
+
 builtins = {
     ".": dot,
     "-/unary": unary_minus,
@@ -629,4 +655,5 @@ builtins = {
     "stringjoin": stringjoin,
     "withindices": withindices,
     "replace": replace,
+    "summarize": summarize,
 }
