@@ -296,6 +296,13 @@ def find(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(None)
 
 
+def apply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+    if len(arguments) != 2:
+        raise Exception("apply takes two arguments")
+    target = execute(arguments[1], stack)
+    return execute(arguments[0], add_runtime_value_to_stack(target, stack))
+
+
 def _index_double(
     operand: RuntimeValue,
     index_one: RuntimeValue,
@@ -443,6 +450,7 @@ builtins = {
     "<=": lte,
     "&&": and_fn,
     "||": or_fn,
+    "apply": apply,
     "count": count,
     "keys": keys,
     "float": float,
