@@ -21,6 +21,9 @@ const arrayOrStringIndexer: Indexer = (source: string | any[], key, keyEnd) => {
   if (keyEnd < 0) {
     keyEnd = keyEnd + source.length;
   }
+  if ((key && key % 1 !== 0) || (keyEnd && keyEnd % 1 !== 0)) {
+    throw new RuntimeError("Index must be an integer");
+  }
   if (keyEnd === undefined) {
     validateType("number", key);
     return source[key] ?? null;
