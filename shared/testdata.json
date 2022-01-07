@@ -1888,6 +1888,61 @@
                   "expected": true
                 }
               ]
+            },
+            {
+              "it": "treats string arguments as regexes with no flags",
+              "assertions": [
+                {
+                  "query": "\"hello\" | match \"he..o\"",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "\"hello\" | match \"he..a\"",
+                  "data": {},
+                  "expected": false
+                }
+              ]
+            },
+            {
+              "it": "returns true if there is a match within the string",
+              "assertions": [
+                {
+                  "query": "\"hello\" | match \"he\"",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "\"hello\" | match \"el\"",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "\"hello\" | match \"lo\"",
+                  "data": {},
+                  "expected": false
+                }
+              ]
+            },
+            {
+              "it": "returns true if there is an internal match via regex",
+              "assertions": [
+                {
+                  "query": "\"hello\" | match (regex \"he\")",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "\"hello\" | match (regex \"el\")",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "\"hello\" | match (regex \"lo\")",
+                  "data": {},
+                  "expected": false
+                }
+              ]
             }
           ]
         },

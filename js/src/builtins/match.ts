@@ -9,7 +9,7 @@ const match: BuiltinFunction = arity(2, (args, stack, exec) => {
   if (getType(matcher) === 'regex') {
     return matcher.test(target);
   } else if (getType(matcher) === 'string') {
-    return matcher === target;
+    return RegExp(matcher.test).test(target);
   } else {
     throw new RuntimeError("Matching only works with strings or regexes")
   }

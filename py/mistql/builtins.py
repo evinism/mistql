@@ -518,7 +518,8 @@ def match(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     if pattern.type == RuntimeValueType.Regex:
         return RuntimeValue.of(bool(pattern.value.match(target.value)))
     elif pattern.type == RuntimeValueType.String:
-        return RuntimeValue.of(target == pattern)
+        compiled = re.compile(pattern.value)
+        return RuntimeValue.of(bool(compiled.match(target.value)))
     else:
         raise Exception(f"match: {target} is not a string or regex")
 
