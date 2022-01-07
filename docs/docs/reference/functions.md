@@ -347,6 +347,10 @@ Additionally, `MistQL Log: ["haha", "blah", "cat"]` is written to the console.
 
 Whether the given string matches the pattern.
 
+If the pattern is a string instead of a regex, it is implicitly converted to a regex with no flags.
+
+`match` returns true if the pattern matches anywhere within the target. For example, `match (regex "be") "abe"` returns true. To match the whole string, use default regex start and end characters, e.g. `match (regex "^be$") value`.
+
 #### Example
 
 Query:
