@@ -17,8 +17,12 @@ for block in testdata["data"]:
             cases.append(
                 (
                     [
-                        (assertion["query"], assertion["data"], assertion["expected"])
-                        for assertion in test["assertions"]
+                        (
+                            assertion["query"], 
+                            assertion["data"], 
+                            assertion.get("expected"), 
+                            assertion.get("throws")
+                        ) for assertion in test["assertions"]
                     ],
                     block["describe"],
                     innerblock["describe"],
@@ -29,5 +33,9 @@ for block in testdata["data"]:
 
 @pytest.mark.parametrize("case", cases, ids=lambda x: f"{x[1]}::{x[2]}::{x[3]}")
 def test_shared(case: Case):
-    for target_query, data, expected in case[0]:
-        assert query(target_query, data) == expected
+    for target_query, data, expected, throws in case[0]:
+        if throws:
+            with pytest.raises(Exception):
+                query(target_query, data)
+        else:
+            assert query(target_query, data) == expected
