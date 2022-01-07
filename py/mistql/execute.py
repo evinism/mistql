@@ -56,7 +56,7 @@ def execute(ast: Expression, stack: Stack) -> RuntimeValue:
     if isinstance(ast, ValueExpression):
         return ast.value
     elif isinstance(ast, RefExpression):
-        return find_in_stack(stack, ast.name)
+        return find_in_stack(stack, ast.name, ast.absolute)
     elif isinstance(ast, FnExpression):
         return execute_fncall(ast.fn, ast.args, stack)
     elif isinstance(ast, ArrayExpression):
