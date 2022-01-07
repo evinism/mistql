@@ -1119,6 +1119,16 @@
               ]
             },
             {
+              "it": "throws if the index is a non-integer number",
+              "assertions": [
+                {
+                  "query": "[1, 2, 3] | index 1.5",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
               "it": "correctly indexes strings",
               "assertions": [
                 {

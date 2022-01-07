@@ -10,7 +10,13 @@ describe("Shared tests", () => {
           innerblock.cases.forEach((testcase) => {
             it(testcase.it, () => {
               testcase.assertions.forEach(assertion => {
-                assert.deepStrictEqual(query(assertion.query, assertion.data), assertion.expected);
+                if (assertion.throws) {
+                  assert.throws(() => {
+                    query(assertion.query, assertion.data)
+                  });
+                } else {
+                  assert.deepStrictEqual(query(assertion.query, assertion.data), assertion.expected);
+                }
               })
             })
           });
