@@ -442,6 +442,23 @@
               ]
             }
           ]
+        },
+        {
+          "describe": "piping",
+          "cases": [
+            {
+              "it": "defines data for the pipe",
+              "assertions": [
+                {
+                  "query": "foo | apply @ + foo",
+                  "data": {
+                    "foo": "bar"
+                  },
+                  "expected": "barbar"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
