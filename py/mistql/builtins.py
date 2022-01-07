@@ -16,29 +16,32 @@ FunctionDefinitionType = Callable[
     RuntimeValue,
 ]
 
-def arity(min_args: int, max_args: Union[None, int] = None):
+builtins: Dict[str, FunctionDefinitionType] = {}
+
+def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
     if max_args is None:
         max_args = min_args
-    def arity_decorator(fn: FunctionDefinitionType) -> FunctionDefinitionType:
+    def builtin_decorator(fn: FunctionDefinitionType) -> FunctionDefinitionType:
         def wrapped(arguments: Args, stack: Stack, execute: Exec):
             if not min_args < 0 and len(arguments) < min_args:
                 # TODO: The name of this function is not as represented here.
-                raise Exception(f"{fn.__name__} takes at least {min_args} arguments")
+                raise Exception(f"{name} takes at least {min_args} arguments")
             if not max_args < 0 and len(arguments) > max_args:
-                raise Exception(f"{fn.__name__} takes at most {max_args} arguments")
+                raise Exception(f"{name} takes at most {max_args} arguments")
             return fn(arguments, stack, execute)
+        builtins[name] = wrapped
         return wrapped
-    return arity_decorator
+    return builtin_decorator
 
 
-@arity(1)
+@builtin("log", 1)
 def log(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     res = execute(arguments[0], stack)
     print(res)
     return res
 
 
-@arity(1)
+@builtin("reverse", 1)
 def reverse(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
@@ -46,7 +49,7 @@ def reverse(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(list(reversed(arg.value)))
 
 
-@arity(1)
+@builtin("-/unary", 1)
 def unary_minus(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     res = execute(arguments[0], stack)
     if res.type != RuntimeValueType.Number:
@@ -54,19 +57,19 @@ def unary_minus(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(-res.value)
 
 
-@arity(1)
+@builtin("!/unary", 1)
 def unary_not(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     res = execute(arguments[0], stack)
     return RuntimeValue.of(not res)
 
-@arity(3)
+@builtin("if", 3)
 def if_else(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if execute(arguments[0], stack):
         return execute(arguments[1], stack)
     else:
         return execute(arguments[2], stack)
 
-@arity(2)
+@builtin("+", 2)
 def add(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("add takes two arguments")
@@ -83,7 +86,7 @@ def add(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     raise Exception(f"add: {left.type} is not supported")
 
 
-@arity(2)
+@builtin("-", 2)
 def subtract(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("subtract takes two arguments")
@@ -94,7 +97,7 @@ def subtract(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(left.value - right.value)
 
 
-@arity(2)
+@builtin("*", 2)
 def multiply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("multiply takes two arguments")
@@ -105,7 +108,7 @@ def multiply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(left.value * right.value)
 
 
-@arity(2)
+@builtin("/", 2)
 def divide(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("divide takes two arguments")
@@ -116,7 +119,7 @@ def divide(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(left.value / right.value)
 
 
-@arity(2)
+@builtin("%", 2)
 def mod(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
@@ -125,20 +128,20 @@ def mod(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(left.value % right.value)
 
 
-@arity(2)
+@builtin("==", 2)
 def eq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
     return left == right
 
-@arity(2)
+@builtin("!=", 2)
 def neq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
     return left != right
 
 
-@arity(2)
+@builtin("&&", 2)
 def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
@@ -148,7 +151,7 @@ def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         return left
 
 
-@arity(2)
+@builtin("||", 2)
 def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
@@ -158,7 +161,7 @@ def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         return right
 
 
-@arity(1)
+@builtin("count", 1)
 def count(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
@@ -166,13 +169,13 @@ def count(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(len(arg.value))
 
 
-@arity(1)
+@builtin("keys", 1)
 def keys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     return RuntimeValue.of(arg.keys())
 
 
-@arity(2)
+@builtin(".", 2)
 def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("dot takes two arguments")
@@ -183,7 +186,7 @@ def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return left.access(right.name)
 
 
-@arity(2)
+@builtin("map", 2)
 def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
@@ -196,7 +199,7 @@ def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
-@arity(3)
+@builtin("reduce", 3)
 def reduce(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     initial = execute(arguments[1], stack)
     mutation = arguments[0]
@@ -210,7 +213,7 @@ def reduce(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return out
 
 
-@arity(2)
+@builtin("filter", 2)
 def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
@@ -224,7 +227,7 @@ def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
-@arity(2)
+@builtin("mapvalues", 2)
 def mapvalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
@@ -237,7 +240,7 @@ def mapvalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
-@arity(2)
+@builtin("mapkeys", 2)
 def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
@@ -252,7 +255,7 @@ def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
-@arity(2)
+@builtin("filtervalues", 2)
 def filtervalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
@@ -266,7 +269,7 @@ def filtervalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
-@arity(2)
+@builtin("filterkeys", 2)
 def filterkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
@@ -280,7 +283,7 @@ def filterkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
-@arity(2)
+@builtin("find", 2)
 def find(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
@@ -293,7 +296,7 @@ def find(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(None)
 
 
-@arity(2)
+@builtin("apply", 2)
 def apply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[1], stack)
     return execute(arguments[0], add_runtime_value_to_stack(target, stack))
@@ -352,7 +355,7 @@ def _index_single(operand: RuntimeValue, index: RuntimeValue):
         return operand.access(index.to_string())
 
 
-@arity(2, 3)
+@builtin("index", 2, 3)
 def index(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) == 3:
         return _index_double(
@@ -364,19 +367,19 @@ def index(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         return _index_single(execute(arguments[1], stack), execute(arguments[0], stack))
 
 
-@arity(1)
+@builtin("string", 1)
 def string(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     return RuntimeValue.of(arg.to_string())
 
 
-@arity(1)
+@builtin("float", 1)
 def float(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     return RuntimeValue.of(arg.to_float())
 
 
-@arity(1, 2)
+@builtin("regex", 1, 2)
 def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     pattern = execute(arguments[0], stack)
     if pattern.type != RuntimeValueType.String:
@@ -411,7 +414,7 @@ def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     )
 
 
-@arity(1)
+@builtin("stringjoin", 1)
 def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
@@ -419,7 +422,7 @@ def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of("".join(x.to_string() for x in arg.value))
 
 
-@arity(1)
+@builtin("sort", 1)
 def sort(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
@@ -429,7 +432,7 @@ def sort(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     )
 
 
-@arity(2)
+@builtin("sortby", 2)
 def sortby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
@@ -448,27 +451,27 @@ def sortby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of([value for key, value in post_sort])
 
 
-@arity(2)
+@builtin("<", 2)
 def lt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return execute(arguments[0], stack) < execute(arguments[1], stack)
 
 
-@arity(2)
+@builtin("<=", 2)
 def lte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return execute(arguments[0], stack) <= execute(arguments[1], stack)
 
 
-@arity(2)
+@builtin(">", 2)
 def gt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return execute(arguments[0], stack) > execute(arguments[1], stack)
 
 
-@arity(2)
+@builtin(">=", 2)
 def gte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return execute(arguments[0], stack) >= execute(arguments[1], stack)
 
 
-@arity(1)
+@builtin("values", 1)
 def values(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[0], stack)
     keys = target.keys()
@@ -476,7 +479,7 @@ def values(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(values)
 
 
-@arity(2)
+@builtin("groupby", 2)
 def groupby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
@@ -491,7 +494,7 @@ def groupby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(groups)
 
 
-@arity(1)
+@builtin("withindices", 1)
 def withindices(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
@@ -499,13 +502,13 @@ def withindices(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(list(enumerate(target.value)))
 
 
-@arity(1)
+@builtin("entries", 1)
 def entries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[0], stack)
     return RuntimeValue.of([[key, target.access(key)] for key in target.keys()])
 
 
-@arity(1)
+@builtin("fromentries", 1)
 def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
@@ -528,7 +531,7 @@ def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(res)
 
 
-@arity(2)
+@builtin("match", 2)
 def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[1], stack)
     pattern = execute(arguments[0], stack)
@@ -540,13 +543,13 @@ def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"match: {target} is not a string or regex")
 
 
-@arity(2)
+@builtin("=~", 2)
 def match_operator(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     reversed_args = arguments[::-1]
     return match(reversed_args, stack, execute)
 
 
-@arity(3)
+@builtin("replace", 3)
 def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[2], stack)
     pattern = execute(arguments[0], stack)
@@ -565,7 +568,7 @@ def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"replace: {target} is not a string or regex")
 
 
-@arity(2)
+@builtin("split", 2)
 def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[1], stack)
     if target.type != RuntimeValueType.String:
@@ -581,7 +584,7 @@ def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     raise Exception(f"split: {delimiter} is not a string or regex")
 
 
-@arity(2)
+@builtin("stringjoin", 2)
 def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
@@ -593,7 +596,7 @@ def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(delimiter.value.join(arr))
 
 
-@arity(1)
+@builtin("summarize", 1)
 def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
@@ -627,7 +630,7 @@ def _sequence_helper(arr: List[List[bool]], start=0) -> List[List[int]]:
     return result
 
 
-@arity(2, -1)
+@builtin("sequence", 2, -1)
 def sequence(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     target = execute(arguments[-1], stack)
     predicates = arguments[:-1]
@@ -646,55 +649,3 @@ def sequence(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         [target.value[idx] for idx in indices] for indices in indices_map
     ]
     return RuntimeValue.of(result)
-
-
-builtins = {
-    ".": dot,
-    "-/unary": unary_minus,
-    "!/unary": unary_not,
-    "+": add,
-    "-": subtract,
-    "*": multiply,
-    "/": divide,
-    "%": mod,
-    "==": eq,
-    "!=": neq,
-    ">": gt,
-    ">=": gte,
-    "<": lt,
-    "<=": lte,
-    "&&": and_fn,
-    "||": or_fn,
-    "=~": match_operator,
-    "apply": apply,
-    "count": count,
-    "keys": keys,
-    "entries": entries,
-    "fromentries": fromentries,
-    "match": match,
-    "split": split,
-    "values": values,
-    "groupby": groupby,
-    "float": float,
-    "map": map,
-    "filter": filter,
-    "reduce": reduce,
-    "find": find,
-    "index": index,
-    "string": string,
-    "sort": sort,
-    "sortby": sortby,
-    "mapvalues": mapvalues,
-    "mapkeys": mapkeys,
-    "filtervalues": filtervalues,
-    "filterkeys": filterkeys,
-    "if": if_else,
-    "reverse": reverse,
-    "regex": regex,
-    "log": log,
-    "stringjoin": stringjoin,
-    "withindices": withindices,
-    "replace": replace,
-    "summarize": summarize,
-    "sequence": sequence,
-}
