@@ -1,6 +1,8 @@
 from enum import Enum
-from typing import Any, Callable, List, Dict
+from typing import Any, Callable, Dict, Union, Set
 import json
+
+from mistql.exceptions import MistQLTypeError
 
 
 class RuntimeValueType(Enum):
@@ -217,7 +219,9 @@ class RuntimeValue:
         elif self.type == RuntimeValueType.String:
             return json.dumps(self.value)
         elif self.type == RuntimeValueType.Array:
-            return "[" + ",".join([item.to_json(permissive) for item in self.value]) + "]"
+            return (
+                "[" + ",".join([item.to_json(permissive) for item in self.value]) + "]"
+            )
         elif self.type == RuntimeValueType.Object:
             return (
                 "{"
@@ -262,7 +266,7 @@ class RuntimeValue:
             return float("nan")
 
     def __repr__(self) -> str:
-        #return "<mistql>"
+        # return "<mistql>"
         return f"<mistql {self.to_json(permissive=True)}>"
 
     def keys(self):
@@ -279,3 +283,15 @@ class RuntimeValue:
             return self.value[string]
         else:
             return RuntimeValue(RuntimeValueType.Null)
+
+
+def assert_type(
+    value: RuntimeValue, expected_type: Union[Set[RuntimeValueType], RuntimeValueType]
+):
+    if isinstance(expected_type, Set):
+        if value.type not in expected_type:
+            raise MistQLTypeError(f"Expected one of {expected_type}, got {value.type}")
+    else:
+        if value.type != expected_type:
+            raise MistQLTypeError(f"Expected {expected_type}, got {value.type}")
+    return value

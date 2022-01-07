@@ -1,5 +1,6 @@
 from typing import Callable, List, Dict
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
+from mistql.exceptions import MistQLReferenceError
 from typeguard import typechecked
 
 StackFrame = Dict[str, RuntimeValue]
@@ -13,7 +14,6 @@ def add_runtime_value_to_stack(value: RuntimeValue, stack: Stack):
     new_stack = stack.copy()
     new_stack.append(new_stackframe)
     return new_stack
-
 
 
 def build_initial_stack(data: RuntimeValue, builtins: Dict[str, Callable]) -> Stack:
@@ -43,6 +43,4 @@ def find_in_stack(stack: Stack, name: str, absolute: bool) -> RuntimeValue:
     for frame in reversed(stack):
         if name in frame:
             return frame[name]
-    raise Exception(f"Could not find {name} in stack")
-
-
+    raise MistQLReferenceError(f"Could not find {name} in stack")
