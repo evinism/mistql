@@ -394,7 +394,9 @@
               "assertions": [
                 {
                   "query": "filter",
-                  "data": {"filter": "cat"},
+                  "data": {
+                    "filter": "cat"
+                  },
                   "expected": "cat"
                 }
               ]
@@ -404,8 +406,18 @@
               "assertions": [
                 {
                   "query": "$.filter @ > 1 nums",
-                  "data": {"filter": "cat", "nums": [1, 2, 3]},
-                  "expected": [2, 3]
+                  "data": {
+                    "filter": "cat",
+                    "nums": [
+                      1,
+                      2,
+                      3
+                    ]
+                  },
+                  "expected": [
+                    2,
+                    3
+                  ]
                 }
               ]
             },
@@ -1915,12 +1927,12 @@
                 {
                   "query": "\"hello\" | match \"el\"",
                   "data": {},
-                  "expected": false
+                  "expected": true
                 },
                 {
                   "query": "\"hello\" | match \"lo\"",
                   "data": {},
-                  "expected": false
+                  "expected": true
                 }
               ]
             },
@@ -1935,12 +1947,12 @@
                 {
                   "query": "\"hello\" | match (regex \"el\")",
                   "data": {},
-                  "expected": false
+                  "expected": true
                 },
                 {
                   "query": "\"hello\" | match (regex \"lo\")",
                   "data": {},
-                  "expected": false
+                  "expected": true
                 }
               ]
             }

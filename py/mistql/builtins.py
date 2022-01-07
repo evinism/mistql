@@ -19,10 +19,10 @@ FunctionDefinitionType = Callable[
 builtins: Dict[str, FunctionDefinitionType] = {}
 
 
-
 def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
     if max_args is None:
         max_args = min_args
+
     def builtin_decorator(fn: FunctionDefinitionType) -> FunctionDefinitionType:
         def wrapped(arguments: Args, stack: Stack, exec: Exec):
             if not min_args < 0 and len(arguments) < min_args:
@@ -30,8 +30,10 @@ def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
             if not max_args < 0 and len(arguments) > max_args:
                 raise Exception(f"{name} takes at most {max_args} arguments")
             return fn(arguments, stack, exec)
+
         builtins[name] = wrapped
         return wrapped
+
     return builtin_decorator
 
 
@@ -63,6 +65,7 @@ def unary_not(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     res = exec(arguments[0], stack)
     return RuntimeValue.of(not res)
 
+
 @builtin("if", 3)
 def if_else(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     if exec(arguments[0], stack):
@@ -70,13 +73,18 @@ def if_else(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     else:
         return exec(arguments[2], stack)
 
+
 @builtin("+", 2)
 def add(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     left = exec(arguments[0], stack)
     right = exec(arguments[1], stack)
     if left.type != right.type:
         raise Exception(f"add: {left} and {right} are not the same type")
-    if left.type in {RuntimeValueType.Number, RuntimeValueType.String, RuntimeValueType.Array}:
+    if left.type in {
+        RuntimeValueType.Number,
+        RuntimeValueType.String,
+        RuntimeValueType.Array,
+    }:
         return RuntimeValue.of(left.value + right.value)
     raise Exception(f"add: {left.type} is not supported")
 
@@ -120,6 +128,7 @@ def mod(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("==", 2)
 def eq(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     return exec(arguments[0], stack) == exec(arguments[1], stack)
+
 
 @builtin("!=", 2)
 def neq(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
@@ -516,10 +525,10 @@ def match(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     pattern = exec(arguments[0], stack)
     target = exec(arguments[1], stack)
     if pattern.type == RuntimeValueType.Regex:
-        return RuntimeValue.of(bool(pattern.value.match(target.value)))
+        return RuntimeValue.of(bool(pattern.value.search(target.value)))
     elif pattern.type == RuntimeValueType.String:
         compiled = re.compile(pattern.value)
-        return RuntimeValue.of(bool(compiled.match(target.value)))
+        return RuntimeValue.of(bool(compiled.search(target.value)))
     else:
         raise Exception(f"match: {target} is not a string or regex")
 
