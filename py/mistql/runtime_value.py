@@ -201,7 +201,7 @@ class RuntimeValue:
         else:
             raise ValueError("Truthiness not yet implemented: " + str(self.type))
 
-    def to_json(self) -> str:
+    def to_json(self, permissive=False) -> str:
         """
         Convert this value to JSON string
         """
@@ -217,20 +217,26 @@ class RuntimeValue:
         elif self.type == RuntimeValueType.String:
             return json.dumps(self.value)
         elif self.type == RuntimeValueType.Array:
-            return "[" + ",".join([item.to_json() for item in self.value]) + "]"
+            return "[" + ",".join([item.to_json(permissive) for item in self.value]) + "]"
         elif self.type == RuntimeValueType.Object:
             return (
                 "{"
                 + ",".join(
                     [
-                        json.dumps(key) + ": " + item.to_json()
+                        json.dumps(key) + ": " + item.to_json(permissive)
                         for key, item in self.value.items()
                     ]
                 )
                 + "}"
             )
-        else:
-            raise ValueError("Cannot convert MistQL value to JSON: " + str(self.type))
+        elif permissive:
+            if self.type == RuntimeValueType.Function:
+                return "[function]"
+            elif self.type == RuntimeValueType.Regex:
+                return "[regex]"
+            else:
+                return "[unknown]"
+        raise ValueError("Cannot convert MistQL value to JSON: " + str(self.type))
 
     def to_string(self) -> str:
         """
@@ -256,11 +262,8 @@ class RuntimeValue:
             return float("nan")
 
     def __repr__(self) -> str:
-        if self.type == RuntimeValueType.Function:
-            return "<mistql [function]>"
-        if self.type == RuntimeValueType.Regex:
-            return "<mistql [regex]>"
-        return f"<mistql {self.to_string()}>"
+        #return "<mistql>"
+        return f"<mistql {self.to_json(permissive=True)}>"
 
     def keys(self):
         if self.type == RuntimeValueType.Object:
