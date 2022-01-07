@@ -143,7 +143,7 @@ def process_lark_tree(lark_node: Tree) -> Expression:
         )
     elif lark_node.data in function_mappings:
         return FnExpression(
-            RefExpression(function_mappings[lark_node.data]),
+            RefExpression(function_mappings[lark_node.data], absolute=True),
             [from_lark(child) for child in lark_node.children[:]],
         )
     elif lark_node.data == "index":
@@ -165,7 +165,7 @@ def process_lark_tree(lark_node: Tree) -> Expression:
         if prev_was_token:
             fnexp_args.append(ValueExpression.of(None))
         fnexp_args.append(from_lark(base))
-        return FnExpression(RefExpression("index"), fnexp_args)
+        return FnExpression(RefExpression("index", absolute=True), fnexp_args)
     else:
         raise Exception(f"Unknown lark expression type: {lark_node.data}")
 
