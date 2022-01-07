@@ -12,6 +12,7 @@ from typing import Union, List
 import json
 
 from mistql.expression import Expression
+from mistql.exceptions import OpenAnIssueIfYouGetThisError
 
 mistql_parser = Lark(
     r"""
@@ -130,7 +131,7 @@ def process_lark_tree(lark_node: Tree) -> Expression:
             elif isinstance(key, RefExpression):
                 key = key.name
             else:
-                raise Exception(f"Unknown key type {type(key)}")
+                raise OpenAnIssueIfYouGetThisError(f"Unknown key type {type(key)}")
             value = from_lark(child.children[1])
             obj[key] = value
         return ObjectExpression(obj)
@@ -167,7 +168,9 @@ def process_lark_tree(lark_node: Tree) -> Expression:
         fnexp_args.append(from_lark(base))
         return FnExpression(RefExpression("index", absolute=True), fnexp_args)
     else:
-        raise Exception(f"Unknown lark expression type: {lark_node.data}")
+        raise OpenAnIssueIfYouGetThisError(
+            f"Unknown lark expression type: {lark_node.data}"
+        )
 
 
 def process_lark_token(lark_node: Token) -> Expression:
@@ -189,7 +192,7 @@ def process_lark_token(lark_node: Token) -> Expression:
     elif lark_node.type == "DOLLAR":
         return RefExpression("$")
     else:
-        raise Exception(f"Unknown token type {lark_node.type}")
+        raise OpenAnIssueIfYouGetThisError(f"Unknown token type {lark_node.type}")
 
 
 def from_lark(lark_node: Union[Tree, Token]):
@@ -198,9 +201,10 @@ def from_lark(lark_node: Union[Tree, Token]):
     elif isinstance(lark_node, Tree):
         return process_lark_tree(lark_node)
     else:
-        raise Exception(f"Unknown lark node type: {type(lark_node)}")
+        raise OpenAnIssueIfYouGetThisError(f"Unknown lark node type: {type(lark_node)}")
 
 
 def parse(raw):
+    # TODO: Translate errors from this function to something that inherits from MistQLException
     parsed = mistql_parser.parse(raw)
     return from_lark(parsed)
