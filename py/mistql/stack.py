@@ -1,5 +1,6 @@
 from typing import Callable, List, Dict
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
+from typeguard import typechecked
 
 StackFrame = Dict[str, RuntimeValue]
 Stack = List[StackFrame]
@@ -31,3 +32,12 @@ def build_initial_stack(data: RuntimeValue, builtins: Dict[str, Callable]) -> St
     top_stack_entry["$"] = RuntimeValue.of(dollar_var)
 
     return [top_stack_entry]
+
+@typechecked
+def find_in_stack(stack: Stack, name: str) -> RuntimeValue:
+    for frame in reversed(stack):
+        if name in frame:
+            return frame[name]
+    raise Exception(f"Could not find {name} in stack")
+
+
