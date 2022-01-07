@@ -1,4 +1,4 @@
-from typing import List, Dict, Callable, Tuple, Union
+from typing import List, Dict, Callable, Tuple, Union, Set
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
 from mistql.expression import Expression
 from mistql.stack import Stack
@@ -21,9 +21,15 @@ builtins: Dict[str, FunctionDefinitionType] = {}
 RVT = RuntimeValueType
 
 
-def assert_type(value: RuntimeValue, expected_type: RuntimeValueType):
-    if value.type != expected_type:
-        raise Exception(f"Expected {expected_type}, got {value.type}")
+def assert_type(
+    value: RuntimeValue, expected_type: Union[Set[RuntimeValueType], RuntimeValueType]
+):
+    if isinstance(expected_type, Set):
+        if value.type not in expected_type:
+            raise Exception(f"Expected one of {expected_type}, got {value.type}")
+    else:
+        if value.type != expected_type:
+            raise Exception(f"Expected {expected_type}, got {value.type}")
     return value
 
 
@@ -276,24 +282,23 @@ def _index_double(
     index_two: RuntimeValue,
     operand: RuntimeValue,
 ):
-    if operand.type in {RVT.Array, RVT.String}:
-        if index_one.type == RVT.Null:
-            index_one = RuntimeValue.of(0)
-        if index_two.type == RVT.Null:
-            index_two = RuntimeValue.of(len(operand.value))
-        if index_one.type != RVT.Number or index_two.type != RVT.Number:
-            raise Exception(f"index: Non-numbers cannot be used on arrays")
-        index_one_num = index_one.value
-        index_two_num = index_two.value
-        if index_one_num % 1 != 0 or index_two_num % 1 != 0:
-            raise Exception(f"index: Non-integers cannot be used on arrays")
-        if index_one_num < 0:
-            index_one_num = len(operand.value) + index_one_num
-        if index_two_num < 0:
-            index_two_num = len(operand.value) + index_two_num
-        return RuntimeValue.of(operand.value[int(index_one_num) : int(index_two_num)])
-    else:
-        raise Exception(f"index: {operand} is not an array or string")
+    assert_type(operand, {RVT.Array, RVT.String})
+
+    if index_one.type == RVT.Null:
+        index_one = RuntimeValue.of(0)
+    if index_two.type == RVT.Null:
+        index_two = RuntimeValue.of(len(operand.value))
+    if index_one.type != RVT.Number or index_two.type != RVT.Number:
+        raise Exception(f"index: Non-numbers cannot be used on arrays")
+    index_one_num = index_one.value
+    index_two_num = index_two.value
+    if index_one_num % 1 != 0 or index_two_num % 1 != 0:
+        raise Exception(f"index: Non-integers cannot be used on arrays")
+    if index_one_num < 0:
+        index_one_num = len(operand.value) + index_one_num
+    if index_two_num < 0:
+        index_two_num = len(operand.value) + index_two_num
+    return RuntimeValue.of(operand.value[int(index_one_num) : int(index_two_num)])
 
 
 def _index_single(index: RuntimeValue, operand: RuntimeValue):
