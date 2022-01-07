@@ -533,12 +533,9 @@ def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("summarize", 1)
 def summarize(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    target = exec(arguments[0], stack)
-    if target.type != RVT.Array:
-        raise Exception(f"summarize: {target} is not an array")
+    target = assert_type(exec(arguments[0], stack), RVT.Array)
     for entry in target.value:
-        if entry.type != RVT.Number:
-            raise Exception(f"summarize: inner value {entry} is not a number")
+        assert_type(entry, RVT.Number)
     arr = target.to_python()
     summary = {
         "max": max(arr),
