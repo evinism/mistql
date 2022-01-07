@@ -15,6 +15,7 @@ def add_runtime_value_to_stack(value: RuntimeValue, stack: Stack):
     return new_stack
 
 
+
 def build_initial_stack(data: RuntimeValue, builtins: Dict[str, Callable]) -> Stack:
     dollar_var = {
         "@": data,
@@ -27,14 +28,18 @@ def build_initial_stack(data: RuntimeValue, builtins: Dict[str, Callable]) -> St
             top_stack_entry[key] = value
     for builtin in builtins:
         fn = RuntimeValue.create_function(builtins[builtin])
-        top_stack_entry[builtin] = fn
         dollar_var[builtin] = fn
     top_stack_entry["$"] = RuntimeValue.of(dollar_var)
+    builtin_stackframe = {
+        name: RuntimeValue.create_function(builtins[name]) for name in builtins
+    }
+    return [builtin_stackframe, top_stack_entry]
 
-    return [top_stack_entry]
 
 @typechecked
-def find_in_stack(stack: Stack, name: str) -> RuntimeValue:
+def find_in_stack(stack: Stack, name: str, absolute: bool) -> RuntimeValue:
+    if absolute:
+        stack = stack[:1]
     for frame in reversed(stack):
         if name in frame:
             return frame[name]
