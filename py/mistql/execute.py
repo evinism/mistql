@@ -13,6 +13,7 @@ from mistql.stack import Stack
 from mistql.builtins import FunctionDefinitionType, builtins
 from mistql.stack import add_runtime_value_to_stack, build_initial_stack, find_in_stack
 from mistql.expression import BaseExpression
+from mistql.exceptions import MistQLTypeError, OpenAnIssueIfYouGetThisError
 
 from typeguard import typechecked
 
@@ -21,7 +22,7 @@ from typeguard import typechecked
 def execute_fncall(head: Expression, arguments: List[Expression], stack: Stack):
     fn = execute(head, stack)
     if fn.type != RuntimeValueType.Function:
-        raise Exception(f"Tried to call a non-function: {fn}")
+        raise MistQLTypeError(f"Tried to call a non-function: {fn}")
     # Not enforced, but definitely should be.
     function_definition: FunctionDefinitionType = fn.value
     return function_definition(arguments, stack, execute)
@@ -49,10 +50,13 @@ def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
 
     return data
 
+
 @typechecked
 def execute(ast: Expression, stack: Stack) -> RuntimeValue:
     if not isinstance(ast, BaseExpression):
-        raise Exception(f"Expected to evaluate an expression, got {ast}")
+        raise OpenAnIssueIfYouGetThisError(
+            f"Expected to evaluate an expression, got {ast}"
+        )
     if isinstance(ast, ValueExpression):
         return ast.value
     elif isinstance(ast, RefExpression):

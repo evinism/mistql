@@ -1,5 +1,5 @@
-from typing import List, Dict, Callable, Tuple, Union, Set
-from mistql.runtime_value import RuntimeValue, RuntimeValueType
+from typing import List, Dict, Callable, Tuple, Union
+from mistql.runtime_value import RuntimeValue, RuntimeValueType, assert_type
 from mistql.expression import Expression
 from mistql.stack import Stack
 from mistql.expression import RefExpression
@@ -7,6 +7,9 @@ from mistql.stack import add_runtime_value_to_stack
 import re
 from functools import cmp_to_key
 import statistics
+
+from mistql.exceptions import MistQLRuntimeError, MistQLTypeError
+
 
 Args = List[Expression]
 Exec = Callable[[Expression, Stack], RuntimeValue]
@@ -21,18 +24,6 @@ builtins: Dict[str, FunctionDefinitionType] = {}
 RVT = RuntimeValueType
 
 
-def assert_type(
-    value: RuntimeValue, expected_type: Union[Set[RuntimeValueType], RuntimeValueType]
-):
-    if isinstance(expected_type, Set):
-        if value.type not in expected_type:
-            raise Exception(f"Expected one of {expected_type}, got {value.type}")
-    else:
-        if value.type != expected_type:
-            raise Exception(f"Expected {expected_type}, got {value.type}")
-    return value
-
-
 def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
     if max_args is None:
         max_args = min_args
@@ -40,9 +31,9 @@ def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
     def builtin_decorator(fn: FunctionDefinitionType) -> FunctionDefinitionType:
         def wrapped(arguments: Args, stack: Stack, exec: Exec):
             if not min_args < 0 and len(arguments) < min_args:
-                raise Exception(f"{name} takes at least {min_args} arguments")
+                raise MistQLRuntimeError(f"{name} takes at least {min_args} arguments")
             if not max_args < 0 and len(arguments) > max_args:
-                raise Exception(f"{name} takes at most {max_args} arguments")
+                raise MistQLRuntimeError(f"{name} takes at most {max_args} arguments")
             return fn(arguments, stack, exec)
 
         builtins[name] = wrapped
@@ -89,14 +80,14 @@ def add(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     left = exec(arguments[0], stack)
     right = exec(arguments[1], stack)
     if left.type != right.type:
-        raise Exception(f"add: {left} and {right} are not the same type")
+        raise MistQLTypeError(f"add: {left} and {right} are not the same type")
     if left.type in {
         RVT.Number,
         RVT.String,
         RVT.Array,
     }:
         return RuntimeValue.of(left.value + right.value)
-    raise Exception(f"add: {left.type} is not supported")
+    raise MistQLTypeError(f"add: {left.type} is not supported")
 
 
 @builtin("-", 2)
@@ -173,7 +164,7 @@ def dot(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     left = exec(arguments[0], stack)
     right = arguments[1]
     if not isinstance(right, RefExpression):
-        raise Exception(f"dot: rhs is not a ref")
+        raise MistQLRuntimeError(f"dot: RHS of the dot operator is not a ref")
     return left.access(right.name)
 
 
@@ -230,8 +221,7 @@ def mapkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
         res = exec(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
-        if res.type != RVT.String:
-            raise Exception(f"mapkeys: {res} is not a string")
+        assert_type(res, RVT.String)
         out[res.value] = value
     return RuntimeValue.of(out)
 
@@ -289,11 +279,11 @@ def _index_double(
     if index_two.type == RVT.Null:
         index_two = RuntimeValue.of(len(operand.value))
     if index_one.type != RVT.Number or index_two.type != RVT.Number:
-        raise Exception(f"index: Non-numbers cannot be used on arrays")
+        raise MistQLRuntimeError(f"index: Non-numbers cannot be used on arrays")
     index_one_num = index_one.value
     index_two_num = index_two.value
     if index_one_num % 1 != 0 or index_two_num % 1 != 0:
-        raise Exception(f"index: Non-integers cannot be used on arrays")
+        raise MistQLRuntimeError(f"index: Non-integers cannot be used on arrays")
     if index_one_num < 0:
         index_one_num = len(operand.value) + index_one_num
     if index_two_num < 0:
@@ -306,7 +296,7 @@ def _index_single(index: RuntimeValue, operand: RuntimeValue):
         assert_type(index, RVT.Number)
         index_num = index.value
         if index_num % 1 != 0:
-            raise Exception(f"index: Non-integers cannot be used on arrays")
+            raise MistQLRuntimeError(f"index: Non-integers cannot be used on arrays")
         if index_num < 0:
             index_num = len(operand.value) + index_num
         if index_num < 0 or index_num >= len(operand.value):
@@ -475,13 +465,12 @@ def fromentries(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def match(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     pattern = exec(arguments[0], stack)
     target = exec(arguments[1], stack)
+    assert_type(pattern, {RVT.String, RVT.Regex})
     if pattern.type == RVT.Regex:
         return RuntimeValue.of(bool(pattern.value.search(target.value)))
     elif pattern.type == RVT.String:
         compiled = re.compile(pattern.value)
         return RuntimeValue.of(bool(compiled.search(target.value)))
-    else:
-        raise Exception(f"match: {target} is not a string or regex")
 
 
 @builtin("=~", 2)
@@ -494,6 +483,7 @@ def replace(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     pattern = exec(arguments[0], stack)
     replacement = exec(arguments[1], stack)
     target = exec(arguments[2], stack)
+    assert_type(pattern, {RVT.String, RVT.Regex})
     if pattern.type == RVT.Regex:
         if pattern.modifiers["global"]:
             res = pattern.value.sub(replacement.value, target.value)
@@ -504,16 +494,12 @@ def replace(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
         return RuntimeValue.of(
             target.value.replace(pattern.value, replacement.value, 1)
         )
-    else:
-        raise Exception(f"replace: {target} is not a string or regex")
 
 
 @builtin("split", 2)
 def split(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    delimiter = exec(arguments[0], stack)
-    target = exec(arguments[1], stack)
-    if target.type != RVT.String:
-        raise Exception(f"split: {target} is not a string")
+    delimiter = assert_type(exec(arguments[0], stack), {RVT.String, RVT.Regex})
+    target = assert_type(exec(arguments[1], stack), RVT.String)
     if delimiter.type == RVT.String:
         separator = delimiter.value
         if separator == "":
@@ -521,17 +507,12 @@ def split(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
         return RuntimeValue.of(target.value.split(separator))
     elif delimiter.type == RVT.Regex:
         return RuntimeValue.of(list(delimiter.value.split(target.value)))
-    raise Exception(f"split: {delimiter} is not a string or regex")
 
 
 @builtin("stringjoin", 2)
 def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    delimiter = exec(arguments[0], stack)
-    target = exec(arguments[1], stack)
-    if target.type != RVT.Array:
-        raise Exception(f"stringjoin: {target} is not an array")
-    if delimiter.type != RVT.String:
-        raise Exception(f"stringjoin: {delimiter} is not a string")
+    delimiter = assert_type(exec(arguments[0], stack), RVT.String)
+    target = assert_type(exec(arguments[1], stack), RVT.Array)
     arr = [entry.to_string() for entry in target.value]
     return RuntimeValue.of(delimiter.value.join(arr))
 
