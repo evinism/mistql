@@ -390,6 +390,26 @@
               ]
             },
             {
+              "it": "overwrites the default variable in a name conflict",
+              "assertions": [
+                {
+                  "query": "filter",
+                  "data": {"filter": "cat"},
+                  "expected": "cat"
+                }
+              ]
+            },
+            {
+              "it": "allows us to unoverwrite using the $ key",
+              "assertions": [
+                {
+                  "query": "$.filter @ > 1 nums",
+                  "data": {"filter": "cat", "nums": [1, 2, 3]},
+                  "expected": [2, 3]
+                }
+              ]
+            },
+            {
               "it": "allows accessing builtin functions via the $ key",
               "assertions": [
                 {
