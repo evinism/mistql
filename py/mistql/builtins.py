@@ -18,6 +18,14 @@ FunctionDefinitionType = Callable[
 
 builtins: Dict[str, FunctionDefinitionType] = {}
 
+RVT = RuntimeValueType
+
+
+def assert_type(value: RuntimeValue, expected_type: RuntimeValueType):
+    if value.type != expected_type:
+        raise Exception(f"Expected {expected_type}, got {value.type}")
+    return value
+
 
 def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
     if max_args is None:
@@ -46,17 +54,13 @@ def log(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("reverse", 1)
 def reverse(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    arg = exec(arguments[0], stack)
-    if arg.type != RuntimeValueType.Array:
-        raise Exception(f"reverse takes an array, got {arg}")
+    arg = assert_type(exec(arguments[0], stack), RVT.Array)
     return RuntimeValue.of(list(reversed(arg.value)))
 
 
 @builtin("-/unary", 1)
 def unary_minus(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    res = exec(arguments[0], stack)
-    if res.type != RuntimeValueType.Number:
-        raise Exception(f"unary_minus takes a number, got {res}")
+    res = assert_type(exec(arguments[0], stack), RVT.Number)
     return RuntimeValue.of(-res.value)
 
 
@@ -81,9 +85,9 @@ def add(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     if left.type != right.type:
         raise Exception(f"add: {left} and {right} are not the same type")
     if left.type in {
-        RuntimeValueType.Number,
-        RuntimeValueType.String,
-        RuntimeValueType.Array,
+        RVT.Number,
+        RVT.String,
+        RVT.Array,
     }:
         return RuntimeValue.of(left.value + right.value)
     raise Exception(f"add: {left.type} is not supported")
@@ -91,37 +95,29 @@ def add(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("-", 2)
 def subtract(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    left = exec(arguments[0], stack)
-    right = exec(arguments[1], stack)
-    if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
-        raise Exception(f"subtract: {left} and {right} are not both numbers")
+    left = assert_type(exec(arguments[0], stack), RVT.Number)
+    right = assert_type(exec(arguments[1], stack), RVT.Number)
     return RuntimeValue.of(left.value - right.value)
 
 
 @builtin("*", 2)
 def multiply(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    left = exec(arguments[0], stack)
-    right = exec(arguments[1], stack)
-    if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
-        raise Exception(f"multiply: {left} and {right} are not both numbers")
+    left = assert_type(exec(arguments[0], stack), RVT.Number)
+    right = assert_type(exec(arguments[1], stack), RVT.Number)
     return RuntimeValue.of(left.value * right.value)
 
 
 @builtin("/", 2)
 def divide(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    left = exec(arguments[0], stack)
-    right = exec(arguments[1], stack)
-    if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
-        raise Exception(f"divide: {left} and {right} are not both numbers")
+    left = assert_type(exec(arguments[0], stack), RVT.Number)
+    right = assert_type(exec(arguments[1], stack), RVT.Number)
     return RuntimeValue.of(left.value / right.value)
 
 
 @builtin("%", 2)
 def mod(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    left = exec(arguments[0], stack)
-    right = exec(arguments[1], stack)
-    if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
-        raise Exception(f"mod: {left} and {right} are not both numbers")
+    left = assert_type(exec(arguments[0], stack), RVT.Number)
+    right = assert_type(exec(arguments[1], stack), RVT.Number)
     return RuntimeValue.of(left.value % right.value)
 
 
@@ -157,9 +153,7 @@ def or_fn(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("count", 1)
 def count(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    arg = exec(arguments[0], stack)
-    if arg.type != RuntimeValueType.Array:
-        raise Exception(f"count: {arg} is not an array")
+    arg = assert_type(exec(arguments[0], stack), RVT.Array)
     return RuntimeValue.of(len(arg.value))
 
 
@@ -180,9 +174,7 @@ def dot(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("map", 2)
 def map(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = exec(arguments[1], stack)
-    if operand.type != RuntimeValueType.Array:
-        raise Exception(f"map: {operand} is not an array")
+    operand = assert_type(exec(arguments[1], stack), RVT.Array)
     out: List[RuntimeValue] = []
     for item in operand.value:
         res = exec(mutation, add_runtime_value_to_stack(item, stack))
@@ -194,9 +186,7 @@ def map(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def reduce(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
     initial = exec(arguments[1], stack)
-    operand = exec(arguments[2], stack)
-    if operand.type != RuntimeValueType.Array:
-        raise Exception(f"reduce: {operand} is not an array")
+    operand = assert_type(exec(arguments[2], stack), RVT.Array)
     out = initial
     for item in operand.value:
         acc_cur = RuntimeValue.of([out, item])
@@ -207,9 +197,7 @@ def reduce(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("filter", 2)
 def filter(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = exec(arguments[1], stack)
-    if operand.type != RuntimeValueType.Array:
-        raise Exception(f"filter: {operand} is not an array")
+    operand = assert_type(exec(arguments[1], stack), RVT.Array)
     out: List[RuntimeValue] = []
     for item in operand.value:
         res = exec(mutation, add_runtime_value_to_stack(item, stack))
@@ -221,9 +209,7 @@ def filter(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("mapvalues", 2)
 def mapvalues(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = exec(arguments[1], stack)
-    if operand.type != RuntimeValueType.Object:
-        raise Exception(f"mapvalues: {operand} is not an object")
+    operand = assert_type(exec(arguments[1], stack), RVT.Object)
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
         res = exec(mutation, add_runtime_value_to_stack(value, stack))
@@ -234,13 +220,11 @@ def mapvalues(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("mapkeys", 2)
 def mapkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = exec(arguments[1], stack)
-    if operand.type != RuntimeValueType.Object:
-        raise Exception(f"mapkeys: {operand} is not an object")
+    operand = assert_type(exec(arguments[1], stack), RVT.Object)
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
         res = exec(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
-        if res.type != RuntimeValueType.String:
+        if res.type != RVT.String:
             raise Exception(f"mapkeys: {res} is not a string")
         out[res.value] = value
     return RuntimeValue.of(out)
@@ -249,9 +233,7 @@ def mapkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("filtervalues", 2)
 def filtervalues(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = exec(arguments[1], stack)
-    if operand.type != RuntimeValueType.Object:
-        raise Exception(f"filtervalues: {operand} is not an object")
+    operand = assert_type(exec(arguments[1], stack), RVT.Object)
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
         res = exec(mutation, add_runtime_value_to_stack(value, stack))
@@ -263,9 +245,7 @@ def filtervalues(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("filterkeys", 2)
 def filterkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = exec(arguments[1], stack)
-    if operand.type != RuntimeValueType.Object:
-        raise Exception(f"filterkeys: {operand} is not an object")
+    operand = assert_type(exec(arguments[1], stack), RVT.Object)
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
         res = exec(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
@@ -277,9 +257,7 @@ def filterkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("find", 2)
 def find(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = exec(arguments[1], stack)
-    if operand.type != RuntimeValueType.Array:
-        raise Exception(f"find: {operand} is not an array")
+    operand = assert_type(exec(arguments[1], stack), RVT.Array)
     for item in operand.value:
         res = exec(mutation, add_runtime_value_to_stack(item, stack))
         if res:
@@ -298,28 +276,19 @@ def _index_double(
     index_two: RuntimeValue,
     operand: RuntimeValue,
 ):
-    if (
-        operand.type == RuntimeValueType.Array
-        or operand.type == RuntimeValueType.String
-    ):
-        if index_one.type == RuntimeValueType.Null:
+    if operand.type in {RVT.Array, RVT.String}:
+        if index_one.type == RVT.Null:
             index_one = RuntimeValue.of(0)
-        if index_two.type == RuntimeValueType.Null:
-            # This is terrible. I'm sorry.
-            index_two = RuntimeValue.of(10000000000000)
-        if (
-            index_one.type != RuntimeValueType.Number
-            or index_two.type != RuntimeValueType.Number
-        ):
+        if index_two.type == RVT.Null:
+            index_two = RuntimeValue.of(len(operand.value))
+        if index_one.type != RVT.Number or index_two.type != RVT.Number:
             raise Exception(f"index: Non-numbers cannot be used on arrays")
         index_one_num = index_one.value
-        if index_one_num % 1 != 0:
+        index_two_num = index_two.value
+        if index_one_num % 1 != 0 or index_two_num % 1 != 0:
             raise Exception(f"index: Non-integers cannot be used on arrays")
         if index_one_num < 0:
             index_one_num = len(operand.value) + index_one_num
-        index_two_num = index_two.value
-        if index_two_num % 1 != 0:
-            raise Exception(f"index: Non-integers cannot be used on arrays")
         if index_two_num < 0:
             index_two_num = len(operand.value) + index_two_num
         return RuntimeValue.of(operand.value[int(index_one_num) : int(index_two_num)])
@@ -328,12 +297,8 @@ def _index_double(
 
 
 def _index_single(index: RuntimeValue, operand: RuntimeValue):
-    if (
-        operand.type == RuntimeValueType.Array
-        or operand.type == RuntimeValueType.String
-    ):
-        if index.type != RuntimeValueType.Number:
-            raise Exception(f"index: Non-numbers cannot be used on arrays")
+    if operand.type == RVT.Array or operand.type == RVT.String:
+        assert_type(index, RVT.Number)
         index_num = index.value
         if index_num % 1 != 0:
             raise Exception(f"index: Non-integers cannot be used on arrays")
@@ -370,14 +335,10 @@ def float(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("regex", 1, 2)
 def regex(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    pattern = exec(arguments[0], stack)
-    if pattern.type != RuntimeValueType.String:
-        raise Exception(f"regex: {pattern} is not a string")
+    pattern = assert_type(exec(arguments[0], stack), RVT.String)
 
     if len(arguments) == 2:
-        flags = exec(arguments[1], stack)
-        if flags.type != RuntimeValueType.String:
-            raise Exception(f"regex: {flags} is not a string")
+        flags = assert_type(exec(arguments[1], stack), RVT.String)
     else:
         flags = RuntimeValue.of("")
 
@@ -397,7 +358,7 @@ def regex(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
         is_global = False
 
     return RuntimeValue(
-        RuntimeValueType.Regex,
+        RVT.Regex,
         re.compile(pattern.value, flags=flags_int),
         modifiers={"global": is_global},
     )
@@ -405,17 +366,13 @@ def regex(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("stringjoin", 1)
 def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    arg = exec(arguments[0], stack)
-    if arg.type != RuntimeValueType.Array:
-        raise Exception(f"stringjoin: {arg} is not an array")
+    arg = assert_type(exec(arguments[0], stack), RVT.Array)
     return RuntimeValue.of("".join(x.to_string() for x in arg.value))
 
 
 @builtin("sort", 1)
 def sort(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    arg = exec(arguments[0], stack)
-    if arg.type != RuntimeValueType.Array:
-        raise Exception(f"sort: {arg} is not an array")
+    arg = assert_type(exec(arguments[0], stack), RVT.Array)
     return RuntimeValue.of(
         list(sorted(arg.value, key=cmp_to_key(RuntimeValue.compare)))
     )
@@ -423,10 +380,7 @@ def sort(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("sortby", 2)
 def sortby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    target = exec(arguments[1], stack)
-    if target.type != RuntimeValueType.Array:
-        raise Exception(f"sortby: {target} is not an array")
-
+    target = assert_type(exec(arguments[1], stack), RVT.Array)
     WithKey = List[Tuple[RuntimeValue, RuntimeValue]]
     with_key: WithKey = []
     for item in target.value:
@@ -469,9 +423,7 @@ def values(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("groupby", 2)
 def groupby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    target = exec(arguments[1], stack)
-    if target.type != RuntimeValueType.Array:
-        raise Exception(f"groupby: {target} is not an array")
+    target = assert_type(exec(arguments[1], stack), RVT.Array)
     mut = arguments[0]
     groups = {}
     for item in target.value:
@@ -484,9 +436,7 @@ def groupby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("withindices", 1)
 def withindices(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    target = exec(arguments[0], stack)
-    if target.type != RuntimeValueType.Array:
-        raise Exception(f"withindices: {target} is not an array")
+    target = assert_type(exec(arguments[0], stack), RVT.Array)
     return RuntimeValue.of(list(enumerate(target.value)))
 
 
@@ -499,14 +449,10 @@ def entries(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 
 @builtin("fromentries", 1)
 def fromentries(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    target = exec(arguments[0], stack)
-    if target.type != RuntimeValueType.Array:
-        raise Exception(f"fromentries: {target} is not an array")
+    target = assert_type(exec(arguments[0], stack), RVT.Array)
     res = {}
     for entry in target.value:
-        if entry.type != RuntimeValueType.Array:
-            raise Exception(f"fromentries: {entry} is not an array")
-
+        assert_type(entry, RVT.Array)
         if len(entry.value) > 0:
             first = entry.value[0]
         else:
@@ -524,9 +470,9 @@ def fromentries(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def match(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     pattern = exec(arguments[0], stack)
     target = exec(arguments[1], stack)
-    if pattern.type == RuntimeValueType.Regex:
+    if pattern.type == RVT.Regex:
         return RuntimeValue.of(bool(pattern.value.search(target.value)))
-    elif pattern.type == RuntimeValueType.String:
+    elif pattern.type == RVT.String:
         compiled = re.compile(pattern.value)
         return RuntimeValue.of(bool(compiled.search(target.value)))
     else:
@@ -543,13 +489,13 @@ def replace(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     pattern = exec(arguments[0], stack)
     replacement = exec(arguments[1], stack)
     target = exec(arguments[2], stack)
-    if pattern.type == RuntimeValueType.Regex:
+    if pattern.type == RVT.Regex:
         if pattern.modifiers["global"]:
             res = pattern.value.sub(replacement.value, target.value)
         else:
             res = pattern.value.sub(replacement.value, target.value, 1)
         return RuntimeValue.of(res)
-    elif pattern.type == RuntimeValueType.String:
+    elif pattern.type == RVT.String:
         return RuntimeValue.of(
             target.value.replace(pattern.value, replacement.value, 1)
         )
@@ -561,14 +507,14 @@ def replace(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def split(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     delimiter = exec(arguments[0], stack)
     target = exec(arguments[1], stack)
-    if target.type != RuntimeValueType.String:
+    if target.type != RVT.String:
         raise Exception(f"split: {target} is not a string")
-    if delimiter.type == RuntimeValueType.String:
+    if delimiter.type == RVT.String:
         separator = delimiter.value
         if separator == "":
             return RuntimeValue.of(list(target.value))
         return RuntimeValue.of(target.value.split(separator))
-    elif delimiter.type == RuntimeValueType.Regex:
+    elif delimiter.type == RVT.Regex:
         return RuntimeValue.of(list(delimiter.value.split(target.value)))
     raise Exception(f"split: {delimiter} is not a string or regex")
 
@@ -577,9 +523,9 @@ def split(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     delimiter = exec(arguments[0], stack)
     target = exec(arguments[1], stack)
-    if target.type != RuntimeValueType.Array:
+    if target.type != RVT.Array:
         raise Exception(f"stringjoin: {target} is not an array")
-    if delimiter.type != RuntimeValueType.String:
+    if delimiter.type != RVT.String:
         raise Exception(f"stringjoin: {delimiter} is not a string")
     arr = [entry.to_string() for entry in target.value]
     return RuntimeValue.of(delimiter.value.join(arr))
@@ -588,10 +534,10 @@ def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("summarize", 1)
 def summarize(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = exec(arguments[0], stack)
-    if target.type != RuntimeValueType.Array:
+    if target.type != RVT.Array:
         raise Exception(f"summarize: {target} is not an array")
     for entry in target.value:
-        if entry.type != RuntimeValueType.Number:
+        if entry.type != RVT.Number:
             raise Exception(f"summarize: inner value {entry} is not a number")
     arr = target.to_python()
     summary = {
@@ -622,9 +568,7 @@ def _sequence_helper(arr: List[List[bool]], start=0) -> List[List[int]]:
 @builtin("sequence", 2, -1)
 def sequence(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     predicates = arguments[:-1]
-    target = exec(arguments[-1], stack)
-    if target.type != RuntimeValueType.Array:
-        raise Exception(f"sequence: {target} is not an array")
+    target = assert_type(exec(arguments[-1], stack), RVT.Array)
     bitmasks: List[List[bool]] = []
     for predicate in predicates:
         bitmask = []
