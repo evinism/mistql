@@ -11,7 +11,7 @@ from mistql.expression import (
 )
 from mistql.stack import Stack
 from mistql.builtins import FunctionDefinitionType, builtins
-from mistql.stack import add_runtime_value_to_stack, build_initial_stack
+from mistql.stack import add_runtime_value_to_stack, build_initial_stack, find_in_stack
 from mistql.expression import BaseExpression
 
 from typeguard import typechecked
@@ -48,15 +48,6 @@ def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
         data = execute(stage, new_stack)
 
     return data
-
-
-@typechecked
-def find_in_stack(stack: Stack, name: str) -> RuntimeValue:
-    for frame in reversed(stack):
-        if name in frame:
-            return frame[name]
-    raise Exception(f"Could not find {name} in stack")
-
 
 @typechecked
 def execute(ast: Expression, stack: Stack) -> RuntimeValue:
