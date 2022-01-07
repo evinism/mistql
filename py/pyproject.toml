@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mistql"
-version = "0.0.0"
+version = "0.0.1"
 description = ""
 authors = ["Evin Sellin <evinism@gmail.com>"]
 
@@ -12,6 +12,7 @@ typeguard = "^2.13.3"
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
 black = {version = "^21.10b0", allow-prereleases = true}
+toml = "^0.10.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
