@@ -18,133 +18,118 @@ FunctionDefinitionType = Callable[
 
 builtins: Dict[str, FunctionDefinitionType] = {}
 
+
+
 def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
     if max_args is None:
         max_args = min_args
     def builtin_decorator(fn: FunctionDefinitionType) -> FunctionDefinitionType:
-        def wrapped(arguments: Args, stack: Stack, execute: Exec):
+        def wrapped(arguments: Args, stack: Stack, exec: Exec):
             if not min_args < 0 and len(arguments) < min_args:
-                # TODO: The name of this function is not as represented here.
                 raise Exception(f"{name} takes at least {min_args} arguments")
             if not max_args < 0 and len(arguments) > max_args:
                 raise Exception(f"{name} takes at most {max_args} arguments")
-            return fn(arguments, stack, execute)
+            return fn(arguments, stack, exec)
         builtins[name] = wrapped
         return wrapped
     return builtin_decorator
 
 
 @builtin("log", 1)
-def log(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    res = execute(arguments[0], stack)
+def log(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    res = exec(arguments[0], stack)
     print(res)
     return res
 
 
 @builtin("reverse", 1)
-def reverse(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    arg = execute(arguments[0], stack)
+def reverse(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    arg = exec(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"reverse takes an array, got {arg}")
     return RuntimeValue.of(list(reversed(arg.value)))
 
 
 @builtin("-/unary", 1)
-def unary_minus(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    res = execute(arguments[0], stack)
+def unary_minus(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    res = exec(arguments[0], stack)
     if res.type != RuntimeValueType.Number:
         raise Exception(f"unary_minus takes a number, got {res}")
     return RuntimeValue.of(-res.value)
 
 
 @builtin("!/unary", 1)
-def unary_not(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    res = execute(arguments[0], stack)
+def unary_not(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    res = exec(arguments[0], stack)
     return RuntimeValue.of(not res)
 
 @builtin("if", 3)
-def if_else(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if execute(arguments[0], stack):
-        return execute(arguments[1], stack)
+def if_else(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    if exec(arguments[0], stack):
+        return exec(arguments[1], stack)
     else:
-        return execute(arguments[2], stack)
+        return exec(arguments[2], stack)
 
 @builtin("+", 2)
-def add(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("add takes two arguments")
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
+def add(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    left = exec(arguments[0], stack)
+    right = exec(arguments[1], stack)
     if left.type != right.type:
         raise Exception(f"add: {left} and {right} are not the same type")
-    if left.type == RuntimeValueType.Number:
-        return RuntimeValue.of(left.value + right.value)
-    if left.type == RuntimeValueType.String:
-        return RuntimeValue.of(left.value + right.value)
-    if left.type == RuntimeValueType.Array:
+    if left.type in {RuntimeValueType.Number, RuntimeValueType.String, RuntimeValueType.Array}:
         return RuntimeValue.of(left.value + right.value)
     raise Exception(f"add: {left.type} is not supported")
 
 
 @builtin("-", 2)
-def subtract(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("subtract takes two arguments")
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
+def subtract(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    left = exec(arguments[0], stack)
+    right = exec(arguments[1], stack)
     if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
         raise Exception(f"subtract: {left} and {right} are not both numbers")
     return RuntimeValue.of(left.value - right.value)
 
 
 @builtin("*", 2)
-def multiply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("multiply takes two arguments")
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
+def multiply(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    left = exec(arguments[0], stack)
+    right = exec(arguments[1], stack)
     if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
         raise Exception(f"multiply: {left} and {right} are not both numbers")
     return RuntimeValue.of(left.value * right.value)
 
 
 @builtin("/", 2)
-def divide(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("divide takes two arguments")
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
+def divide(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    left = exec(arguments[0], stack)
+    right = exec(arguments[1], stack)
     if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
         raise Exception(f"divide: {left} and {right} are not both numbers")
     return RuntimeValue.of(left.value / right.value)
 
 
 @builtin("%", 2)
-def mod(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
+def mod(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    left = exec(arguments[0], stack)
+    right = exec(arguments[1], stack)
     if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
         raise Exception(f"mod: {left} and {right} are not both numbers")
     return RuntimeValue.of(left.value % right.value)
 
 
 @builtin("==", 2)
-def eq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
-    return left == right
+def eq(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return exec(arguments[0], stack) == exec(arguments[1], stack)
 
 @builtin("!=", 2)
-def neq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
-    return left != right
+def neq(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return exec(arguments[0], stack) != exec(arguments[1], stack)
 
 
 @builtin("&&", 2)
-def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
+def and_fn(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    left = exec(arguments[0], stack)
+    right = exec(arguments[1], stack)
     if left:
         return right
     else:
@@ -152,9 +137,9 @@ def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("||", 2)
-def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    left = execute(arguments[0], stack)
-    right = execute(arguments[1], stack)
+def or_fn(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    left = exec(arguments[0], stack)
+    right = exec(arguments[1], stack)
     if left:
         return left
     else:
@@ -162,24 +147,21 @@ def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("count", 1)
-def count(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    arg = execute(arguments[0], stack)
+def count(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    arg = exec(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"count: {arg} is not an array")
     return RuntimeValue.of(len(arg.value))
 
 
 @builtin("keys", 1)
-def keys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    arg = execute(arguments[0], stack)
-    return RuntimeValue.of(arg.keys())
+def keys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return RuntimeValue.of(exec(arguments[0], stack).keys())
 
 
 @builtin(".", 2)
-def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("dot takes two arguments")
-    left = execute(arguments[0], stack)
+def dot(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    left = exec(arguments[0], stack)
     right = arguments[1]
     if not isinstance(right, RefExpression):
         raise Exception(f"dot: rhs is not a ref")
@@ -187,68 +169,68 @@ def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("map", 2)
-def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+def map(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = execute(arguments[1], stack)
+    operand = exec(arguments[1], stack)
     if operand.type != RuntimeValueType.Array:
         raise Exception(f"map: {operand} is not an array")
     out: List[RuntimeValue] = []
     for item in operand.value:
-        res = execute(mutation, add_runtime_value_to_stack(item, stack))
+        res = exec(mutation, add_runtime_value_to_stack(item, stack))
         out.append(res)
     return RuntimeValue.of(out)
 
 
 @builtin("reduce", 3)
-def reduce(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    initial = execute(arguments[1], stack)
+def reduce(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = execute(arguments[2], stack)
+    initial = exec(arguments[1], stack)
+    operand = exec(arguments[2], stack)
     if operand.type != RuntimeValueType.Array:
         raise Exception(f"reduce: {operand} is not an array")
     out = initial
     for item in operand.value:
         acc_cur = RuntimeValue.of([out, item])
-        out = execute(mutation, add_runtime_value_to_stack(acc_cur, stack))
+        out = exec(mutation, add_runtime_value_to_stack(acc_cur, stack))
     return out
 
 
 @builtin("filter", 2)
-def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+def filter(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = execute(arguments[1], stack)
+    operand = exec(arguments[1], stack)
     if operand.type != RuntimeValueType.Array:
         raise Exception(f"filter: {operand} is not an array")
     out: List[RuntimeValue] = []
     for item in operand.value:
-        res = execute(mutation, add_runtime_value_to_stack(item, stack))
+        res = exec(mutation, add_runtime_value_to_stack(item, stack))
         if res:
             out.append(item)
     return RuntimeValue.of(out)
 
 
 @builtin("mapvalues", 2)
-def mapvalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+def mapvalues(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = execute(arguments[1], stack)
+    operand = exec(arguments[1], stack)
     if operand.type != RuntimeValueType.Object:
         raise Exception(f"mapvalues: {operand} is not an object")
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
-        res = execute(mutation, add_runtime_value_to_stack(value, stack))
+        res = exec(mutation, add_runtime_value_to_stack(value, stack))
         out[key] = res
     return RuntimeValue.of(out)
 
 
 @builtin("mapkeys", 2)
-def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+def mapkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = execute(arguments[1], stack)
+    operand = exec(arguments[1], stack)
     if operand.type != RuntimeValueType.Object:
         raise Exception(f"mapkeys: {operand} is not an object")
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
-        res = execute(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
+        res = exec(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
         if res.type != RuntimeValueType.String:
             raise Exception(f"mapkeys: {res} is not a string")
         out[res.value] = value
@@ -256,56 +238,56 @@ def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("filtervalues", 2)
-def filtervalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+def filtervalues(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = execute(arguments[1], stack)
+    operand = exec(arguments[1], stack)
     if operand.type != RuntimeValueType.Object:
         raise Exception(f"filtervalues: {operand} is not an object")
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
-        res = execute(mutation, add_runtime_value_to_stack(value, stack))
+        res = exec(mutation, add_runtime_value_to_stack(value, stack))
         if res:
             out[key] = value
     return RuntimeValue.of(out)
 
 
 @builtin("filterkeys", 2)
-def filterkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+def filterkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = execute(arguments[1], stack)
+    operand = exec(arguments[1], stack)
     if operand.type != RuntimeValueType.Object:
         raise Exception(f"filterkeys: {operand} is not an object")
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
-        res = execute(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
+        res = exec(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
         if res:
             out[key] = value
     return RuntimeValue.of(out)
 
 
 @builtin("find", 2)
-def find(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+def find(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
-    operand = execute(arguments[1], stack)
+    operand = exec(arguments[1], stack)
     if operand.type != RuntimeValueType.Array:
         raise Exception(f"find: {operand} is not an array")
     for item in operand.value:
-        res = execute(mutation, add_runtime_value_to_stack(item, stack))
+        res = exec(mutation, add_runtime_value_to_stack(item, stack))
         if res:
             return item
     return RuntimeValue.of(None)
 
 
 @builtin("apply", 2)
-def apply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[1], stack)
-    return execute(arguments[0], add_runtime_value_to_stack(target, stack))
+def apply(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = exec(arguments[1], stack)
+    return exec(arguments[0], add_runtime_value_to_stack(target, stack))
 
 
 def _index_double(
-    operand: RuntimeValue,
     index_one: RuntimeValue,
     index_two: RuntimeValue,
+    operand: RuntimeValue,
 ):
     if (
         operand.type == RuntimeValueType.Array
@@ -336,7 +318,7 @@ def _index_double(
         raise Exception(f"index: {operand} is not an array or string")
 
 
-def _index_single(operand: RuntimeValue, index: RuntimeValue):
+def _index_single(index: RuntimeValue, operand: RuntimeValue):
     if (
         operand.type == RuntimeValueType.Array
         or operand.type == RuntimeValueType.String
@@ -356,37 +338,35 @@ def _index_single(operand: RuntimeValue, index: RuntimeValue):
 
 
 @builtin("index", 2, 3)
-def index(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
+def index(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     if len(arguments) == 3:
         return _index_double(
-            execute(arguments[2], stack),
-            execute(arguments[0], stack),
-            execute(arguments[1], stack),
+            exec(arguments[0], stack),
+            exec(arguments[1], stack),
+            exec(arguments[2], stack),
         )
     else:
-        return _index_single(execute(arguments[1], stack), execute(arguments[0], stack))
+        return _index_single(exec(arguments[0], stack), exec(arguments[1], stack))
 
 
 @builtin("string", 1)
-def string(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    arg = execute(arguments[0], stack)
-    return RuntimeValue.of(arg.to_string())
+def string(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return RuntimeValue.of(exec(arguments[0], stack).to_string())
 
 
 @builtin("float", 1)
-def float(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    arg = execute(arguments[0], stack)
-    return RuntimeValue.of(arg.to_float())
+def float(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return RuntimeValue.of(exec(arguments[0], stack).to_float())
 
 
 @builtin("regex", 1, 2)
-def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    pattern = execute(arguments[0], stack)
+def regex(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    pattern = exec(arguments[0], stack)
     if pattern.type != RuntimeValueType.String:
         raise Exception(f"regex: {pattern} is not a string")
 
     if len(arguments) == 2:
-        flags = execute(arguments[1], stack)
+        flags = exec(arguments[1], stack)
         if flags.type != RuntimeValueType.String:
             raise Exception(f"regex: {flags} is not a string")
     else:
@@ -415,16 +395,16 @@ def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("stringjoin", 1)
-def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    arg = execute(arguments[0], stack)
+def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    arg = exec(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"stringjoin: {arg} is not an array")
     return RuntimeValue.of("".join(x.to_string() for x in arg.value))
 
 
 @builtin("sort", 1)
-def sort(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    arg = execute(arguments[0], stack)
+def sort(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    arg = exec(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"sort: {arg} is not an array")
     return RuntimeValue.of(
@@ -433,15 +413,15 @@ def sort(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("sortby", 2)
-def sortby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[1], stack)
+def sortby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = exec(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"sortby: {target} is not an array")
 
     WithKey = List[Tuple[RuntimeValue, RuntimeValue]]
     with_key: WithKey = []
     for item in target.value:
-        key = execute(arguments[0], add_runtime_value_to_stack(item, stack))
+        key = exec(arguments[0], add_runtime_value_to_stack(item, stack))
         with_key.append((key, item))
 
     def cmp(a: Tuple[RuntimeValue, RuntimeValue], b: Tuple[RuntimeValue, RuntimeValue]):
@@ -452,42 +432,41 @@ def sortby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("<", 2)
-def lt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    return execute(arguments[0], stack) < execute(arguments[1], stack)
+def lt(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return exec(arguments[0], stack) < exec(arguments[1], stack)
 
 
 @builtin("<=", 2)
-def lte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    return execute(arguments[0], stack) <= execute(arguments[1], stack)
+def lte(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return exec(arguments[0], stack) <= exec(arguments[1], stack)
 
 
 @builtin(">", 2)
-def gt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    return execute(arguments[0], stack) > execute(arguments[1], stack)
+def gt(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return exec(arguments[0], stack) > exec(arguments[1], stack)
 
 
 @builtin(">=", 2)
-def gte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    return execute(arguments[0], stack) >= execute(arguments[1], stack)
+def gte(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return exec(arguments[0], stack) >= exec(arguments[1], stack)
 
 
 @builtin("values", 1)
-def values(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[0], stack)
-    keys = target.keys()
-    values = [target.access(key) for key in keys]
+def values(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = exec(arguments[0], stack)
+    values = [target.access(key) for key in target.keys()]
     return RuntimeValue.of(values)
 
 
 @builtin("groupby", 2)
-def groupby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[1], stack)
+def groupby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = exec(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"groupby: {target} is not an array")
     mut = arguments[0]
     groups = {}
     for item in target.value:
-        key = execute(mut, add_runtime_value_to_stack(item, stack)).to_string()
+        key = exec(mut, add_runtime_value_to_stack(item, stack)).to_string()
         if key not in groups:
             groups[key] = []
         groups[key].append(item)
@@ -495,22 +474,23 @@ def groupby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("withindices", 1)
-def withindices(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[0], stack)
+def withindices(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = exec(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"withindices: {target} is not an array")
     return RuntimeValue.of(list(enumerate(target.value)))
 
 
 @builtin("entries", 1)
-def entries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[0], stack)
-    return RuntimeValue.of([[key, target.access(key)] for key in target.keys()])
+def entries(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = exec(arguments[0], stack)
+    entries = [[key, target.access(key)] for key in target.keys()]
+    return RuntimeValue.of(entries)
 
 
 @builtin("fromentries", 1)
-def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[0], stack)
+def fromentries(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = exec(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"fromentries: {target} is not an array")
     res = {}
@@ -532,9 +512,9 @@ def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("match", 2)
-def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[1], stack)
-    pattern = execute(arguments[0], stack)
+def match(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    pattern = exec(arguments[0], stack)
+    target = exec(arguments[1], stack)
     if pattern.type == RuntimeValueType.Regex:
         return RuntimeValue.of(bool(pattern.value.match(target.value)))
     elif pattern.type == RuntimeValueType.String:
@@ -544,16 +524,15 @@ def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("=~", 2)
-def match_operator(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    reversed_args = arguments[::-1]
-    return match(reversed_args, stack, execute)
+def match_operator(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    return match(arguments[::-1], stack, exec)
 
 
 @builtin("replace", 3)
-def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[2], stack)
-    pattern = execute(arguments[0], stack)
-    replacement = execute(arguments[1], stack)
+def replace(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    pattern = exec(arguments[0], stack)
+    replacement = exec(arguments[1], stack)
+    target = exec(arguments[2], stack)
     if pattern.type == RuntimeValueType.Regex:
         if pattern.modifiers["global"]:
             res = pattern.value.sub(replacement.value, target.value)
@@ -569,11 +548,11 @@ def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("split", 2)
-def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[1], stack)
+def split(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    delimiter = exec(arguments[0], stack)
+    target = exec(arguments[1], stack)
     if target.type != RuntimeValueType.String:
         raise Exception(f"split: {target} is not a string")
-    delimiter = execute(arguments[0], stack)
     if delimiter.type == RuntimeValueType.String:
         separator = delimiter.value
         if separator == "":
@@ -585,11 +564,11 @@ def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("stringjoin", 2)
-def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[1], stack)
+def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    delimiter = exec(arguments[0], stack)
+    target = exec(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"stringjoin: {target} is not an array")
-    delimiter = execute(arguments[0], stack)
     if delimiter.type != RuntimeValueType.String:
         raise Exception(f"stringjoin: {delimiter} is not a string")
     arr = [entry.to_string() for entry in target.value]
@@ -597,8 +576,8 @@ def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
 
 
 @builtin("summarize", 1)
-def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[0], stack)
+def summarize(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = exec(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"summarize: {target} is not an array")
     for entry in target.value:
@@ -631,9 +610,9 @@ def _sequence_helper(arr: List[List[bool]], start=0) -> List[List[int]]:
 
 
 @builtin("sequence", 2, -1)
-def sequence(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    target = execute(arguments[-1], stack)
+def sequence(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     predicates = arguments[:-1]
+    target = exec(arguments[-1], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"sequence: {target} is not an array")
     bitmasks: List[List[bool]] = []
@@ -641,7 +620,7 @@ def sequence(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         bitmask = []
         for i in range(len(target.value)):
             item = target.value[i]
-            value = execute(predicate, add_runtime_value_to_stack(item, stack))
+            value = exec(predicate, add_runtime_value_to_stack(item, stack))
             bitmask.append(value.truthy())
         bitmasks.append(bitmask)
     indices_map = _sequence_helper(bitmasks)
