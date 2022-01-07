@@ -1,4 +1,4 @@
-from typing import List, Dict, Callable, Tuple
+from typing import List, Dict, Callable, Tuple, Union
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
 from mistql.expression import Expression
 from mistql.stack import Stack
@@ -16,50 +16,57 @@ FunctionDefinitionType = Callable[
     RuntimeValue,
 ]
 
+def arity(min_args: int, max_args: Union[None, int] = None):
+    if max_args is None:
+        max_args = min_args
+    def arity_decorator(fn: FunctionDefinitionType) -> FunctionDefinitionType:
+        def wrapped(arguments: Args, stack: Stack, execute: Exec):
+            if not min_args < 0 and len(arguments) < min_args:
+                # TODO: The name of this function is not as represented here.
+                raise Exception(f"{fn.__name__} takes at least {min_args} arguments")
+            if not max_args < 0 and len(arguments) > max_args:
+                raise Exception(f"{fn.__name__} takes at most {max_args} arguments")
+            return fn(arguments, stack, execute)
+        return wrapped
+    return arity_decorator
 
+
+@arity(1)
 def log(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("log takes one argument")
     res = execute(arguments[0], stack)
     print(res)
     return res
 
 
+@arity(1)
 def reverse(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("reverse takes one argument")
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"reverse takes an array, got {arg}")
     return RuntimeValue.of(list(reversed(arg.value)))
 
 
+@arity(1)
 def unary_minus(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("unary minus takes one argument")
     res = execute(arguments[0], stack)
     if res.type != RuntimeValueType.Number:
         raise Exception(f"unary_minus takes a number, got {res}")
     return RuntimeValue.of(-res.value)
 
 
+@arity(1)
 def unary_not(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("unary not takes one argument")
     res = execute(arguments[0], stack)
     return RuntimeValue.of(not res)
 
-
+@arity(3)
 def if_else(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 3:
-        raise Exception("if takes three arguments")
-    condition = execute(arguments[0], stack)
-    if condition:
+    if execute(arguments[0], stack):
         return execute(arguments[1], stack)
     else:
         return execute(arguments[2], stack)
 
-
+@arity(2)
 def add(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("add takes two arguments")
@@ -76,6 +83,7 @@ def add(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     raise Exception(f"add: {left.type} is not supported")
 
 
+@arity(2)
 def subtract(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("subtract takes two arguments")
@@ -86,6 +94,7 @@ def subtract(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(left.value - right.value)
 
 
+@arity(2)
 def multiply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("multiply takes two arguments")
@@ -96,6 +105,7 @@ def multiply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(left.value * right.value)
 
 
+@arity(2)
 def divide(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("divide takes two arguments")
@@ -106,9 +116,8 @@ def divide(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(left.value / right.value)
 
 
+@arity(2)
 def mod(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("mod takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
     if left.type != RuntimeValueType.Number or right.type != RuntimeValueType.Number:
@@ -116,25 +125,21 @@ def mod(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(left.value % right.value)
 
 
+@arity(2)
 def eq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("eq takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
     return left == right
 
-
+@arity(2)
 def neq(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("neq takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
     return left != right
 
 
+@arity(2)
 def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("and takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
     if left:
@@ -143,9 +148,8 @@ def and_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         return left
 
 
+@arity(2)
 def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("or takes two arguments")
     left = execute(arguments[0], stack)
     right = execute(arguments[1], stack)
     if left:
@@ -154,22 +158,21 @@ def or_fn(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         return right
 
 
+@arity(1)
 def count(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("count takes one argument")
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"count: {arg} is not an array")
     return RuntimeValue.of(len(arg.value))
 
 
+@arity(1)
 def keys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("keys takes one argument")
     arg = execute(arguments[0], stack)
     return RuntimeValue.of(arg.keys())
 
 
+@arity(2)
 def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     if len(arguments) != 2:
         raise Exception("dot takes two arguments")
@@ -180,9 +183,8 @@ def dot(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return left.access(right.name)
 
 
+@arity(2)
 def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("map takes two arguments")
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
     if operand.type != RuntimeValueType.Array:
@@ -194,9 +196,8 @@ def map(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
+@arity(3)
 def reduce(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 3:
-        raise Exception("reduce takes three arguments")
     initial = execute(arguments[1], stack)
     mutation = arguments[0]
     operand = execute(arguments[2], stack)
@@ -209,9 +210,8 @@ def reduce(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return out
 
 
+@arity(2)
 def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("filter takes two arguments")
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
     if operand.type != RuntimeValueType.Array:
@@ -224,9 +224,8 @@ def filter(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
+@arity(2)
 def mapvalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("mapvalues takes two arguments")
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
     if operand.type != RuntimeValueType.Object:
@@ -238,9 +237,8 @@ def mapvalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
+@arity(2)
 def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("mapkeys takes two arguments")
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
     if operand.type != RuntimeValueType.Object:
@@ -254,9 +252,8 @@ def mapkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
+@arity(2)
 def filtervalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("filtervalues takes two arguments")
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
     if operand.type != RuntimeValueType.Object:
@@ -269,9 +266,8 @@ def filtervalues(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
+@arity(2)
 def filterkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("filterkeys takes two arguments")
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
     if operand.type != RuntimeValueType.Object:
@@ -284,9 +280,8 @@ def filterkeys(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(out)
 
 
+@arity(2)
 def find(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("find takes two arguments")
     mutation = arguments[0]
     operand = execute(arguments[1], stack)
     if operand.type != RuntimeValueType.Array:
@@ -298,9 +293,8 @@ def find(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(None)
 
 
+@arity(2)
 def apply(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("apply takes two arguments")
     target = execute(arguments[1], stack)
     return execute(arguments[0], add_runtime_value_to_stack(target, stack))
 
@@ -358,9 +352,8 @@ def _index_single(operand: RuntimeValue, index: RuntimeValue):
         return operand.access(index.to_string())
 
 
+@arity(2, 3)
 def index(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) not in {2, 3}:
-        raise Exception("index takes two to three arguments")
     if len(arguments) == 3:
         return _index_double(
             execute(arguments[2], stack),
@@ -371,23 +364,20 @@ def index(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         return _index_single(execute(arguments[1], stack), execute(arguments[0], stack))
 
 
+@arity(1)
 def string(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("string takes one argument")
     arg = execute(arguments[0], stack)
     return RuntimeValue.of(arg.to_string())
 
 
+@arity(1)
 def float(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("float takes one argument")
     arg = execute(arguments[0], stack)
     return RuntimeValue.of(arg.to_float())
 
 
+@arity(1, 2)
 def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) not in {1, 2}:
-        raise Exception("regex takes one to two arguments")
     pattern = execute(arguments[0], stack)
     if pattern.type != RuntimeValueType.String:
         raise Exception(f"regex: {pattern} is not a string")
@@ -421,18 +411,16 @@ def regex(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     )
 
 
+@arity(1)
 def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("stringjoin takes one argument")
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"stringjoin: {arg} is not an array")
     return RuntimeValue.of("".join(x.to_string() for x in arg.value))
 
 
+@arity(1)
 def sort(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("sort takes one argument")
     arg = execute(arguments[0], stack)
     if arg.type != RuntimeValueType.Array:
         raise Exception(f"sort: {arg} is not an array")
@@ -441,9 +429,8 @@ def sort(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     )
 
 
+@arity(2)
 def sortby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("sortby takes two arguments")
     target = execute(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"sortby: {target} is not an array")
@@ -461,42 +448,36 @@ def sortby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of([value for key, value in post_sort])
 
 
+@arity(2)
 def lt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("lt takes two arguments")
     return execute(arguments[0], stack) < execute(arguments[1], stack)
 
 
+@arity(2)
 def lte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("lte takes two arguments")
     return execute(arguments[0], stack) <= execute(arguments[1], stack)
 
 
+@arity(2)
 def gt(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("gt takes two arguments")
     return execute(arguments[0], stack) > execute(arguments[1], stack)
 
 
+@arity(2)
 def gte(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("gte takes two arguments")
     return execute(arguments[0], stack) >= execute(arguments[1], stack)
 
 
+@arity(1)
 def values(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("values takes one argument")
     target = execute(arguments[0], stack)
     keys = target.keys()
     values = [target.access(key) for key in keys]
     return RuntimeValue.of(values)
 
 
+@arity(2)
 def groupby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("groupby takes two arguments")
     target = execute(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"groupby: {target} is not an array")
@@ -510,25 +491,22 @@ def groupby(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(groups)
 
 
+@arity(1)
 def withindices(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("withindices takes one argument")
     target = execute(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"withindices: {target} is not an array")
     return RuntimeValue.of(list(enumerate(target.value)))
 
 
+@arity(1)
 def entries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("entries takes one argument")
     target = execute(arguments[0], stack)
     return RuntimeValue.of([[key, target.access(key)] for key in target.keys()])
 
 
+@arity(1)
 def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("fromentries takes one argument")
     target = execute(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"fromentries: {target} is not an array")
@@ -550,9 +528,8 @@ def fromentries(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(res)
 
 
+@arity(2)
 def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("match takes two arguments")
     target = execute(arguments[1], stack)
     pattern = execute(arguments[0], stack)
     if pattern.type == RuntimeValueType.Regex:
@@ -563,16 +540,14 @@ def match(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"match: {target} is not a string or regex")
 
 
+@arity(2)
 def match_operator(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("match takes two arguments")
     reversed_args = arguments[::-1]
     return match(reversed_args, stack, execute)
 
 
+@arity(3)
 def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 3:
-        raise Exception("replace takes three arguments")
     target = execute(arguments[2], stack)
     pattern = execute(arguments[0], stack)
     replacement = execute(arguments[1], stack)
@@ -590,9 +565,8 @@ def replace(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
         raise Exception(f"replace: {target} is not a string or regex")
 
 
+@arity(2)
 def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("split takes two arguments")
     target = execute(arguments[1], stack)
     if target.type != RuntimeValueType.String:
         raise Exception(f"split: {target} is not a string")
@@ -607,9 +581,8 @@ def split(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     raise Exception(f"split: {delimiter} is not a string or regex")
 
 
+@arity(2)
 def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 2:
-        raise Exception("stringjoin takes two arguments")
     target = execute(arguments[1], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"stringjoin: {target} is not an array")
@@ -620,9 +593,8 @@ def stringjoin(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
     return RuntimeValue.of(delimiter.value.join(arr))
 
 
+@arity(1)
 def summarize(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) != 1:
-        raise Exception("summarize takes one argument")
     target = execute(arguments[0], stack)
     if target.type != RuntimeValueType.Array:
         raise Exception(f"summarize: {target} is not an array")
@@ -655,9 +627,8 @@ def _sequence_helper(arr: List[List[bool]], start=0) -> List[List[int]]:
     return result
 
 
+@arity(2, -1)
 def sequence(arguments: Args, stack: Stack, execute: Exec) -> RuntimeValue:
-    if len(arguments) < 2:
-        raise Exception("sequence takes at least two arguments")
     target = execute(arguments[-1], stack)
     predicates = arguments[:-1]
     if target.type != RuntimeValueType.Array:
