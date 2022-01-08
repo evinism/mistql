@@ -133,9 +133,9 @@ export default function HomepageFeatures() {
             JMESPath and MistQL are similar in scope, but MistQL provides more
             out of the box, including arithmetic operations and regexes. A goal
             of MistQL is to not simply be a query language, but a language for
-            defining ANY computation on a JSON-like object. One of the major
-            driving factors behind MistQL is the fact that JMESPath isn't able
-            to capture many of the key operations that MistQL provides.
+            defining a broad set of computations on a JSON-like object. One of 
+            the major driving factors behind MistQL is the fact that JMESPath 
+            isn't able to capture many of the key operations that MistQL provides.
           </p>
           <p>
             JMESPath, however, has excellent cross-language support, whereas
@@ -150,12 +150,6 @@ export default function HomepageFeatures() {
             work better for you. If JSONLogic isn't expressive enough, or
             readability of JSONLogic becomes difficult, then MistQL will
             probably work better.
-          </p>
-          <h3 className="text--center">Emuto</h3>
-          <p>
-            Emuto and MistQL have similar scopes, however Emuto lacks a number
-            of features that mistql provides out of the box, including regexes
-            and a large standard library.
           </p>
           <h3 className="text--center">jq</h3>
           <p>
