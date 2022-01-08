@@ -853,6 +853,71 @@
       "describe": "builtins",
       "cases": [
         {
+          "describe": "#count",
+          "cases": [
+            {
+              "it": "counts the number of items in an array",
+              "assertions": [
+                {
+                  "query": "count [1, 2, 3]",
+                  "data": null,
+                  "expected": 3
+                },
+                {
+                  "query": "count [1, 2, 3, 4]",
+                  "data": null,
+                  "expected": 4
+                },
+                {
+                  "query": "count []",
+                  "data": null,
+                  "expected": 0
+                },
+                {
+                  "query": "count [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
+                  "data": null,
+                  "expected": 10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "describe": "#sum",
+          "cases": [
+            {
+              "it": "sums the items in an array",
+              "assertions": [
+                {
+                  "query": "sum []",
+                  "data": null,
+                  "expected": 0
+                },
+                {
+                  "query": "sum [1, 2, 3]",
+                  "data": null,
+                  "expected": 6
+                },
+                {
+                  "query": "sum [1, 2, 3, 4]",
+                  "data": null,
+                  "expected": 10
+                },
+                {
+                  "query": "sum [1, 2, 3, \"4\"]",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "sum {}",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            }
+          ]
+        },
+        {
           "describe": "#map",
           "cases": [
             {
