@@ -221,8 +221,7 @@ def mapkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     out: Dict[str, RuntimeValue] = {}
     for key, value in operand.value.items():
         res = exec(mutation, add_runtime_value_to_stack(RuntimeValue.of(key), stack))
-        assert_type(res, RVT.String)
-        out[res.value] = value
+        out[res.to_string()] = value
     return RuntimeValue.of(out)
 
 

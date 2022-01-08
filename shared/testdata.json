@@ -1027,6 +1027,20 @@
                   }
                 }
               ]
+            },
+            {
+              "it": "casts new keys to strings",
+              "assertions": [
+                {
+                  "query": "mapkeys {key: [@ + \"suffix\"]} { \"a\": 1, \"b\": 2, \"c\": 3 }",
+                  "data": {},
+                  "expected": {
+                    "{\"key\":[\"asuffix\"]}": 1,
+                    "{\"key\":[\"bsuffix\"]}": 2,
+                    "{\"key\":[\"csuffix\"]}": 3
+                  }
+                }
+              ]
             }
           ]
         },
