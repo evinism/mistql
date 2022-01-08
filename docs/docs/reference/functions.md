@@ -169,6 +169,32 @@ Result:
 { fruit: "banana", score: 4},
 ```
 
+### `flatten`
+
+| Arity | Parameter 1 Type  | Return Type |
+| ----- | ----------------- | ----------- |
+| 1     | `array<array<t>>` | `array<t>`  |
+
+Flattens a doubly nested array into a singly nested array.
+
+#### Example
+
+Query:
+
+```
+[
+  [1, 2, 3],
+  [4, 5],
+  [6, 7]
+] | flatten
+```
+
+Result:
+
+```
+[1, 2, 3, 4, 5, 6, 7]
+```
+
 ### `float`
 
 | Arity | Parameter Type | Return Type |
