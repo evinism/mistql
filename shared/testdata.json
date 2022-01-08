@@ -139,6 +139,36 @@
                   "query": "-30.5",
                   "data": null,
                   "expected": -30.5
+                },
+                {
+                  "query": "-30.5e-2",
+                  "data": null,
+                  "expected": -0.305
+                },
+                {
+                  "query": "4.9E-50",
+                  "data": null,
+                  "expected": 4.9E-50
+                },
+                {
+                  "query": "4.9E50",
+                  "data": null,
+                  "expected": 4.9E50
+                },
+                {
+                  "query": "0.9",
+                  "data": null,
+                  "expected": 0.9
+                },
+                {
+                  "query": "0.9.5",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "0.0.5",
+                  "data": null,
+                  "throws": true
                 }
               ]
             },
@@ -687,6 +717,16 @@
                   "query": "float \"1.1\"",
                   "data": null,
                   "expected": 1.1
+                },
+                {
+                  "query" : "float \"1.1e1\"",
+                  "data": null,
+                  "expected": 11
+                },
+                {
+                  "query" : "float \"1.1e-1\"",
+                  "data": null,
+                  "expected": 0.11
                 }
               ]
             },
