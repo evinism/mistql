@@ -61,7 +61,7 @@ export default function HomepageFeatures() {
       <section className={styles.tada}>
         <div className="text--center padding-horiz--md">
           <h3> 🎉🎉🎉 New: MistQL 0.4.4 now supports Python! 🎉🎉🎉</h3>
-          <p>You can visit <a href="docs/intro">getting started</a> page to begin!</p>
+          <p>You can visit the <a href="docs/intro">getting started</a> page to begin!</p>
         </div>
       </section>
       <section className={styles.features}>
