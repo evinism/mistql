@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Any, Callable, Dict, Union, Set
 import json
+import re
 
 from mistql.exceptions import MistQLTypeError
 
@@ -18,6 +19,36 @@ class RuntimeValueType(Enum):
     Array = "array"
     Function = "function"
     Regex = "regex"
+
+
+
+# String formatting algorithm
+# Passes tests but is also super gross
+UPPER_NUM_FORMATTING_BREAKPOINT = 1e21
+LOWER_NUM_FORMATTING_BREAKPOINT = 1e-7
+MAX_SAFE_INT = 2 ** 53 - 1
+
+
+e_zero_regex = re.compile(r"e-0+")
+
+
+def format_number(value: float) -> str:
+    if (
+        value < UPPER_NUM_FORMATTING_BREAKPOINT
+        and value >= MAX_SAFE_INT
+    ):
+        return str(int(value))
+    elif value < UPPER_NUM_FORMATTING_BREAKPOINT and value == int(value):
+        return str(int(value))
+    elif value < 1 and value <= LOWER_NUM_FORMATTING_BREAKPOINT:
+        formatted = str(value)
+        return e_zero_regex.sub("e-", formatted)
+    elif value < 1:
+        formatted = "{:.16f}".format(value)
+        formatted = formatted.rstrip("0")
+        return str(formatted)
+    else:
+        return json.dumps(value)
 
 
 class RuntimeValue:
@@ -248,8 +279,8 @@ class RuntimeValue:
         """
         if self.type == RuntimeValueType.String:
             return self.value
-        elif self.type == RuntimeValueType.Number and self.value == int(self.value):
-            return str(int(self.value))
+        elif self.type == RuntimeValueType.Number:
+            return format_number(self.value)
         else:
             return self.to_json()
 
