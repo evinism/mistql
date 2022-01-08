@@ -67,3 +67,6 @@ commands:
         doc: Publish the JS subproject
         shell:
           "cd py && poetry publish"
+  - name: docs
+    doc: Serves the docs site locally
+    shell: (cd docs && yarn run start)
