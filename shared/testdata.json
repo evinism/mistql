@@ -497,6 +497,96 @@
                   "query": "string 1.0",
                   "data": null,
                   "expected": "1"
+                },
+                {
+                  "query": "string @",
+                  "data": 1.593934,
+                  "expected": "1.593934"
+                },
+                {
+                  "query": "string @",
+                  "data": 1e50,
+                  "expected": "1e+50"
+                },
+                {
+                  "query": "string @",
+                  "data": 3.284381e50,
+                  "expected": "3.284381e+50"
+                },
+                {
+                  "query": "string @",
+                  "data": 1e-50,
+                  "expected": "1e-50"
+                },
+                {
+                  "query": "string @",
+                  "data": 4.81429127e-50,
+                  "expected": "4.81429127e-50"
+                },
+                {
+                  "query": "string @",
+                  "data": 3.141592653589793238462643383279502884197169399375105820974944e50,
+                  "expected": "3.1415926535897932e+50"
+                },
+                {
+                  "query": "string @",
+                  "data": 3.141592653589793238462643383279502884197169399375105820974944,
+                  "expected": "3.141592653589793"
+                },
+                {
+                  "query": "string @",
+                  "data": 1e-6,
+                  "expected": "0.000001"
+                },
+                {
+                  "query": "string @",
+                  "data": 1e-7,
+                  "expected": "1e-7"
+                },
+                {
+                  "query": "string @",
+                  "data": 3e20,
+                  "expected": "300000000000000000000"
+                },
+                {
+                  "query": "string @",
+                  "data": 3e21,
+                  "expected": "3e+21"
+                },
+                {
+                  "query": "string @",
+                  "data": 4503599627370495.5,
+                  "expected": "4503599627370495.5"
+                },
+                {
+                  "query": "string @",
+                  "data": 4503599627370496,
+                  "expected": "4503599627370496"
+                },
+                {
+                  "query": "string @",
+                  "data": 4503599627370496.5,
+                  "expected": "4503599627370496"
+                },
+                {
+                  "query": "string @",
+                  "data": 9007199254740991,
+                  "expected": "9007199254740991"
+                },
+                {
+                  "query": "string @",
+                  "data": 9007199254740992,
+                  "expected": "9007199254740992"
+                },
+                {
+                  "query": "string @",
+                  "data": 9007199254740994,
+                  "expected": "9007199254740994"
+                },
+                {
+                  "query": "string @",
+                  "data": 9007199254740995,
+                  "expected": "9007199254740996"
                 }
               ]
             },
