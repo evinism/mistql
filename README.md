@@ -1,6 +1,13 @@
 # MistQL: Query language for JSON-like structures
-
 ![mistql logo](https://www.mistql.com/assets/images/icon128-020f567a30894a6c26227dc6773d3406.png)
+
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/evinism/mistql/blob/main/LICENSE) 
+![Python](https://github.com/evinism/mistql/actions/workflows/python.yml/badge.svg) 
+![Node.js](https://github.com/evinism/mistql/actions/workflows/node.js.yml/badge.svg) 
+[![npm version](https://img.shields.io/npm/v/mistql.svg?style=flat)](https://www.npmjs.com/package/mistql)
+[![npm version](https://img.shields.io/pypi/v/mistql.svg?style=flat)](https://pypi.org/project/mistql/)
+
+
 
 MistQL is a miniature embeddable query language for JSON-like structures, built for embedding within applications. It supports
 logic for querying and manipulating JSON-like data in a simple, readable manner.
