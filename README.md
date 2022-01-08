@@ -41,9 +41,12 @@ Code contributions to MistQL should roughly follow standard open source workflow
 
 ### MistQL standard
 
-No MistQL standard yet exists, but we're aiming for the `0.5.0` release of `mistql` on npm as a standardizable language. After the `0.5.0` release, we will create a language specification, separate from any implementation. As part of that initiative, a language-independent test suite will be developed, such that we can develop for any environment, ensuring cross-implementation compliance to the specification.
+No MistQL standard yet exists, but we're aiming for the `0.5.0` release of `mistql` on npm as a standardizable language. After the `0.5.0` release, we will create a language specification, separate from any implementation. 
 
-From that point, we're aiming to develop a python implementation, followed by a ruby implementation. Other implementations will be gladly welcomed.
+In the meantime, our language-independent test suite is rather extensive and forms the de-facto
+standard, as shared by both Python and JavaScript. While not formalized, the tests and the docs
+together form a cohesive body of behaviors, that, except for a few minute details, is of sufficient
+detail to be standardized.
 
 ## Directory Structure
 
