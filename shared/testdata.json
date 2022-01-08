@@ -471,6 +471,206 @@
               ]
             }
           ]
+        },
+        {
+          "describe": "casting tables",
+          "cases": [
+            {
+              "it": "casts strings to strings",
+              "assertions": [
+                {
+                  "query": "\"hello\"",
+                  "data": null,
+                  "expected": "hello"
+                }
+              ]
+            },
+            {
+              "it": "casts numbers to strings correctly",
+              "assertions": [
+                {
+                  "query": "string 1",
+                  "data": null,
+                  "expected": "1"
+                },
+                {
+                  "query": "string 1.0",
+                  "data": null,
+                  "expected": "1"
+                }
+              ]
+            },
+            {
+              "it": "casts bools to strings correctly",
+              "assertions": [
+                {
+                  "query": "string true",
+                  "data": null,
+                  "expected": "true"
+                },
+                {
+                  "query": "string false",
+                  "data": null,
+                  "expected": "false"
+                }
+              ]
+            },
+            {
+              "it": "casts null to string correctly",
+              "assertions": [
+                {
+                  "query": "string null",
+                  "data": null,
+                  "expected": "null"
+                }
+              ]
+            },
+            {
+              "it": "casts objects to string as json",
+              "assertions": [
+                {
+                  "query": "string {a: 1}",
+                  "data": null,
+                  "expected": "{\"a\":1}"
+                },
+                {
+                  "query": "string {a: 1, b: \"2\"}",
+                  "data": null,
+                  "expected": "{\"a\":1,\"b\":\"2\"}"
+                },
+                {
+                  "query": "string {a: 1, b: {c: 2}}",
+                  "data": null,
+                  "expected": "{\"a\":1,\"b\":{\"c\":2}}"
+                }
+              ]
+            },
+            {
+              "it": "casts arrays to string as json",
+              "assertions": [
+                {
+                  "query": "string [1]",
+                  "data": null,
+                  "expected": "[1]"
+                },
+                {
+                  "query": "string [1, 2]",
+                  "data": null,
+                  "expected": "[1,2]"
+                },
+                {
+                  "query": "string [1, {a: 2}]",
+                  "data": null,
+                  "expected": "[1,{\"a\":2}]"
+                }
+              ]
+            },
+            {
+              "it": "fails to cast functions and regexes",
+              "assertions": [
+                {
+                  "query": "string filter",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "string (regex \"hi\")",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "casts strings to floats",
+              "assertions": [
+                {
+                  "query": "float \"1\"",
+                  "data": null,
+                  "expected": 1
+                },
+                {
+                  "query": "float \"1.0\"",
+                  "data": null,
+                  "expected": 1
+                },
+                {
+                  "query": "float \"1.1\"",
+                  "data": null,
+                  "expected": 1.1
+                }
+              ]
+            },
+            {
+              "it": "casts floats to floats",
+              "assertions": [
+                {
+                  "query": "float 1",
+                  "data": null,
+                  "expected": 1
+                },
+                {
+                  "query": "float 1.0",
+                  "data": null,
+                  "expected": 1
+                },
+                {
+                  "query": "float 1.1",
+                  "data": null,
+                  "expected": 1.1
+                }
+              ]
+            },
+            {
+              "it": "casts bools to floats",
+              "assertions": [
+                {
+                  "query": "float true",
+                  "data": null,
+                  "expected": 1
+                },
+                {
+                  "query": "float false",
+                  "data": null,
+                  "expected": 0
+                }
+              ]
+            },
+            {
+              "it": "casts null to float",
+              "assertions": [
+                {
+                  "query": "float null",
+                  "data": null,
+                  "expected": 0
+                }
+              ]
+            },
+            {
+              "it": "fails to cast functions, regexes, objects, and arrays to floats ",
+              "assertions": [
+                {
+                  "query": "float filter",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "float (regex \"hi\")",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "float {a: 1}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "float [1]",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            }
+          ]
         }
       ]
     },

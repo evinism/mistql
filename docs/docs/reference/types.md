@@ -35,3 +35,19 @@ data types, they are considered unequal.
 | array    | Deep equality      | `false` if empty, `true` otherwise |
 | function | Referential        | `true`                             |
 | regex    | On source and flag | `true`                             |
+
+
+## Casting Tables
+
+MistQL defines casting from some types to other types
+
+| Type     | Cast to Float               | Cast To String                                     |
+| -------- | --------------------------- | -------------------------------------------------- |
+| string   | Parsed as base 10 float. If not base 10 float, behavior is undefined | noop      |
+| number   | noop | As base 10 float. If number is an integer, no trailing digits or decimal. |
+| boolean  | 1 for `true`, 0 for `false` | `"true"` for `true`, `"false"` for `false`         |
+| null     | 0                           | `"null"`                                           |
+| object   | Throws error                | Concise JSON, recursively converting items         |
+| array    | Throws error                | Concise JSON, recursively converting items         |
+| function | Throws error                | Throws error                                       |
+| regex    | Throws error                | Throws error                                       |
