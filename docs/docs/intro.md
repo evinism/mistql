@@ -16,15 +16,30 @@ The JavaScript implementation of MistQL is installed via the following:
 npm install --save mistql
 ```
 
+The Python implementation of MistQL is installed via the following:
+
+```shell
+pip install mistql
+```
+
 ## Code usage
 
-MistQL can be interacted with programatically:
+MistQL's primary interface is through programatic access:
 
 ```js
+// JavaScript
 import mistql from 'mistql';
 
 const query = 'events | filter type == "purchase" | groupby email | keys';
 const purchaserEmails = mistql.query(query, data);
+```
+
+```py
+# Python
+import mistql
+
+query = 'events | filter type == "purchase" | groupby email | keys'
+purchaserEmails = mistql.query(query, data)
 ```
 
 ## Command line usage
