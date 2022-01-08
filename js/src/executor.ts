@@ -75,6 +75,7 @@ const executeInner: ExecutionFunction = (
       return executeApplication(statement, stack);
     case "pipeline":
       let last: RuntimeValue = executeInner(statement.stages[0], stack);
+      let newStack = stack;
       for (let i = 1; i < statement.stages.length; i++) {
         const stage = statement.stages[i];
         let app: ASTApplicationExpression;
@@ -92,7 +93,8 @@ const executeInner: ExecutionFunction = (
             arguments: [atRef],
           };
         }
-        last = executeApplication(app, pushRuntimeValueToStack(last, stack));
+        newStack = pushRuntimeValueToStack(last, newStack)
+        last = executeApplication(app, pushRuntimeValueToStack(last, newStack));
       }
       return last;
   }

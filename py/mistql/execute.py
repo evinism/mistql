@@ -33,9 +33,10 @@ def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
     first: Expression = stages[0]
     remaining: List[Expression] = stages[1:]
     data = execute(first, stack)
+    new_stack = stack
 
     for stage_ast in remaining:
-        new_stack = add_runtime_value_to_stack(data, stack)
+        new_stack = add_runtime_value_to_stack(data, new_stack)
         fn: Expression
         args: List[Expression]
         if isinstance(stage_ast, FnExpression):
