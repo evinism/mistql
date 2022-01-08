@@ -27,15 +27,15 @@ Binary operators make up the vast majority of MistQL's operators.
 |`*`| `number` | `number` | Multiplies 2 numbers |
 |`/`| `number` | `number` | Divides one number by another |
 |`%`| `number` | `number` | Computes `a mod b`|
-|`<`| `number` or `string` | `number` or `string` | Less Than |
-|`>`| `number` or `string` | `number` or `string` | Greater Than |
-|`<=`| `number` or `string` | `number` or `string` | Less Than or Equal |
-|`>=`| `number` or `string` | `number` or `string` | Greater Than or Equal |
+|`<`| `number`, `string`, `boolean` or `null` | `boolean` | Less Than |
+|`>`| `number`, `string`, `boolean` or `null` | `boolean` | Greater Than |
+|`<=`| `number`, `string`, `boolean` or `null` | `boolean` | Less Than or Equal |
+|`>=`| `number`, `string`, `boolean` or `null` | `boolean` | Greater Than or Equal |
 |`==`| `any` | `boolean` | Whether two values are equivalent |
 |`!=`| `any` | `boolean` | Whether two values are not equivalent |
 |`=~`| `string` or `regex` | `boolean` | Whether the left hand value matches the right hand pattern. Alias for `match`. |
-|`&&`| `any` | `boolean` | Returns the first if the first is falsy, the second otherwiseotherwise. |
-|`\|\|`| `any` | `boolean` | Returns the first if the first is truthy, the second otherwise. NOTE: The backslashes aren't necessary. I just can't figure out how to format it properly for Docusaurus. |
+|`&&`| `t` | `t` | Returns the first if the first is falsy, the second otherwiseotherwise. |
+|`\|\|`| `t` | `t` | Returns the first if the first is truthy, the second otherwise. NOTE: The backslashes aren't necessary. I just can't figure out how to format it properly for Docusaurus. |
 
 
 ## Operator precedence and associativity
