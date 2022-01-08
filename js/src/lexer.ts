@@ -27,7 +27,7 @@ const vaccumsWhitespace = (token: string, direction: "l" | "r") => {
 const refStarter = /[a-zA-Z_]/;
 const refContinuer = /[a-zA-Z_0-9]/;
 const numStarter = /[0-9]/;
-const numContinuer = /[0-9\.]/;
+const numIsValid = /^(0|([1-9][0-9]*))(\.[0-9]+)?([eE][+-]?[0-9]+)?/;
 const whitespace = /\s/;
 
 export function lex(raw: string): LexToken[] {
@@ -38,15 +38,15 @@ export function lex(raw: string): LexToken[] {
     const position = i;
     let buffer = split[i];
     if (numStarter.test(buffer || "")) {
-      while (numContinuer.test(split[i + 1] || "")) {
-        i++;
-        buffer += split[i];
-      }
+      const sliced = raw.substring(i);
+      const matched = sliced.match(numIsValid);
+      const [res] = matched;
       tokens.push({
         token: "value",
-        value: parseFloat(buffer),
+        value: parseFloat(res),
         position,
       });
+      i += res.length - 1;
     } else if (whitespace.test(buffer || "")) {
       while (whitespace.test(split[i + 1])) {
         i++;
