@@ -18,20 +18,22 @@ const FeatureList = [
     //Svg: require('../../static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        MistQL has 0 dependencies and is hand-tuned for size. At 5.3kB gzipped,
-        MistQL is specifically built to be embedded in size-restricted
+        MistQL's NPM implementation has 0 dependencies and is hand-tuned for size. 
+        At 5.5kB gzipped, MistQL is specifically built to be embedded in size-restricted
         frontends.
       </>
     ),
   },
   {
-    title: "Secure by Design",
+    title: "Frontend ⇆ Backend",
     //Svg: require('../../static/img/undraw_docusaurus_react.svg').default,
 
     description: (
       <>
-        Queries in MistQL operate solely on the data you provide to it. You can
-        run untrusted MistQL in your browser without risk of XSS.
+        MistQL has both a JavaScript and Python implementation,
+        and can be used in both clientside and serverside. Sharing
+        functions between your frontend and your backend has 
+        never been easier!
       </>
     ),
   },
@@ -56,6 +58,12 @@ function Feature({ Svg, title, description }) {
 export default function HomepageFeatures() {
   return (
     <>
+      <section className={styles.tada}>
+        <div className="text--center padding-horiz--md">
+          <h3> 🎉🎉🎉 New: MistQL 0.4.4 now supports Python! 🎉🎉🎉</h3>
+          <p>You can visit <a href="docs/intro">getting started</a> page to begin!</p>
+        </div>
+      </section>
       <section className={styles.features}>
         <div className="container">
           <div className="row">
@@ -140,8 +148,8 @@ export default function HomepageFeatures() {
           <p>
             JMESPath, however, has excellent cross-language support, whereas
             MistQL (for the time being) does not. If cross-language support is
-            important, JMESPath might be your best bet, as MistQL doesn't yet
-            have implementations in multiple languages.
+            important, JMESPath might be your best bet, as MistQL only supports
+            Python and JavaScript.
           </p>
           <h3 className="text--center">JSONLogic</h3>
           <p>

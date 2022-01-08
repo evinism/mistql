@@ -27,3 +27,8 @@
   text-align: center;
   display: block;
 }
+
+.tada {
+  padding: 2rem 0;
+  background-color: #f5f5f5;
+}
