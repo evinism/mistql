@@ -1060,6 +1060,76 @@
           ]
         },
         {
+          "describe": "#flatten",
+          "cases": [
+            {
+              "it": "handles empty arrays",
+              "assertions": [
+                {
+                  "query": "flatten []",
+                  "data": null,
+                  "expected": []
+                },
+                {
+                  "query": "flatten [[]]",
+                  "data": null,
+                  "expected": []
+                },
+                {
+                  "query": "flatten [[], [], []]",
+                  "data": null,
+                  "expected": []
+                },
+                {
+                  "query": "flatten [[], [[]], [[]]]",
+                  "data": null,
+                  "expected": [[], []]
+                }
+              ]
+            },
+            {
+              "it": "flattens arrays",
+              "assertions": [
+                {
+                  "query": "flatten [[1, 2], [3, 4]]",
+                  "data": null,
+                  "expected": [
+                    1,
+                    2,
+                    3,
+                    4
+                  ]
+                }
+              ]
+            },
+            {
+              "it": "fails when trying to flatten non-arrays",
+              "assertions": [
+                {
+                  "query": "flatten 1",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "flatten \"hi\"",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "flatten {}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "flatten [1, 2, 3]",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            }
+          ]
+        },
+        {
           "describe": "#mapvalues",
           "cases": [
             {

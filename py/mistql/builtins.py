@@ -574,3 +574,12 @@ def sequence(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     return RuntimeValue.of(result)
 
 
+@builtin("flatten", 1)
+def flatten(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = assert_type(exec(arguments[0], stack), RVT.Array)
+    result: List[RuntimeValue] = []
+    for entry in target.value:
+        result.extend(assert_type(entry, RVT.Array).value)
+    return RuntimeValue.of(result)
+
+
