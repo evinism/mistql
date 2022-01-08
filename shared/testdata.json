@@ -499,6 +499,26 @@
                   "expected": "barbar"
                 }
               ]
+            },
+            {
+              "it": "lets the first stage propagate keys to the next pipe segment",
+              "assertions": [
+                {
+                  "query": "{key: 1} | if key == 1 2",
+                  "data": null,
+                  "expected": 2
+                }
+              ]
+            },
+            {
+              "it": "doesnt propagate keys to the third pipe segment from the first",
+              "assertions": [
+                {
+                  "query": "{key: 1} | if key == 1 2 | if key == 1 3",
+                  "data": null,
+                  "throws": true
+                }
+              ]
             }
           ]
         },
