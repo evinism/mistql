@@ -10,6 +10,7 @@ import filter from "./filter";
 import filterkeys from "./filterkeys";
 import filtervalues from "./filtervalues";
 import find from "./find";
+import flatten from "./flatten";
 import float from "./float";
 import fromentries from "./fromentries";
 import groupby from "./groupby";
@@ -107,6 +108,7 @@ export default {
   filterkeys,
   filtervalues,
   find,
+  flatten,
   float,
   fromentries,
   groupby,
