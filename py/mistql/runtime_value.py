@@ -227,7 +227,7 @@ class RuntimeValue:
                 "{"
                 + ",".join(
                     [
-                        json.dumps(key) + ": " + item.to_json(permissive)
+                        json.dumps(key) + ":" + item.to_json(permissive)
                         for key, item in self.value.items()
                     ]
                 )
@@ -263,7 +263,9 @@ class RuntimeValue:
         elif self.type == RuntimeValueType.Null:
             return float(0)
         else:
-            return float("nan")
+            raise MistQLTypeError(
+                "Cannot convert MistQL value to float: " + str(self.type)
+            )
 
     def __repr__(self) -> str:
         # return "<mistql>"
