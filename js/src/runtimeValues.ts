@@ -33,10 +33,21 @@ export const castToString = (value: RuntimeValue): RuntimeValue => {
   }
 };
 
+// Differs from parser in 3 ways:
+// 1: has (-) sign
+// 2: asserts empty character
+// 3: allows empty string
+// 4. Doesn't require a digit after the . sign
+const validNumberFormat = /^\s*-?(0|([1-9][0-9]*))(\.[0-9]*)?([eE][+-]?[0-9]+)?\s*$/;
+
 export const castToFloat = (value: RuntimeValue): RuntimeValue => {
   const type = getType(value);
   if (type === "string") {
-    return parseFloat(value);
+    if (value.match(validNumberFormat)) {
+      return parseFloat(value);
+    } else {
+      throw new Error("Cannot cast string to float: " + value);
+    }
   } else if (
     type === "regex" ||
     typeof value === "function" ||
