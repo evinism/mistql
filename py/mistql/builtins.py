@@ -516,6 +516,14 @@ def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     return RuntimeValue.of(delimiter.value.join(arr))
 
 
+@builtin("sum", 1)
+def sum(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    target = assert_type(exec(arguments[0], stack), RVT.Array)
+    total = 0
+    for entry in target.value:
+        total += assert_type(entry, RVT.Number).value
+    return RuntimeValue.of(total)
+
 @builtin("summarize", 1)
 def summarize(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = assert_type(exec(arguments[0], stack), RVT.Array)
@@ -564,3 +572,5 @@ def sequence(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
         [target.value[idx] for idx in indices] for indices in indices_map
     ]
     return RuntimeValue.of(result)
+
+
