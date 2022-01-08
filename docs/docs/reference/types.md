@@ -43,8 +43,8 @@ MistQL defines casting from some types to other types
 
 | Type     | Cast to Float               | Cast To String                                     |
 | -------- | --------------------------- | -------------------------------------------------- |
-| string   | Parsed as base 10 float. If not base 10 float, behavior is undefined | noop      |
-| number   | noop | As base 10 float. If number is an integer, no trailing digits or decimal. |
+| string   | Parsed as float, as per JSON standard. | noop      |
+| number   | noop | As base 10 float. If number is an integer, no trailing digits or decimal. Exponential notation when not within non-inclusive range `1e-7` to `1e21` |
 | boolean  | 1 for `true`, 0 for `false` | `"true"` for `true`, `"false"` for `false`         |
 | null     | 0                           | `"null"`                                           |
 | object   | Throws error                | Concise JSON, recursively converting items         |
