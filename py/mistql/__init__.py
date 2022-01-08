@@ -1,3 +1,3 @@
-__version__ = "0.0.1"
+__version__ = "0.4.4-beta.1"
 
 from .query import query

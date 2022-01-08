@@ -1,7 +1,15 @@
 import assert from "assert";
 import { query } from ".";
+import meta from "../../meta.json";
+import packagejson from "../package.json";
 
 // A random grab-bag of integration tests
+
+describe("version", () => {
+  it("is correct", () => {
+    assert.deepStrictEqual(packagejson.version, meta.version);
+  });
+})
 
 describe("index", () => {
   describe("#query", () => {

@@ -1,0 +1,69 @@
+doc: MistQL Project CLI
+commands:
+  - name: install
+    doc: Install all dependencies in all subdirs
+    shell: (cd py && poetry install) && (cd js && yarn)
+  - name: version 
+    doc: Print the current version of MistQL in the repository
+    shell:
+      "(cd py && (poetry run mqpy 'version' --data ../meta.json))"
+  - name: test
+    doc: Test a subproject!
+    commands:
+      - name: all
+        doc: Test everything
+        shell:
+          "talc test py && talc test js"
+      - name: js
+        doc: Test the python subproject
+        shell:
+          "cd js && yarn test"
+      - name: py
+        doc: Test the JS subproject
+        shell:
+          "cd py && poetry run pytest"
+  - name: build
+    doc: Build a subproject!
+    commands:
+      - name: all
+        doc: Build everything
+        shell:
+          "talc build py && talc build js"
+      - name: js
+        doc: Build the python subproject
+        shell:
+          "cd js && yarn build"
+      - name: py
+        doc: Build the JS subproject
+        shell:
+          "cd py && poetry build"
+  - name: publish
+    doc: Publish subprojects to various platforms
+    commands:
+      - name: all
+        doc: Publish all versions of the project
+        shell:
+          "talc test all && talc build all && talc dangerous-publish all"
+      - name: js
+        doc: Publish the python subproject
+        shell:
+          "talc test js && talc build js && talc dangerous-publish js"
+      - name: py
+        doc: Publish the JS subproject
+        shell:
+          "talc test py && talc build py && talc dangerous-publish py"
+  - name: dangerous-publish
+    doc: Publish without testing (aaa)
+    commands:
+      - name: all
+        doc: Publish all versions of the project
+        shell:
+          "talc dangerous-publish js && talc dangerous-publish py"
+      - name: js
+        doc: Publish the python subproject
+        shell:
+          "cd js && yarn publish"
+      - name: py
+        doc: Publish the JS subproject
+        shell:
+          "cd py && poetry publish"
