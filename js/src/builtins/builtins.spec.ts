@@ -91,11 +91,7 @@ describe("builtin js specifics", () => {
 
   describe("#float", () => {
     it("casts values to floats", () => {
-      assert.deepStrictEqual(
-        Number.isNaN(execute(parseOrThrow("float @"),
-          "lol[]")),
-        true
-      );
+      assert.throws(() => execute(parseOrThrow("float @"), "lol[]"));
       assert.throws(() => execute(parseOrThrow("float @"),
         []));
       assert.throws(() => execute(parseOrThrow("float @"),
