@@ -1,7 +1,7 @@
 {
   "data": [
     {
-      "describe": "basics",
+      "describe": "language-level behavior",
       "cases": [
         {
           "describe": "IO roundtrip",
@@ -842,6 +842,132 @@
                   "query": "float [1]",
                   "data": null,
                   "throws": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "describe": "syntax oddities",
+          "cases": [
+            {
+              "it": "handles spaces in lots of odd places",
+              "assertions": [
+                {
+                  "query": " string \"hi\" ",
+                  "data": null,
+                  "expected": "hi"
+                },
+                {
+                  "query": "climber .alex",
+                  "data": {
+                    "climber": {
+                      "alex": "honnold"
+                    }
+                  },
+                  "expected": "honnold"
+                },
+                {
+                  "query": "climber. alex",
+                  "data": {
+                    "climber": {
+                      "alex": "honnold"
+                    }
+                  },
+                  "expected": "honnold"
+                },
+                {
+                  "query": "climber . alex",
+                  "data": {
+                    "climber": {
+                      "alex": "honnold"
+                    }
+                  },
+                  "expected": "honnold"
+                },
+                {
+                  "query": "( (  ((5) \t  )))\t\n",
+                  "data": null,
+                  "expected": 5
+                },
+                {
+                  "query": "\t[ ([(    [@] )]\n)]",
+                  "data": "hi",
+                  "expected": [[["hi"]]]
+                },
+                {
+                  "query": "count\t[4]",
+                  "data": null,
+                  "expected": 1
+                },
+                {
+                  "query": "\"bees\" [3]",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "\"bees\"[3]",
+                  "data": null,
+                  "expected": "s"
+                }
+              ]
+            },
+            {
+              "it": "handles complicated clusters of syntax",
+              "assertions": [
+                {
+                  "query": "{x:{y:2}}|apply x[(keys x)[0]]",
+                  "data": null,
+                  "expected": 2
+                }
+              ]
+            },
+            {
+              "it": "handles syntaxes in object and array literals",
+              "assertions": [
+                {
+                  "query": "[-1 - 500, { isSpot: dog == \"spot\"}, (events | filter type==\"purchase\" | count)]",
+                  "data": {
+                    "dog": "spot",
+                    "events": [
+                      {
+                        "type": "purchase"
+                      },
+                      {
+                        "type": "purchase"
+                      },
+                      {
+                        "type": "click"
+                      }
+                    ]
+                  },
+                  "expected": [
+                    -501,
+                    {
+                      "isSpot": true
+                    },
+                    2
+                  ]
+                },
+                {
+                  "query": "{ spotCount: (events | filter type =~ \"p[ae]t\" | count), dog: \"spot\" }",
+                  "data": {
+                    "events": [
+                      {
+                        "type": "pet"
+                      },
+                      {
+                        "type": "pat"
+                      },
+                      {
+                        "type": "pot"
+                      }
+                    ]
+                  },
+                  "expected": {
+                    "spotCount": 2,
+                    "dog": "spot"
+                  }
                 }
               ]
             }
