@@ -45,9 +45,9 @@ _wslr{param}: _W? param _W?
     | FALSE
     | NULL
 
-array  : _wsr{"["} (simple_expression (_wslr{","} simple_expression)*)? _wsl{"]"} -> array
+array  : _wsr{"["} (piped_expression (_wslr{","} piped_expression)*)? _wsl{"]"} -> array
 object : _wsr{"{"} (object_entry (_wslr{","} object_entry)*)? _wsl{"}"} -> object
-object_entry : (ESCAPED_STRING | CNAME) _wslr{":"} simple_expression -> object_entry
+object_entry : (ESCAPED_STRING | CNAME) _wslr{":"} piped_expression -> object_entry
 
 WCOLON: WS? ":" WS?
 
