@@ -968,6 +968,60 @@
                     "spotCount": 2,
                     "dog": "spot"
                   }
+                },
+                {
+                  "query": "[-1 - 500, { isSpot: dog == \"spot\"}, events | filter type==\"purchase\" | count]",
+                  "data": {
+                    "dog": "spot",
+                    "events": [
+                      {
+                        "type": "purchase"
+                      },
+                      {
+                        "type": "purchase"
+                      },
+                      {
+                        "type": "click"
+                      }
+                    ]
+                  },
+                  "expected": [
+                    -501,
+                    {
+                      "isSpot": true
+                    },
+                    2
+                  ]
+                },
+                {
+                  "query": "{ spotCount: events | filter type =~ \"p[ae]t\" | count, dog: \"spot\" }",
+                  "data": {
+                    "events": [
+                      {
+                        "type": "pet"
+                      },
+                      {
+                        "type": "pat"
+                      },
+                      {
+                        "type": "pot"
+                      }
+                    ]
+                  },
+                  "expected": {
+                    "spotCount": 2,
+                    "dog": "spot"
+                  }
+                },
+                {
+                  "query": "{ ct: [5] | count } | entries",
+                  "data": null,
+                  "expected": [
+                    [
+                      "ct",
+                      1
+                    ]
+                  ]
                 }
               ]
             }
