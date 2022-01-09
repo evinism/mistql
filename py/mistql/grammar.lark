@@ -1,0 +1,76 @@
+_W: WS
+AT: "@"
+DOLLAR: "$"
+TRUE: "true"
+FALSE: "false"
+NULL: "null"
+
+_wsl{param}: _W? param
+_wsr{param}: param _W?
+_wslr{param}: _W? param _W?
+
+?start: piped_expression
+
+?piped_expression: simple_expression
+    | simple_expression ("|" simple_expression)+ -> pipe
+?simple_expression : _wslr{op_a} | _wslr{fncall}
+?simplevalue: literal | reference | _wsr{"("} piped_expression _wsl{")"}
+?fncall: op_a (_W op_a)+ -> fncall
+
+?reference: CNAME | AT | DOLLAR
+?literal: object
+    | array
+    | ESCAPED_STRING
+    | NUMBER
+    | TRUE
+    | FALSE
+    | NULL
+
+array  : _wsr{"["} (piped_expression (_wslr{","} piped_expression)*)? _wsl{"]"} -> array
+object : _wsr{"{"} (object_entry (_wslr{","} object_entry)*)? _wsl{"}"} -> object
+object_entry : (ESCAPED_STRING | CNAME) _wslr{":"} piped_expression -> object_entry
+
+WCOLON: WS? ":" WS?
+
+?indexing:  _wsr{"["} index_innards _wsl{"]"} -> indexing
+!index_innards: piped_expression? (WCOLON piped_expression?)* -> index_innards
+
+
+?op_a: op_b
+    | op_a _wslr{"||"} op_b -> or
+
+?op_b: op_c
+    | op_b _wslr{"&&"} op_c -> and
+
+?op_c: op_d
+    | op_c _wslr{"=="} op_d -> eq
+    | op_c _wslr{"!="} op_d -> neq
+    | op_c _wslr{"=~"} op_d -> match
+
+?op_d: op_e
+    | op_d _wslr{">"} op_e -> gt
+    | op_d _wslr{"<"} op_e -> lt
+    | op_d _wslr{">="} op_e -> gte
+    | op_d _wslr{"<="} op_e -> lte
+
+?op_e: op_f
+    | op_e _wslr{"+"} op_f -> plus
+    | op_e _wslr{"-"} op_f -> minus
+
+?op_f: op_g
+    | op_f _wslr{"*"} op_g -> mul
+    | op_f _wslr{"/"} op_g -> div
+    | op_f _wslr{"%"} op_g -> mod
+
+?op_g: op_h
+    | _wsr{"!"} op_g -> not
+    | _wsr{"-"} op_g -> neg
+
+?op_h: simplevalue
+    | op_h _wslr{"."} reference -> dot
+    | op_h indexing -> index
+
+%import common.ESCAPED_STRING
+%import common.WS
+%import common.CNAME
+%import common.NUMBER
