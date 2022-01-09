@@ -6,9 +6,12 @@ sidebar_position: 1
 
 This section contains reference information about MistQL's various features.
 
-Sub-pages
+## Sub-pages
 * [Types](types.md)
 * [Functions](functions.md)
 * [Operators](operators.md)
 * [JS Implementation Specifics](implementations/js.md)
 * [Python Implementation Specifics](implementations/py.md)
+
+## Additional Resources
+* [Lark Grammar for MistQL](https://github.com/evinism/mistql/blob/main/py/mistql/grammar.lark)
