@@ -1,3 +1,5 @@
+pub mod parse;
+
 pub fn query(
     _query_str: String,
     _data: serde_json::Value,
