@@ -8,11 +8,12 @@
 [![npm version](https://img.shields.io/pypi/v/mistql.svg?style=flat)](https://pypi.org/project/mistql/)
 
 
-
 MistQL is a miniature embeddable query language for JSON-like structures, built for embedding within applications. It supports
 logic for querying and manipulating JSON-like data in a simple, readable manner.
 
 For more detailed usage information, please visit MistQL's docs site.
+
+[Join the Discord!!](https://discord.gg/YupxqvE5Jk)
 
 ### Links
 
@@ -27,6 +28,8 @@ For more detailed usage information, please visit MistQL's docs site.
 Contributions to MistQL are very welcome!
 
 As MistQL is still a small project, there are no formatting requirements for either issues or pull requests.
+
+If you're planning on making a new implementation, [ping the discord](https://discord.gg/YupxqvE5Jk) and we'll coordinate!
 
 ### Code workflow
 
