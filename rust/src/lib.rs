@@ -1,11 +1,11 @@
-use serde_json::Value;
-
 pub mod parse;
 
 pub fn query_value(
-    _query_str: String,
+    query_str: String,
     _data: serde_json::Value,
 ) -> Result<serde_json::Value, &'static str> {
+    let ast = parse::expr(&query_str);
+    dbg!(ast);
     Err("unimplemented")
 }
 
