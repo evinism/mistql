@@ -45,7 +45,7 @@ fn default_throws() -> bool {
 }
 
 fn run_assertion(assertion: Assertion) -> bool {
-    let result = mistql::query(assertion.query, assertion.data);
+    let result = mistql::query_value(assertion.query, assertion.data);
     match result {
         Ok(res) => res == assertion.expected,
         Err(_) => false,
@@ -57,7 +57,7 @@ fn run_test(name: String, assertions: Vec<Assertion>) -> Vec<TestResult> {
         .iter()
         .map(|assertion| TestResult {
             name: format! {"{} - {}", name, assertion.query},
-            passed: false,
+            passed: run_assertion(assertion.clone()),
         })
         .collect()
 }
