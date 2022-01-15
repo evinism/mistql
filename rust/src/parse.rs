@@ -83,7 +83,7 @@ pub fn query(input: &str) -> IResult<&str, Expression> {
     terminated(expr, eof)(input)
 }
 
-pub fn expr(input: &str) -> IResult<&str, Expression> {
+fn expr(input: &str) -> IResult<&str, Expression> {
     let (input, e) = simple_expr(input)?;
     fold_many0(
         pair(value(BinaryOp::Pipe, ws(char('|'))), simple_expr),
