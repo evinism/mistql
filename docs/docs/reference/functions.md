@@ -303,6 +303,8 @@ Result:
 
 Performs the indexing operation, returning `null` if no such item exists. Bracket notation is syntactic sugar for calling the above function calls. Below are a number of indexing expressions and their equivalent `index` function calls.
 
+More information can be found in the [indexing](indexing.md) reference document.
+
 | Indexing Expression | Equivalent         |
 | ------------------- | ------------------ |
 | `arr[1]`            | `index 1 arr`      |
