@@ -1,5 +1,5 @@
 fn main() {
-    let query = "count @".to_string();
+    let query = "@".to_string();
     let data = r#"
 { "foo": "bar" }
 "#
