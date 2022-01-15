@@ -165,7 +165,7 @@ def dot(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     right = arguments[1]
     if not isinstance(right, RefExpression):
         raise MistQLRuntimeError(f"dot: RHS of the dot operator is not a ref")
-    return left.access(right.name)
+    return _index_single(RuntimeValue.of(right.name), left)
 
 
 @builtin("map", 2)
@@ -301,8 +301,14 @@ def _index_single(index: RuntimeValue, operand: RuntimeValue):
         if index_num < 0 or index_num >= len(operand.value):
             return RuntimeValue.of(None)
         return RuntimeValue.of(operand.value[int(index_num)])
+    elif operand.type == RVT.Object:
+        return operand.access(assert_type(index, RVT.String).value)
+    elif operand.type == RVT.Null:
+        assert_type(index, {RVT.Number, RVT.String})
+        return RuntimeValue.of(None)
     else:
-        return operand.access(index.to_string())
+        raise MistQLRuntimeError(f"index: Cannot index {operand.type}")
+
 
 
 @builtin("index", 2, 3)

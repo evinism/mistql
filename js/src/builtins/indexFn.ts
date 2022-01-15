@@ -41,11 +41,37 @@ const arrayOrStringIndexer: Indexer = (source: string | any[], key, keyEnd) => {
   return source.slice(key, keyEnd);
 }
 
+const nullIndexer: Indexer = (_, key, keyEnd) => {
+  if (keyEnd !== undefined) {
+    throw new RuntimeError("Index ranges not supported for null")
+  }
+  if (getType(key) !== "number" && getType(key) !== "string") {
+    throw new RuntimeError("Index must be a number or string");
+  };
+  return null;
+}
+
+
 const indexers: { [key: string]: Indexer } = {
   'object': objectIndexer,
   'array': arrayOrStringIndexer,
   'string': arrayOrStringIndexer,
+  'null': nullIndexer,
 }
+
+export const indexInner = (
+  source: RuntimeValue, 
+  key: RuntimeValue, 
+  end: RuntimeValue
+): RuntimeValue => {
+  const sourceType = getType(source);
+  const indexer = indexers[sourceType];
+  if (!indexer) {
+    throw new RuntimeError("Cannot get index of type " + sourceType);
+  }
+  return indexer(source, key, end);
+}
+
 
 const index: BuiltinFunction = arity([2, 3], (args, stack, exec) => {
   let key = exec(args[0], stack);
@@ -58,12 +84,7 @@ const index: BuiltinFunction = arity([2, 3], (args, stack, exec) => {
     keyEnd = exec(args[1], stack);
     source = exec(args[2], stack);
   }
-  const sourceType = getType(source);
-  const indexer = indexers[sourceType];
-  if (!indexer) {
-    throw new RuntimeError("Cannot get index of type " + sourceType);
-  }
-  return indexer(source, key, keyEnd)
+  return indexInner(source, key, keyEnd)
 });
 
 export default index;
