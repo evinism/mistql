@@ -14,7 +14,7 @@ import flatten from "./flatten";
 import float from "./float";
 import fromentries from "./fromentries";
 import groupby from "./groupby";
-import indexFn from "./indexFn";
+import indexFn, {indexInner} from "./indexFn";
 import join from "./join";
 import keys from "./keys";
 import log from "./log";
@@ -74,20 +74,7 @@ const dotAccessor: BuiltinFunction = arity(2, (args, stack, exec) => {
   if (ref.type !== "reference") {
     throw new Error("Only references are allowed as rhs to dot access");
   }
-  // Arrays and strings have ownProperties that shouldn't be accessible.
-  // TODO: Abstract this logic out.
-  if (
-    Array.isArray(former) ||
-    typeof former === "string" ||
-    former === null ||
-    former instanceof RegExp
-  ) {
-    return null;
-  }
-  if (former.hasOwnProperty(ref.ref)) {
-    return former[ref.ref];
-  }
-  return null;
+  return indexInner(former, ref.ref, undefined);
 });
 
 const ifFunction: BuiltinFunction = arity(3, (args, stack, exec) => {
