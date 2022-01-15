@@ -4,7 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::{escaped_transform, tag},
     character::complete::{alpha1, alphanumeric1, char, multispace0, multispace1, none_of, one_of},
-    combinator::{cut, eof, map, recognize, success, value},
+    combinator::{all_consuming, cut, map, recognize, success, value},
     error::ParseError,
     multi::{fold_many0, many0, many1, separated_list0},
     number::complete::double,
@@ -80,7 +80,7 @@ pub enum Value<'a> {
 }
 
 pub fn query(input: &str) -> IResult<&str, Expression> {
-    terminated(expr, eof)(input)
+    all_consuming(expr)(input)
 }
 
 fn expr(input: &str) -> IResult<&str, Expression> {
