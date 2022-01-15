@@ -41,7 +41,10 @@ fn main() {
     };
 
     let result = mistql::query(args.query, data);
-    dbg!(result);
+    match result {
+        Ok(res) => println!("{}", res),
+        Err(err) => println!("error: {}", err),
+    }
 
     // TODO: Write out result to `args.output`.
 }
