@@ -749,27 +749,27 @@
                   "expected": 1.1
                 },
                 {
-                  "query" : "float \"1.1e1\"",
+                  "query": "float \"1.1e1\"",
                   "data": null,
                   "expected": 11
                 },
                 {
-                  "query" : "float \"1.1e-1\"",
+                  "query": "float \"1.1e-1\"",
                   "data": null,
                   "expected": 0.11
                 },
                 {
-                  "query" : "float \"5.\"",
+                  "query": "float \"5.\"",
                   "data": 5,
                   "expected": 5
                 },
                 {
-                  "query" : "float \"1.1.1\"",
+                  "query": "float \"1.1.1\"",
                   "data": null,
                   "throws": true
                 },
                 {
-                  "query" : "float \"1 . 1\"",
+                  "query": "float \"1 . 1\"",
                   "data": null,
                   "throws": true
                 }
@@ -893,7 +893,13 @@
                 {
                   "query": "\t[ ([(    [@] )]\n)]",
                   "data": "hi",
-                  "expected": [[["hi"]]]
+                  "expected": [
+                    [
+                      [
+                        "hi"
+                      ]
+                    ]
+                  ]
                 },
                 {
                   "query": "count\t[4]",
@@ -1263,7 +1269,10 @@
                 {
                   "query": "flatten [[], [[]], [[]]]",
                   "data": null,
-                  "expected": [[], []]
+                  "expected": [
+                    [],
+                    []
+                  ]
                 }
               ]
             },
@@ -1980,6 +1989,261 @@
                   "expected": true
                 }
               ]
+            },
+            {
+              "it": "allows indexing on nulls via strings and numbers",
+              "assertions": [
+                {
+                  "query": "null | index 1",
+                  "data": {},
+                  "expected": null
+                },
+                {
+                  "query": "null | index \"stevia\"",
+                  "data": {},
+                  "expected": null
+                }
+              ]
+            },
+            {
+              "it": "throws if objects are indexed by the wrong type, single argument",
+              "assertions": [
+                {
+                  "query": "{a: 5} | index 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index false",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index null",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index (regex \".\")",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index sum",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index []",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index {}",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "throws if arrays are indexed by the wrong type, single argument",
+              "assertions": [
+                {
+                  "query": "[1, 2, 3] | index \"0\"",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index false",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index null",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index (regex \".\")",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index sum",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index []",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index {}",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "throws if strings are indexed by the wrong type, single argument",
+              "assertions": [
+                {
+                  "query": "\"greetings fellow humans\" | index \"0\"",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "\"greetings fellow humans\" | index false",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "\"greetings fellow humans\" | index null",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "\"greetings fellow humans\" | index (regex \".\")",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "\"greetings fellow humans\" | index sum",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "\"greetings fellow humans\" | index []",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "\"greetings fellow humans\" | index {}",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "throws if nulls are indexed by the wrong type, single argument",
+              "assertions": [
+                {
+                  "query": "null | index false",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "null | index (regex \".\")",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "null | index sum",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "null | index []",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "null | index {}",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "throws if objects are indexed using two arguments",
+              "assertions": [
+                {
+                  "query": "{a: 5} | index 0 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index false 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index null 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index (regex \".\") 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index sum 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index [] 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{a: 5} | index {} 0",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "throws if arrays are indexed by the wrong type, two arguments",
+              "assertions": [
+                {
+                  "query": "[1, 2, 3] | index \"0\" 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index false 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index (regex \".\") 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2, 3] | index sum 0",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "throws if indexing an unindexable type",
+              "assertions": [
+                {
+                  "query": "2 | index 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "false | index 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "(regex \".\") | index 0",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "sum | index 0",
+                  "data": {},
+                  "throws": true
+                }
+              ]
             }
           ]
         },
@@ -2378,6 +2642,41 @@
                     "one": {}
                   },
                   "expected": null
+                }
+              ]
+            },
+            {
+              "it": "fails to dotaccess types that can't be indexed by strings",
+              "assertions": [
+                {
+                  "query": "(1).foo",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "(\"foo\").foo",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "(true).foo",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "(false).foo",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "(regex \".\").foo",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "regex.foo",
+                  "data": {},
+                  "throws": true
                 }
               ]
             }
@@ -3458,7 +3757,7 @@
                         "post_number": 17245
                       }
                     ]
-                  }, 
+                  },
                   "expected": [
                     "flora@example.com",
                     "william@example.com"
@@ -3593,7 +3892,7 @@
             },
             {
               "it": "handles Out of Memory before Connect example",
-              "assertions":[
+              "assertions": [
                 {
                   "query": "alerts | groupby processid | mapvalues (sequence type==\"outofmemory\" type==\"connect\" @) | filtervalues (count @) > 0 | keys",
                   "data": {
