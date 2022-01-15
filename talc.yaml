@@ -13,7 +13,7 @@ commands:
       - name: all
         doc: Test everything
         shell:
-          "talc test py && talc test js"
+          "talc test py && talc test js && talc test rust"
       - name: js
         doc: Test the python subproject
         shell:
@@ -22,6 +22,10 @@ commands:
         doc: Test the JS subproject
         shell:
           "cd py && poetry run pytest && poetry run mypy -m mistql"
+      - name: rust
+        doc: Test the rust subproject
+        shell:
+          "cd rust && cargo test"
   - name: build
     doc: Build a subproject!
     commands:
