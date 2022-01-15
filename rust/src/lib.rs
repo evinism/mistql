@@ -5,7 +5,7 @@ pub fn query_value(
     query_str: String,
     data: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    match parse::expr(&query_str) {
+    match parse::query(&query_str) {
         Ok((_, ast)) => ast.evaluate(&data),
         Err(err) => Err(err.to_string()),
     }

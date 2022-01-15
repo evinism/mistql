@@ -4,7 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::{escaped_transform, tag},
     character::complete::{alpha1, alphanumeric1, char, multispace0, multispace1, none_of, one_of},
-    combinator::{cut, map, recognize, success, value},
+    combinator::{cut, eof, map, recognize, success, value},
     error::ParseError,
     multi::{fold_many0, many0, many1, separated_list0},
     number::complete::double,
@@ -77,6 +77,10 @@ pub enum Value<'a> {
     Literal(Literal<'a>),
     Reference(Reference<'a>),
     Expression(Box<Expression<'a>>),
+}
+
+pub fn query(input: &str) -> IResult<&str, Expression> {
+    terminated(expr, eof)(input)
 }
 
 pub fn expr(input: &str) -> IResult<&str, Expression> {
@@ -350,7 +354,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        array, escaped_string, expr, ident, object, reference, ws, ws_l, ws_r, BinaryOp,
+        array, escaped_string, ident, object, query, reference, ws, ws_l, ws_r, BinaryOp,
         Expression, Literal, ObjectKey, Reference, Value,
     };
 
@@ -426,7 +430,7 @@ mod tests {
     #[test]
     fn test_ops() {
         assert_eq!(
-            expr("1 + 2 * @ - 4 + 5"),
+            query("1 + 2 * @ - 4 + 5"),
             Ok((
                 "",
                 Expression::BinaryOp(
@@ -453,7 +457,7 @@ mod tests {
     #[test]
     fn test_fn() {
         assert_eq!(
-            expr("@ 1 [3, 3] 7"),
+            query("@ 1 [3, 3] 7"),
             Ok((
                 "",
                 Expression::Fn(
@@ -474,7 +478,7 @@ mod tests {
     #[test]
     fn test_index() {
         assert_eq!(
-            expr("@[1:$]"),
+            query("@[1:$]"),
             Ok((
                 "",
                 Expression::Index(
@@ -487,7 +491,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            expr("@[:]"),
+            query("@[:]"),
             Ok((
                 "",
                 Expression::Index(
@@ -500,7 +504,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            expr("@[1:]"),
+            query("@[1:]"),
             Ok((
                 "",
                 Expression::Index(
@@ -513,7 +517,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            expr("@[:2]"),
+            query("@[:2]"),
             Ok((
                 "",
                 Expression::Index(
@@ -526,16 +530,13 @@ mod tests {
             ))
         );
         // Invalid indexing will not consume the full input; this is considered an error.
-        assert_eq!(
-            expr("@[]"),
-            Ok(("[]", Expression::Value(Value::Reference(Reference::At))))
-        );
-        assert_eq!(
-            expr("@[1:2:3]"),
-            Ok((
-                "[1:2:3]",
-                Expression::Value(Value::Reference(Reference::At))
-            ))
-        );
+        assert!(query("@[]").is_err());
+        assert!(query("@[1:2:3]").is_err());
+    }
+
+    #[test]
+    fn test_eof() {
+        assert!(query("  @[0]  ").is_ok());
+        assert!(query(" @ [0, 0] | $ ").is_ok());
     }
 }
