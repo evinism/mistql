@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::fmt;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -34,6 +35,13 @@ struct Assertion {
 struct TestResult {
     name: String,
     passed: bool,
+    msg: String,
+}
+
+impl fmt::Display for TestResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} - {}", self.name, self.msg)
+    }
 }
 
 fn default_expected() -> serde_json::Value {
@@ -44,21 +52,41 @@ fn default_throws() -> bool {
     false
 }
 
-fn run_assertion(assertion: Assertion) -> bool {
-    let result = mistql::query_value(assertion.query, assertion.data);
+fn run_assertion(name: String, assertion: &Assertion) -> TestResult {
+    let result = mistql::query_value(assertion.query.clone(), assertion.data.clone());
     match result {
-        Ok(res) => res == assertion.expected,
-        Err(_) => false,
+        Ok(res) if assertion.throws => TestResult {
+            name: name,
+            passed: false,
+            msg: format!("expected error, got {}", res),
+        },
+        Ok(res) if res != assertion.expected => TestResult {
+            name: name,
+            passed: false,
+            msg: format!("expected {} got {}", assertion.expected, res),
+        },
+        Ok(_res) => TestResult {
+            name: name,
+            passed: true,
+            msg: "passed".to_string(),
+        },
+        Err(_) if assertion.throws => TestResult {
+            name: name,
+            passed: true,
+            msg: "passed".to_string(),
+        },
+        Err(err) => TestResult {
+            name: name,
+            passed: false,
+            msg: format!("expected {}, got error {}", assertion.expected, err),
+        },
     }
 }
 
 fn run_test(name: String, assertions: Vec<Assertion>) -> Vec<TestResult> {
     assertions
         .iter()
-        .map(|assertion| TestResult {
-            name: format! {"{} - {}", name, assertion.query},
-            passed: run_assertion(assertion.clone()),
-        })
+        .map(|assertion| run_assertion(format! {"{} - {}", name, assertion.query}, assertion))
         .collect()
 }
 
@@ -92,11 +120,12 @@ fn run_shared_tests() {
         .collect::<Vec<TestResult>>();
     assert!(
         failures.is_empty(),
-        "{} integration tests failed:\n{}",
+        "{} integration tests - {} failed:\n{}",
+        results.len(),
         failures.len(),
         failures
             .iter()
-            .map(|failure| failure.name.clone())
+            .map(|r| r.to_string())
             .collect::<Vec<String>>()
             .join("\n")
     )
