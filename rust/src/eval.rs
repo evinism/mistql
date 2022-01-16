@@ -4,7 +4,7 @@ impl<'a> Expression<'a> {
     pub fn evaluate(&'a self, context: &serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
             Expression::Value(value) => value.evaluate(&context),
-            _ => Err("Unknown expression type".to_string()),
+            _ => Err(format!("Unknown expression type {:?}", self)),
         }
     }
 }
@@ -14,7 +14,7 @@ impl<'a> Value<'a> {
         match self {
             Value::Reference(reference) => reference.evaluate(&context),
             Value::Literal(literal) => literal.evaluate(),
-            _ => Err("Unknown value type".to_string()),
+            _ => Err(format!("Unknown value type {:?}", self)),
         }
     }
 }
@@ -23,7 +23,7 @@ impl<'a> Reference<'a> {
     pub fn evaluate(&'a self, context: &'a serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
             Reference::At => Ok(context.clone()),
-            _ => Err("Unknown reference type".to_string()),
+            _ => Err(format!("Unknown reference type {:?}", self)),
         }
     }
 }
@@ -41,7 +41,7 @@ impl<'a> Literal<'a> {
                 .iter()
                 .map(|elt| elt.evaluate(&serde_json::Value::Null))
                 .collect(),
-            _ => Err("Unknown literal type".to_string()),
+            _ => Err(format!("Unknown literal type {:?}", self)),
         }
     }
 }
