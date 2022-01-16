@@ -33,6 +33,13 @@ impl<'a> Literal<'a> {
         match self {
             Literal::Num(num) => Ok(num.clone().into()),
             Literal::Str(str) => Ok(str.clone().into()),
+            Literal::True => Ok(true.into()),
+            Literal::False => Ok(false.into()),
+            Literal::Null => Ok(serde_json::Value::Null),
+            Literal::Array(array) => array
+                .iter()
+                .map(|elt| elt.evaluate(&serde_json::Value::Null))
+                .collect(),
             _ => Err("Unknown literal type".to_string()),
         }
     }
@@ -55,16 +62,32 @@ mod tests {
     }
 
     #[test]
-    fn numeric_literals_return_themselves() {
+    fn numeric_literals() {
         let ast = Literal::Num(8675309.0);
 
         assert_eq!(ast.evaluate().unwrap(), json!(8675309.0))
     }
 
     #[test]
-    fn string_literals_return_themselves() {
+    fn string_literals() {
         let ast = Literal::Str("abc123".to_string());
 
         assert_eq!(ast.evaluate().unwrap(), json!("abc123"))
+    }
+
+    #[test]
+    fn boolean_literals() {
+        let ast = Literal::True;
+        assert_eq!(ast.evaluate().unwrap(), json!(true));
+
+        let ast = Literal::False;
+        assert_eq!(ast.evaluate().unwrap(), json!(false));
+    }
+
+    #[test]
+    fn null_literals() {
+        let ast = Literal::Null;
+
+        assert_eq!(ast.evaluate().unwrap(), json!(null))
     }
 }
