@@ -1,10 +1,13 @@
-use crate::parse::{Expression, Literal, Reference, UnaryOp, Value};
+use crate::parse::{BinaryOp, Expression, Literal, Reference, UnaryOp, Value};
 
 impl<'a> Expression<'a> {
     pub fn evaluate(&'a self, context: &serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
             Expression::Value(value) => value.evaluate(&context),
             Expression::UnaryOp(op, expression) => op.evaluate(expression.evaluate(&context)?),
+            Expression::BinaryOp(op, left, right) => {
+                op.evaluate(left.evaluate(&context)?, right.evaluate(&context)?)
+            }
             _ => Err(format!("Unknown expression type {:?}", self)),
         }
     }
@@ -30,18 +33,58 @@ impl<'a> Reference<'a> {
 }
 
 impl UnaryOp {
-    pub fn evaluate(self, context: serde_json::Value) -> Result<serde_json::Value, String> {
+    pub fn evaluate(self, arg: serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
             UnaryOp::Neg => {
-                if let Some(num) = context.as_i64() {
+                if let Some(num) = arg.as_i64() {
                     Ok((num * -1).into())
-                } else if let Some(num) = context.as_f64() {
+                } else if let Some(num) = arg.as_f64() {
                     Ok((num * -1.0).into())
                 } else {
                     Err("Negation only applies to numbers".to_string())
                 }
             }
             _ => Err(format!("Unknown UnaryOp type {:?}", self)),
+        }
+    }
+}
+
+impl BinaryOp {
+    pub fn evaluate(
+        self,
+        left: serde_json::Value,
+        right: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        match self {
+            BinaryOp::Add => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
+                (Some(left_num), _, Some(right_num), _) => Ok((left_num + right_num).into()),
+                (Some(left_num), _, _, Some(right_num)) => Ok((left_num as f64 + right_num).into()),
+                (_, Some(left_num), _, Some(right_num)) => Ok((left_num + right_num).into()),
+                (_, Some(left_num), Some(right_num), _) => Ok((left_num + right_num as f64).into()),
+                (_, _, _, _) => Err("unsupported types for addition".to_string()),
+            },
+            BinaryOp::Sub => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
+                (Some(left_num), _, Some(right_num), _) => Ok((left_num - right_num).into()),
+                (Some(left_num), _, _, Some(right_num)) => Ok((left_num as f64 - right_num).into()),
+                (_, Some(left_num), _, Some(right_num)) => Ok((left_num - right_num).into()),
+                (_, Some(left_num), Some(right_num), _) => Ok((left_num - right_num as f64).into()),
+                (_, _, _, _) => Err("unsupported types for subtraction".to_string()),
+            },
+            BinaryOp::Mul => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
+                (Some(left_num), _, Some(right_num), _) => Ok((left_num * right_num).into()),
+                (Some(left_num), _, _, Some(right_num)) => Ok((left_num as f64 * right_num).into()),
+                (_, Some(left_num), _, Some(right_num)) => Ok((left_num * right_num).into()),
+                (_, Some(left_num), Some(right_num), _) => Ok((left_num * right_num as f64).into()),
+                (_, _, _, _) => Err("unsupported types for multiplication".to_string()),
+            },
+            BinaryOp::Div => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
+                (Some(left_num), _, Some(right_num), _) => Ok((left_num / right_num).into()),
+                (Some(left_num), _, _, Some(right_num)) => Ok((left_num as f64 / right_num).into()),
+                (_, Some(left_num), _, Some(right_num)) => Ok((left_num / right_num).into()),
+                (_, Some(left_num), Some(right_num), _) => Ok((left_num / right_num as f64).into()),
+                (_, _, _, _) => Err("unsupported types for multiplication".to_string()),
+            },
+            _ => Err(format!("Unknown BinaryOp type {:?}", self)),
         }
     }
 }
