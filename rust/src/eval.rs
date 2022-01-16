@@ -31,6 +31,7 @@ impl<'a> Reference<'a> {
 impl<'a> Literal<'a> {
     pub fn evaluate(&'a self) -> Result<serde_json::Value, String> {
         match self {
+            Literal::Num(num) if num.fract() == 0.0 => Ok((*num as i32).into()),
             Literal::Num(num) => Ok(num.clone().into()),
             Literal::Str(str) => Ok(str.clone().into()),
             Literal::True => Ok(true.into()),
@@ -62,10 +63,17 @@ mod tests {
     }
 
     #[test]
-    fn numeric_literals() {
+    fn numeric_int_literals() {
         let ast = Literal::Num(8675309.0);
 
-        assert_eq!(ast.evaluate().unwrap(), json!(8675309.0))
+        assert_eq!(ast.evaluate().unwrap(), json!(8675309))
+    }
+
+    #[test]
+    fn numeric_float_literals() {
+        let ast = Literal::Num(867.5309);
+
+        assert_eq!(ast.evaluate().unwrap(), json!(867.5309))
     }
 
     #[test]
