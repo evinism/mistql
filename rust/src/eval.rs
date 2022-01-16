@@ -1,9 +1,10 @@
-use crate::parse::{Expression, Literal, Reference, Value};
+use crate::parse::{Expression, Literal, Reference, UnaryOp, Value};
 
 impl<'a> Expression<'a> {
     pub fn evaluate(&'a self, context: &serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
             Expression::Value(value) => value.evaluate(&context),
+            Expression::UnaryOp(op, expression) => op.evaluate(expression.evaluate(&context)?),
             _ => Err(format!("Unknown expression type {:?}", self)),
         }
     }
@@ -24,6 +25,23 @@ impl<'a> Reference<'a> {
         match self {
             Reference::At => Ok(context.clone()),
             _ => Err(format!("Unknown reference type {:?}", self)),
+        }
+    }
+}
+
+impl UnaryOp {
+    pub fn evaluate(self, context: serde_json::Value) -> Result<serde_json::Value, String> {
+        match self {
+            UnaryOp::Neg => {
+                if let Some(num) = context.as_i64() {
+                    Ok((num * -1).into())
+                } else if let Some(num) = context.as_f64() {
+                    Ok((num * -1.0).into())
+                } else {
+                    Err("Negation only applies to numbers".to_string())
+                }
+            }
+            _ => Err(format!("Unknown UnaryOp type {:?}", self)),
         }
     }
 }
@@ -74,6 +92,30 @@ mod tests {
         let ast = Literal::Num(867.5309);
 
         assert_eq!(ast.evaluate().unwrap(), json!(867.5309))
+    }
+
+    #[test]
+    fn negative_double_literals() {
+        let ast = Expression::UnaryOp(
+            UnaryOp::Neg,
+            Box::new(Expression::Value(Value::Literal(Literal::Num(867.5309)))),
+        );
+        let context = json!(null);
+
+        assert_eq!(ast.evaluate(&context).unwrap(), json!(-867.5309))
+    }
+
+    #[test]
+    fn negative_int_literals() {
+        let ast = Expression::UnaryOp(
+            UnaryOp::Neg,
+            Box::new(Expression::Value(Value::Literal(Literal::Num(
+                8675309 as f64,
+            )))),
+        );
+        let context = json!(null);
+
+        assert_eq!(ast.evaluate(&context).unwrap(), json!(-8675309))
     }
 
     #[test]
