@@ -30,5 +30,5 @@
 
 .tada {
   padding: 2rem 0;
-  background-color: #f5f5f5;
+  background-color: var(--ifm-pre-background)
 }
