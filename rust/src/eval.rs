@@ -1,4 +1,6 @@
-use crate::parse::{BinaryOp, Expression, Literal, Reference, UnaryOp, Value};
+use std::fmt;
+
+use crate::parse::{BinaryOp, Expression, Literal, ObjectKey, Reference, UnaryOp, Value};
 
 impl<'a> Expression<'a> {
     pub fn evaluate(&'a self, context: &serde_json::Value) -> Result<serde_json::Value, String> {
@@ -28,6 +30,15 @@ impl<'a> Reference<'a> {
         match self {
             Reference::At => Ok(context.clone()),
             _ => Err(format!("Unknown reference type {:?}", self)),
+        }
+    }
+}
+
+impl<'a> fmt::Display for ObjectKey<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Str(str) => write!(f, "{}", str),
+            Self::Ident(str) => write!(f, "{}", str),
         }
     }
 }
@@ -102,7 +113,19 @@ impl<'a> Literal<'a> {
                 .iter()
                 .map(|elt| elt.evaluate(&serde_json::Value::Null))
                 .collect(),
-            _ => Err(format!("Unknown literal type {:?}", self)),
+            Literal::Object(obj) => {
+                let mut map = serde_json::Map::new();
+                // this is gross but it's hard to deal with Result inside an iterator
+                for (raw_key, raw_val) in obj.iter() {
+                    match raw_val.evaluate(&serde_json::Value::Null) {
+                        Ok(val) => {
+                            map.insert(raw_key.to_string(), val);
+                        }
+                        Err(err) => return Err(err),
+                    }
+                }
+                Ok(map.into())
+            }
         }
     }
 }
