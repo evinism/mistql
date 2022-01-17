@@ -5,9 +5,9 @@ use crate::parse::{BinaryOp, Expression, Literal, ObjectKey, Reference, UnaryOp,
 impl<'a> Expression<'a> {
     pub fn evaluate(&'a self, context: &serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
-            Expression::Value(value) => value.evaluate(&context),
-            Expression::UnaryOp(op, expression) => op.evaluate(expression.evaluate(&context)?),
-            Expression::BinaryOp(op, left, right) => {
+            Self::Value(value) => value.evaluate(&context),
+            Self::UnaryOp(op, expression) => op.evaluate(expression.evaluate(&context)?),
+            Self::BinaryOp(op, left, right) => {
                 op.evaluate(left.evaluate(&context)?, right.evaluate(&context)?)
             }
             _ => Err(format!("Unknown expression type {:?}", self)),
@@ -18,8 +18,8 @@ impl<'a> Expression<'a> {
 impl<'a> Value<'a> {
     pub fn evaluate(&'a self, context: &serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
-            Value::Reference(reference) => reference.evaluate(&context),
-            Value::Literal(literal) => literal.evaluate(),
+            Self::Reference(reference) => reference.evaluate(&context),
+            Self::Literal(literal) => literal.evaluate(),
             _ => Err(format!("Unknown value type {:?}", self)),
         }
     }
@@ -28,7 +28,7 @@ impl<'a> Value<'a> {
 impl<'a> Reference<'a> {
     pub fn evaluate(&'a self, context: &'a serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
-            Reference::At => Ok(context.clone()),
+            Self::At => Ok(context.clone()),
             _ => Err(format!("Unknown reference type {:?}", self)),
         }
     }
@@ -46,7 +46,7 @@ impl<'a> fmt::Display for ObjectKey<'a> {
 impl UnaryOp {
     pub fn evaluate(self, arg: serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
-            UnaryOp::Neg => {
+            Self::Neg => {
                 if let Some(num) = arg.as_i64() {
                     Ok((num * -1).into())
                 } else if let Some(num) = arg.as_f64() {
@@ -67,28 +67,28 @@ impl BinaryOp {
         right: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         match self {
-            BinaryOp::Add => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
+            Self::Add => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
                 (Some(left_num), _, Some(right_num), _) => Ok((left_num + right_num).into()),
                 (Some(left_num), _, _, Some(right_num)) => Ok((left_num as f64 + right_num).into()),
                 (_, Some(left_num), _, Some(right_num)) => Ok((left_num + right_num).into()),
                 (_, Some(left_num), Some(right_num), _) => Ok((left_num + right_num as f64).into()),
                 (_, _, _, _) => Err("unsupported types for addition".to_string()),
             },
-            BinaryOp::Sub => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
+            Self::Sub => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
                 (Some(left_num), _, Some(right_num), _) => Ok((left_num - right_num).into()),
                 (Some(left_num), _, _, Some(right_num)) => Ok((left_num as f64 - right_num).into()),
                 (_, Some(left_num), _, Some(right_num)) => Ok((left_num - right_num).into()),
                 (_, Some(left_num), Some(right_num), _) => Ok((left_num - right_num as f64).into()),
                 (_, _, _, _) => Err("unsupported types for subtraction".to_string()),
             },
-            BinaryOp::Mul => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
+            Self::Mul => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
                 (Some(left_num), _, Some(right_num), _) => Ok((left_num * right_num).into()),
                 (Some(left_num), _, _, Some(right_num)) => Ok((left_num as f64 * right_num).into()),
                 (_, Some(left_num), _, Some(right_num)) => Ok((left_num * right_num).into()),
                 (_, Some(left_num), Some(right_num), _) => Ok((left_num * right_num as f64).into()),
                 (_, _, _, _) => Err("unsupported types for multiplication".to_string()),
             },
-            BinaryOp::Div => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
+            Self::Div => match (left.as_i64(), left.as_f64(), right.as_i64(), right.as_f64()) {
                 (Some(left_num), _, Some(right_num), _) => Ok((left_num / right_num).into()),
                 (Some(left_num), _, _, Some(right_num)) => Ok((left_num as f64 / right_num).into()),
                 (_, Some(left_num), _, Some(right_num)) => Ok((left_num / right_num).into()),
