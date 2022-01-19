@@ -10,6 +10,7 @@ impl<'a> Expression<'a> {
             Self::BinaryOp(op, left, right) => {
                 op.evaluate(left.evaluate(&context)?, right.evaluate(&context)?)
             }
+            Self::Fn(func, args) => apply_fn(func, args, context),
             _ => Err(format!("Unknown expression type {:?}", self)),
         }
     }
@@ -29,6 +30,7 @@ impl<'a> Reference<'a> {
     pub fn evaluate(&'a self, context: &'a serde_json::Value) -> Result<serde_json::Value, String> {
         match self {
             Self::At => Ok(context.clone()),
+            Self::Ident(str) => Ok(str.clone().into()),
             _ => Err(format!("Unknown reference type {:?}", self)),
         }
     }
@@ -127,6 +129,53 @@ impl<'a> Literal<'a> {
                 Ok(map.into())
             }
         }
+    }
+}
+
+enum Function {
+    Count,
+    String,
+}
+
+// TODO convert this into impl TryFrom<Expression> on Function
+fn fn_from_expression(func_expr: &Expression) -> Result<Function, String> {
+    let func_name: &str = match func_expr {
+        Expression::Value(Value::Reference(Reference::Ident(name))) => Ok(name),
+        _ => Err("function name must be an identifier"),
+    }?;
+
+    match func_name {
+        "count" => Ok(Function::Count),
+        "string" => Ok(Function::String),
+        _ => Err(format!("Unknown function {}", func_name)),
+    }
+}
+
+fn apply_fn(
+    func_expr: &Expression,
+    args_expr: &Vec<Expression>,
+    context: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    // get the function name as a &str
+    let func = fn_from_expression(func_expr)?;
+
+    // ensure all of the args are valid before we proceed
+    let args = args_expr
+        .iter()
+        .map(|arg| arg.evaluate(context))
+        .collect::<Result<Vec<serde_json::Value>, String>>()?;
+
+    match func {
+        Function::Count => match args.get(0) {
+            None => Err("count takes one argument".to_string()),
+            Some(serde_json::Value::Array(arr)) => Ok(arr.len().into()),
+            Some(serde_json::Value::Object(obj)) => Ok(obj.iter().count().into()),
+            _ => Err("count must take an object or an array".to_string()),
+        },
+        Function::String => match args.get(0) {
+            None => Err("count takes one argument".to_string()),
+            Some(arg) => Ok(arg.to_string().into()),
+        },
     }
 }
 
