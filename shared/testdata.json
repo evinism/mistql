@@ -486,6 +486,30 @@
           ]
         },
         {
+          "describe": "function calls",
+          "cases": [
+            {
+              "it": "treats functions as first order and can call complex expressions",
+              "assertions": [
+                {
+                  "query": "(if toggle keys values) {one: \"two\"}",
+                  "data": {
+                    "toggle": true
+                  },
+                  "expected": ["one"]
+                },
+                {
+                  "query": "(if toggle keys values) {one: \"two\"}",
+                  "data": {
+                    "toggle": false
+                  },
+                  "expected": ["two"]
+                }
+              ]
+            }
+          ]
+        },
+        {
           "describe": "piping",
           "cases": [
             {
