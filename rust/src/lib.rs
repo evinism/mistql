@@ -8,8 +8,8 @@ pub fn query_value(
     query_str: String,
     data: serde_json::Value,
 ) -> Result<serde_json::Value, MistQLError> {
-    match parse::query(&query_str) {
-        Ok((_, ast)) => ast.evaluate(&data),
+    match parse::parse_query(&query_str) {
+        Ok(ast) => ast.evaluate(&data),
         // Err(err) => Err(err.to_string()),
         Err(err) => Err(MistQLError::QueryParseError(err.to_string())),
     }
