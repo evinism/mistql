@@ -113,12 +113,11 @@ fn run_shared_tests() {
     let tests: TestSuite = serde_json::from_reader(reader).unwrap();
     let results = run_test_group("".to_string(), tests.data);
 
-    let mut failures: Vec<TestResult> = results
+    let failures: Vec<TestResult> = results
         .iter()
         .filter(|res| !res.passed)
         .cloned()
         .collect::<Vec<TestResult>>();
-    failures.reverse();
     assert!(
         failures.is_empty(),
         "{} integration tests - {} failed:\n{}",
@@ -126,6 +125,7 @@ fn run_shared_tests() {
         failures.len(),
         failures
             .iter()
+            .rev()
             .map(|r| r.to_string())
             .collect::<Vec<String>>()
             .join("\n")
