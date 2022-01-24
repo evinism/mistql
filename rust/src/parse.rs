@@ -1,9 +1,9 @@
-use crate::error::MistQLError;
+use crate::error::{Error, Result};
 
 pub enum Expression {}
 
-pub fn parse_query(query: &str) -> Result<Expression, MistQLError> {
-    Err(MistQLError::QueryParseError("no parse yet".to_string()))
+pub fn parse_query(_query: &str) -> Result<Expression> {
+    Err(Error::query("no parse yet".to_string()))
 }
 
 #[cfg(test)]
