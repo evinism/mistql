@@ -1,3 +1,5 @@
+use crate::parse::Rule;
+use std::convert::From;
 use std::error::Error as StdError;
 use std::fmt;
 
@@ -21,6 +23,12 @@ impl StdError for Error {
         self.source
             .as_ref()
             .map(|c| &**c as &(dyn StdError + 'static))
+    }
+}
+
+impl From<pest::error::Error<Rule>> for Error {
+    fn from(err: pest::error::Error<Rule>) -> Self {
+        Self::query(err.to_string())
     }
 }
 
