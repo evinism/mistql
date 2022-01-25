@@ -1,9 +1,11 @@
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::parse::Expression;
 
 impl Expression {
-    pub fn evaluate(&self, _context: &serde_json::Value) -> Result<serde_json::Value> {
-        Err(Error::unimplemented_evaluation("no parse yet".to_string()))
+    pub fn evaluate(&self, context: &serde_json::Value) -> Result<serde_json::Value> {
+        match self {
+            Self::At => Ok(context.clone()),
+        }
     }
 }
 
