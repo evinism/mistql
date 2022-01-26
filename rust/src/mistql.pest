@@ -3,7 +3,7 @@ query = { SOI ~ expression ~ EOI }
 expression = _{ at | value }
 at = { "@" }
 
-value = { number }
+value = { number | null }
 
 number = @{
     "-"?
@@ -11,3 +11,5 @@ number = @{
     ~ ("." ~ ASCII_DIGIT*)?
     ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
 }
+
+null = { "null" }

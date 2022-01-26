@@ -42,6 +42,7 @@ pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
     for p in pair.into_inner() {
         match p.as_rule() {
             Rule::number => val = Value::Number(p.as_str().parse().unwrap()),
+            Rule::null => val = Value::Null,
             _ => return Err(Error::query(format!("unknown value type {:?}", p))),
         }
     }
