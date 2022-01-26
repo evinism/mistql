@@ -6,7 +6,8 @@ use std::fmt;
 #[derive(Debug)]
 pub enum ErrorKind {
     JSON(serde_json::Error),
-    QueryParse(String),
+    QueryParse,
+    Query(String),
     UnimplementedEvaluation(String),
 }
 
@@ -28,7 +29,7 @@ impl StdError for Error {
 
 impl From<pest::error::Error<Rule>> for Error {
     fn from(err: pest::error::Error<Rule>) -> Self {
-        Self::query(err.to_string())
+        Self::query_parse(err)
     }
 }
 
@@ -36,7 +37,8 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
             ErrorKind::JSON(ref e) => write!(f, "JSON error: {}", e),
-            ErrorKind::QueryParse(ref msg) => write!(f, "Query parsing error: {}", msg),
+            ErrorKind::QueryParse => write!(f, "Query parsing error: {:?}", self.source),
+            ErrorKind::Query(ref msg) => write!(f, "query error: {}", msg),
             ErrorKind::UnimplementedEvaluation(ref msg) => {
                 write!(f, "Unimplemented evaluation: {}", msg)
             }
@@ -52,9 +54,16 @@ impl Error {
         }
     }
 
+    pub fn query_parse(err: pest::error::Error<Rule>) -> Self {
+        Self {
+            kind: ErrorKind::QueryParse,
+            source: Some(Box::new(err)),
+        }
+    }
+
     pub fn query(msg: String) -> Self {
         Self {
-            kind: ErrorKind::QueryParse(msg),
+            kind: ErrorKind::Query(msg),
             source: None,
         }
     }
