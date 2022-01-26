@@ -5,7 +5,7 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    JSON(serde_json::Error),
+    JSON,
     QueryParse,
     Query(String),
     UnimplementedEvaluation(String),
@@ -36,7 +36,7 @@ impl From<pest::error::Error<Rule>> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
-            ErrorKind::JSON(ref e) => write!(f, "JSON error: {}", e),
+            ErrorKind::JSON => write!(f, "JSON error: {:?}", self.source),
             ErrorKind::QueryParse => write!(f, "Query parsing error: {:?}", self.source),
             ErrorKind::Query(ref msg) => write!(f, "query error: {}", msg),
             ErrorKind::UnimplementedEvaluation(ref msg) => {
@@ -47,10 +47,10 @@ impl fmt::Display for Error {
 }
 
 impl Error {
-    pub fn json(value: serde_json::Error) -> Self {
+    pub fn json(err: serde_json::Error) -> Self {
         Self {
-            kind: ErrorKind::JSON(value),
-            source: None,
+            kind: ErrorKind::JSON,
+            source: Some(Box::new(err)),
         }
     }
 
