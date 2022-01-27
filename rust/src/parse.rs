@@ -52,4 +52,139 @@ pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use pest::parses_to;
+
+    #[test]
+    fn parse_at() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "@",
+            rule: Rule::at,
+            tokens: [
+                at(0,1)
+            ]
+        }
+    }
+
+    #[test]
+    fn parses_positive_integer() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "100000",
+            rule: Rule::number,
+            tokens: [
+                number(0,6)
+            ]
+        }
+    }
+
+    #[test]
+    fn parses_negative_integer() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "-100000",
+            rule: Rule::number,
+            tokens: [
+                number(0,7)
+            ]
+        }
+    }
+
+    #[test]
+    fn parses_zero() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "0",
+            rule: Rule::number,
+            tokens: [
+                number(0,1)
+            ]
+        }
+    }
+
+    #[test]
+    fn parses_float() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "30.5",
+            rule: Rule::number,
+            tokens: [
+                number(0,4)
+            ]
+        }
+    }
+
+    #[test]
+    fn parses_float_with_leading_zero() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "0.9",
+            rule: Rule::number,
+            tokens: [
+                number(0,3)
+            ]
+        }
+    }
+
+    #[test]
+    fn parses_negative_float() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "-30.5",
+            rule: Rule::number,
+            tokens: [
+                number(0,5)
+            ]
+        }
+    }
+
+    #[test]
+    fn parses_float_with_exponent() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "4.9E50",
+            rule: Rule::number,
+            tokens: [
+                number(0,5)
+            ]
+        }
+    }
+
+    #[test]
+    fn parses_negative_float_with_exponent() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "-30.5e-2",
+            rule: Rule::number,
+            tokens: [
+                number(0,7)
+            ]
+        }
+    }
+
+    #[test]
+    fn fails_to_parse_semver_as_number() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "0.9.5",
+            rule: Rule::number,
+            tokens: [
+                number(0,4)
+            ]
+        }
+    }
+
+    #[test]
+    fn fails_to_parse_two_zero_semver_as_number() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "0.0.5",
+            rule: Rule::number,
+            tokens: [
+                number(0,4)
+            ]
+        }
+    }
+}
