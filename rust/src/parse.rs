@@ -11,6 +11,7 @@ pub struct MistQLParser;
 pub enum Expression {
     At,
     Value(Value),
+    EOI,
 }
 
 #[derive(Clone)]
@@ -21,32 +22,33 @@ pub enum Value {
 
 pub fn parse_query(query: &str) -> Result<Expression> {
     let mut pairs = MistQLParser::parse(Rule::query, query)?;
-    let mut exprs: Vec<Expression> = vec![];
-    for p in pairs.next().unwrap().into_inner() {
-        match p.as_rule() {
-            Rule::at => exprs.push(Expression::At),
-            Rule::value => exprs.push(Expression::Value(parse_value(p)?)),
-            Rule::EOI => (),
-            _ => return Err(Error::query(format!("unknown rule \"{:?}\"", p.as_rule()))),
-        }
-    }
-    match exprs.get(0) {
-        Some(expr) => Ok(expr.clone()),
+    match pairs.next() {
+        Some(pair) => parse_expression(pair),
         None => Err(Error::query(format!("no expressions found"))),
     }
 }
 
-pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
-    // todo don't initialize this
-    let mut val: Value = Value::Null;
-    for p in pair.into_inner() {
-        match p.as_rule() {
-            Rule::number => val = Value::Number(p.as_str().parse().unwrap()),
-            Rule::null => val = Value::Null,
-            _ => return Err(Error::query(format!("unknown value type {:?}", p))),
-        }
+pub fn parse_expression(pair: Pair<Rule>) -> Result<Expression> {
+    match pair.into_inner().next() {
+        None => Err(Error::query(format!("no expression found"))),
+        Some(expr) => match expr.as_rule() {
+            Rule::at => Ok(Expression::At),
+            Rule::value => Ok(Expression::Value(parse_value(expr)?)),
+            Rule::EOI => Ok(Expression::EOI),
+            _ => Err(Error::query(format!("unknown expression type {:?}", expr))),
+        },
     }
-    Ok(val)
+}
+
+pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
+    match pair.into_inner().next() {
+        None => Err(Error::query(format!("no value found"))),
+        Some(value) => match value.as_rule() {
+            Rule::number => Ok(Value::Number(value.as_str().parse().unwrap())),
+            Rule::null => Ok(Value::Null),
+            _ => Err(Error::query(format!("unknown value type {:?}", value))),
+        },
+    }
 }
 
 #[cfg(test)]

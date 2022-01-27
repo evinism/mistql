@@ -6,6 +6,7 @@ impl Expression {
         match self {
             Self::At => Ok(context.clone()),
             Self::Value(val) => val.evaluate(),
+            Self::EOI => Ok(context.clone()),
         }
     }
 }
