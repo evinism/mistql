@@ -120,14 +120,14 @@ fn run_shared_tests() {
         .collect::<Vec<TestResult>>();
     assert!(
         failures.is_empty(),
-        "{} integration tests - {} failed:\n{}",
-        results.len(),
-        failures.len(),
+        "{}\n\n{}/{} integration tests failed",
         failures
             .iter()
             .rev()
             .map(|r| r.to_string())
             .collect::<Vec<String>>()
-            .join("\n")
+            .join("\n"),
+        failures.len(),
+        results.len(),
     )
 }
