@@ -129,27 +129,27 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn fails_to_parse_semver_as_number() {
-    //     parses_to! {
-    //         parser: MistQLParser,
-    //         input: "0.9.5",
-    //         rule: Rule::number,
-    //         tokens: [
-    //             number(0,4)
-    //         ]
-    //     }
-    // }
+    #[test]
+    fn fails_to_parse_semver_as_number() {
+        fails_with! {
+            parser: MistQLParser,
+            input: "0.9.5",
+            rule: Rule::query,
+            positives: vec![Rule::EOI],
+            negatives: vec![],
+            pos: 3
+        }
+    }
 
-    // #[test]
-    // fn fails_to_parse_two_zero_semver_as_number() {
-    //     parses_to! {
-    //         parser: MistQLParser,
-    //         input: "0.0.5",
-    //         rule: Rule::number,
-    //         tokens: [
-    //             number(0,4)
-    //         ]
-    //     }
-    // }
+    #[test]
+    fn fails_to_parse_two_zero_semver_as_number() {
+        fails_with! {
+            parser: MistQLParser,
+            input: "0.0.5",
+            rule: Rule::query,
+            positives: vec![Rule::EOI],
+            negatives: vec![],
+            pos: 3
+        }
+    }
 }
