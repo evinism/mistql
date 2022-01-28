@@ -2,7 +2,7 @@ use super::Rule;
 use crate::{Error, Result};
 use pest::iterators::Pair;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Value {
     Number(f64),
     Null,
@@ -12,28 +12,42 @@ pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
     match pair.into_inner().next() {
         None => Err(Error::query(format!("no value found"))),
         Some(value) => match value.as_rule() {
-            Rule::number => Ok(Value::Number(value.as_str().parse().unwrap())),
+            Rule::number => Ok(parse_number(value.as_str())),
             Rule::null => Ok(Value::Null),
             _ => Err(Error::query(format!("unknown value type {:?}", value))),
         },
     }
 }
 
+fn parse_number(text: &str) -> Value {
+    Value::Number(text.parse().unwrap())
+}
+
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::parse::{MistQLParser, Rule};
     use pest::Parser;
 
     #[test]
     fn parses_positive_integer() {
+        let query = "100000";
         parses_to! {
             parser: MistQLParser,
-            input: "100000",
+            input: query.clone(),
             rule: Rule::number,
             tokens: [
                 number(0,6)
             ]
         }
+
+        let pair = MistQLParser::parse(Rule::number, query)
+            .unwrap()
+            .next()
+            .unwrap();
+        let parsed = parse_number(pair.as_str());
+        // TODO should probably differentiate between ints and floats
+        assert_eq!(parsed, Value::Number(100000.0))
     }
 
     #[test]
@@ -142,16 +156,5 @@ mod tests {
                 number(0,4)
             ]
         }
-    }
-
-    #[test]
-    fn interprets_integer_as_i32() {
-        let query = "1000";
-        let pair = MistQLParser::parse(Rule::number, query)
-            .unwrap()
-            .next()
-            .unwrap();
-        dbg!(pair);
-        panic!("wip");
     }
 }
