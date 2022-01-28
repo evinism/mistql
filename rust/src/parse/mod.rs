@@ -11,7 +11,7 @@ pub use value::Value;
 #[grammar = "mistql.pest"]
 pub struct MistQLParser;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
     At,
     Value(Value),
@@ -45,13 +45,22 @@ mod tests {
 
     #[test]
     fn parse_at() {
+        let query = "@";
+
         parses_to! {
             parser: MistQLParser,
-            input: "@",
+            input: query,
             rule: Rule::at,
             tokens: [
                 at(0,1)
             ]
         }
+
+        let pair = MistQLParser::parse(Rule::query, query)
+            .unwrap()
+            .next()
+            .unwrap();
+        let parsed = parse_expression(pair).unwrap();
+        assert_eq!(parsed, Expression::At);
     }
 }
