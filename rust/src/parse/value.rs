@@ -46,68 +46,107 @@ mod tests {
             .next()
             .unwrap();
         let parsed = parse_number(pair.as_str());
-        // TODO should probably differentiate between ints and floats
         assert_eq!(parsed, Value::Number(100000.0))
     }
 
     #[test]
     fn parses_negative_integer() {
+        let query = "-100000";
         parses_to! {
             parser: MistQLParser,
-            input: "-100000",
+            input: query,
             rule: Rule::number,
             tokens: [
                 number(0,7)
             ]
         }
+
+        let pair = MistQLParser::parse(Rule::number, query)
+            .unwrap()
+            .next()
+            .unwrap();
+        let parsed = parse_number(pair.as_str());
+        assert_eq!(parsed, Value::Number(-100000.0))
     }
 
     #[test]
     fn parses_zero() {
+        let query = "0";
         parses_to! {
             parser: MistQLParser,
-            input: "0",
+            input: query,
             rule: Rule::number,
             tokens: [
                 number(0,1)
             ]
         }
+
+        let pair = MistQLParser::parse(Rule::number, query)
+            .unwrap()
+            .next()
+            .unwrap();
+        let parsed = parse_number(pair.as_str());
+        assert_eq!(parsed, Value::Number(0.0))
     }
 
     #[test]
     fn parses_float() {
+        let query = "30.5";
         parses_to! {
             parser: MistQLParser,
-            input: "30.5",
+            input: query,
             rule: Rule::number,
             tokens: [
                 number(0,4)
             ]
         }
+
+        let pair = MistQLParser::parse(Rule::number, query)
+            .unwrap()
+            .next()
+            .unwrap();
+        let parsed = parse_number(pair.as_str());
+        assert_eq!(parsed, Value::Number(30.5))
     }
 
     #[test]
     fn parses_float_with_leading_zero() {
+        let query = "0.9";
         parses_to! {
             parser: MistQLParser,
-            input: "0.9",
+            input: query,
             rule: Rule::number,
             tokens: [
                 number(0,3)
             ]
         }
+
+        let pair = MistQLParser::parse(Rule::number, query)
+            .unwrap()
+            .next()
+            .unwrap();
+        let parsed = parse_number(pair.as_str());
+        assert_eq!(parsed, Value::Number(0.9))
     }
 
     #[test]
     fn parses_negative_float() {
+        let query = "-30.5";
         parses_to! {
             parser: MistQLParser,
-            input: "-30.5",
+            input: query,
             rule: Rule::number,
             tokens: [
                 number(0,5)
             ]
         }
+
+        let pair = MistQLParser::parse(Rule::number, query)
+            .unwrap()
+            .next()
+            .unwrap();
+        let parsed = parse_number(pair.as_str());
+        assert_eq!(parsed, Value::Number(-30.5))
     }
 
     #[test]
