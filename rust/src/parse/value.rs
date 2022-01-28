@@ -12,15 +12,11 @@ pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
     match pair.into_inner().next() {
         None => Err(Error::query(format!("no value found"))),
         Some(value) => match value.as_rule() {
-            Rule::number => Ok(parse_number(value.as_str())),
+            Rule::number => Ok(Value::Number(value.as_str().parse().unwrap())),
             Rule::null => Ok(Value::Null),
             _ => Err(Error::query(format!("unknown value type {:?}", value))),
         },
     }
-}
-
-fn parse_number(text: &str) -> Value {
-    Value::Number(text.parse().unwrap())
 }
 
 #[cfg(test)]
