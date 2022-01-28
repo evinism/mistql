@@ -1,5 +1,5 @@
-use crate::error::Result;
 use crate::parse::{Expression, Value};
+use crate::Result;
 
 impl Expression {
     pub fn evaluate(&self, context: &serde_json::Value) -> Result<serde_json::Value> {

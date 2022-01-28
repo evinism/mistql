@@ -5,7 +5,7 @@ pub mod error;
 pub mod eval;
 pub mod parse;
 
-use error::{Error, Result};
+pub use error::{Error, Result};
 
 pub fn query_value(query_str: String, data: serde_json::Value) -> Result<serde_json::Value> {
     parse::parse_query(&query_str)?.evaluate(&data)
