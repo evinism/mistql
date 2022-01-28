@@ -12,9 +12,9 @@ pub use value::Value;
 pub struct MistQLParser;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Expression {
+pub enum Expression<'a> {
     At,
-    Value(Value),
+    Value(Value<'a>),
     EOI,
 }
 

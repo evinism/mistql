@@ -3,7 +3,15 @@ query = { SOI ~ expression ~ EOI }
 expression = _{ at | value }
 at = { "@" }
 
-value = { number | null }
+value = { string | number | null }
+
+string = ${ "\"" ~ inner ~ "\"" }
+inner = @{ char* }
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
 
 number = @{
     "-"?
