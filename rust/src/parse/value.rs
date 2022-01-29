@@ -4,8 +4,10 @@ use pest::iterators::Pair;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Value<'a> {
+    Array(Vec<Value<'a>>),
     String(&'a str),
     Number(serde_json::Number),
+    Boolean(bool),
     Null,
 }
 
@@ -13,11 +15,21 @@ pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
     match pair.into_inner().next() {
         None => Err(Error::query(format!("no value found"))),
         Some(value) => match value.as_rule() {
+            Rule::array => parse_array(value),
             Rule::string => Ok(Value::String(value.as_str())),
             Rule::number => Ok(Value::Number(value.as_str().parse().unwrap())),
+            Rule::boolean => Ok(Value::Boolean(value.as_str().parse().unwrap())),
             Rule::null => Ok(Value::Null),
             _ => Err(Error::query(format!("unknown value type {:?}", value))),
         },
+    }
+}
+
+pub fn parse_array(pair: Pair<Rule>) -> Result<Value> {
+    let contents: Result<Vec<Value>> = pair.into_inner().map(parse_value).collect();
+    match contents {
+        Ok(arr) => Ok(Value::Array(arr)),
+        Err(err) => Err(err),
     }
 }
 

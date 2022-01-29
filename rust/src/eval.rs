@@ -14,8 +14,10 @@ impl<'a> Expression<'a> {
 impl<'a> Value<'a> {
     pub fn evaluate(&self) -> Result<serde_json::Value> {
         match self {
+            Self::Array(arr) => arr.iter().map(|elt| elt.evaluate()).collect(),
             Self::String(str) => Ok(serde_json::from_str(str).unwrap()),
             Self::Number(num) => Ok(num.clone().into()),
+            Self::Boolean(bool) => Ok(bool.clone().into()),
             Self::Null => Ok(serde_json::Value::Null),
         }
     }

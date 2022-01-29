@@ -3,7 +3,12 @@ query = { SOI ~ expression ~ EOI }
 expression = _{ at | value }
 at = { "@" }
 
-value = { string | number | null }
+value = { array | string | number | boolean | null }
+
+array = {
+    "[" ~ "]" |
+    "[" ~ value ~ ("," ~ value)* ~ "]"
+}
 
 string = ${ "\"" ~ inner ~ "\"" }
 inner = @{ char* }
@@ -20,4 +25,8 @@ number = @{
     ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
 }
 
+boolean = { "true" | "false" }
+
 null = { "null" }
+
+WHITESPACE = _{ " " }
