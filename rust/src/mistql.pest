@@ -3,7 +3,13 @@ query = { SOI ~ expression ~ EOI }
 expression = _{ at | value }
 at = { "@" }
 
-value = { array | string | number | boolean | null }
+value = { object | array | string | number | boolean | null }
+
+object = {
+    "{" ~ "}" |
+    "{" ~ keyval ~ ("," ~ keyval)* ~ "}"
+}
+keyval = { string ~ ":" ~ value }
 
 array = {
     "[" ~ "]" |
