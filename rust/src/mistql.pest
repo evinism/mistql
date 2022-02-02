@@ -1,6 +1,8 @@
 query = { SOI ~ expression ~ EOI }
 
-expression = _{ at | literal }
+expression = _{ value }
+
+value = { at | literal }
 at = { "@" }
 
 literal = { object | array | string | number | boolean | null }

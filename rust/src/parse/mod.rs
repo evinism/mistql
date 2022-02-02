@@ -13,6 +13,11 @@ pub struct MistQLParser;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression<'a> {
+    Value(Value<'a>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Value<'a> {
     At,
     Literal(Literal<'a>),
     EOI,
@@ -30,10 +35,20 @@ pub fn parse_expression(pair: Pair<Rule>) -> Result<Expression> {
     match pair.into_inner().next() {
         None => Err(Error::query(format!("no expression found"))),
         Some(expr) => match expr.as_rule() {
-            Rule::at => Ok(Expression::At),
-            Rule::literal => Ok(Expression::Literal(literal::parse_literal(expr)?)),
-            Rule::EOI => Ok(Expression::EOI),
+            Rule::value => Ok(Expression::Value(parse_value(expr)?)),
             _ => Err(Error::query(format!("unknown expression type {:?}", expr))),
+        },
+    }
+}
+
+pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
+    match pair.into_inner().next() {
+        None => Err(Error::query(format!("no expression found"))),
+        Some(value) => match value.as_rule() {
+            Rule::at => Ok(Value::At),
+            Rule::literal => Ok(Value::Literal(literal::parse_literal(value)?)),
+            Rule::EOI => Ok(Value::EOI),
+            _ => Err(Error::query(format!("unknown value type {:?}", value))),
         },
     }
 }
@@ -56,11 +71,11 @@ mod tests {
             ]
         }
 
-        let pair = MistQLParser::parse(Rule::query, query)
+        let pair = MistQLParser::parse(Rule::value, query)
             .unwrap()
             .next()
             .unwrap();
-        let parsed = parse_expression(pair).unwrap();
-        assert_eq!(parsed, Expression::At);
+        let parsed = parse_value(pair).unwrap();
+        assert_eq!(parsed, Value::At);
     }
 }
