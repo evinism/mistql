@@ -14,6 +14,15 @@ pub struct MistQLParser;
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression<'a> {
     Value(Value<'a>),
+    Monad {
+        op: Operator,
+        target: Box<Expression<'a>>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Operator {
+    Not,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -26,7 +35,7 @@ pub enum Value<'a> {
 pub fn parse_query(query: &str) -> Result<Expression> {
     let mut pairs = MistQLParser::parse(Rule::query, query)?;
     match pairs.next() {
-        Some(pair) => parse_expression(pair),
+        Some(pair) => parse_expression(pair.into_inner().next().unwrap()),
         None => Err(Error::query(format!("no expressions found"))),
     }
 }
@@ -36,6 +45,16 @@ pub fn parse_expression(pair: Pair<Rule>) -> Result<Expression> {
         None => Err(Error::query(format!("no expression found"))),
         Some(expr) => match expr.as_rule() {
             Rule::value => Ok(Expression::Value(parse_value(expr)?)),
+            Rule::monad => {
+                let mut inner = expr.into_inner();
+                let operator = inner.next().unwrap();
+                let target = inner.next().unwrap();
+
+                Ok(Expression::Monad {
+                    op: parse_operator(operator)?,
+                    target: Box::new(parse_expression(target)?),
+                })
+            }
             _ => Err(Error::query(format!("unknown expression type {:?}", expr))),
         },
     }
@@ -43,13 +62,20 @@ pub fn parse_expression(pair: Pair<Rule>) -> Result<Expression> {
 
 pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
     match pair.into_inner().next() {
-        None => Err(Error::query(format!("no expression found"))),
+        None => Err(Error::query(format!("no value found"))),
         Some(value) => match value.as_rule() {
             Rule::at => Ok(Value::At),
             Rule::literal => Ok(Value::Literal(literal::parse_literal(value)?)),
             Rule::EOI => Ok(Value::EOI),
             _ => Err(Error::query(format!("unknown value type {:?}", value))),
         },
+    }
+}
+
+pub fn parse_operator(pair: Pair<Rule>) -> Result<Operator> {
+    match pair.as_str() {
+        "!" => Ok(Operator::Not),
+        _ => Err(Error::query(format!("unknown operator type {:?}", pair))),
     }
 }
 

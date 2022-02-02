@@ -1,11 +1,11 @@
-use super::{parse_value, Rule, Value};
+use super::{parse_expression, Expression, Rule};
 use crate::{Error, Result};
 use pest::iterators::Pair;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Literal<'a> {
-    Object(Vec<(&'a str, Value<'a>)>),
-    Array(Vec<Value<'a>>),
+    Object(Vec<(&'a str, Expression<'a>)>),
+    Array(Vec<Expression<'a>>),
     String(&'a str),
     Number(serde_json::Number),
     Boolean(bool),
@@ -36,7 +36,7 @@ pub fn parse_object(pair: Pair<Rule>) -> Result<Literal> {
                     let val_iter = inner_pair.into_inner().skip(1).step_by(2);
                     key_iter.zip(val_iter).map(|(key, val)| {
                         let key_inner = key.into_inner().next().unwrap();
-                        (key_inner.as_str(), parse_value(val).unwrap())
+                        (key_inner.as_str(), parse_expression(val).unwrap())
                     })
                 }
                 _ => unreachable!("not a keyval"),
@@ -47,7 +47,7 @@ pub fn parse_object(pair: Pair<Rule>) -> Result<Literal> {
 }
 
 pub fn parse_array(pair: Pair<Rule>) -> Result<Literal> {
-    let contents: Result<Vec<Value>> = pair.into_inner().map(parse_value).collect();
+    let contents: Result<Vec<Expression>> = pair.into_inner().map(parse_expression).collect();
     match contents {
         Ok(arr) => Ok(Literal::Array(arr)),
         Err(err) => Err(err),
@@ -198,9 +198,11 @@ mod tests {
                         string(1,4, [
                             inner(2,3)
                         ]),
-                        value(6,7, [
-                            literal(6,7, [
-                                number(6,7)
+                        expression(6,7, [
+                            value(6,7, [
+                                literal(6,7, [
+                                    number(6,7)
+                                ])
                             ])
                         ])
                     ]),
@@ -208,9 +210,11 @@ mod tests {
                         string(9,12, [
                             inner(10,11)
                         ]),
-                        value(14,15, [
-                            literal(14,15, [
-                                number(14,15)
+                        expression(14,15, [
+                            value(14,15, [
+                                literal(14,15, [
+                                    number(14,15)
+                                ])
                             ])
                         ])
                     ]),
@@ -218,9 +222,11 @@ mod tests {
                         string(17,20, [
                             inner(18,19)
                         ]),
-                        value(22,23, [
-                            literal(22,23, [
-                                number(22,23)
+                        expression(22,23, [
+                            value(22,23, [
+                                literal(22,23, [
+                                    number(22,23)
+                                ])
                             ])
                         ])
                     ]),

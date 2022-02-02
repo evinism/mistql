@@ -1,6 +1,13 @@
 query = { SOI ~ expression ~ EOI }
 
-expression = _{ value }
+expression = {
+    value |
+    monad
+}
+
+monad = { monadic_op ~ expression }
+
+monadic_op = { "!" }
 
 value = { at | literal }
 at = { "@" }

@@ -5,6 +5,7 @@ impl<'a> Expression<'a> {
     pub fn evaluate(&self, context: &serde_json::Value) -> Result<serde_json::Value> {
         match self {
             Self::Value(val) => val.evaluate(context),
+            Self::Monad { op: _, target } => target.evaluate(context),
         }
     }
 }
