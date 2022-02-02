@@ -1,19 +1,19 @@
 query = { SOI ~ expression ~ EOI }
 
-expression = _{ at | value }
+expression = _{ at | literal }
 at = { "@" }
 
-value = { object | array | string | number | boolean | null }
+literal = { object | array | string | number | boolean | null }
 
 object = {
     "{" ~ "}" |
     "{" ~ keyval ~ ("," ~ keyval)* ~ "}"
 }
-keyval = { string ~ ":" ~ value }
+keyval = { string ~ ":" ~ expression }
 
 array = {
     "[" ~ "]" |
-    "[" ~ value ~ ("," ~ value)* ~ "]"
+    "[" ~ expression ~ ("," ~ expression)* ~ "]"
 }
 
 string = ${ "\"" ~ inner ~ "\"" }

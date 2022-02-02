@@ -1,17 +1,17 @@
-use crate::parse::{Expression, Value};
+use crate::parse::{Expression, Literal};
 use crate::Result;
 
 impl<'a> Expression<'a> {
     pub fn evaluate(&self, context: &serde_json::Value) -> Result<serde_json::Value> {
         match self {
             Self::At => Ok(context.clone()),
-            Self::Value(val) => val.evaluate(),
+            Self::Literal(val) => val.evaluate(),
             Self::EOI => Ok(context.clone()),
         }
     }
 }
 
-impl<'a> Value<'a> {
+impl<'a> Literal<'a> {
     pub fn evaluate(&self) -> Result<serde_json::Value> {
         match self {
             Self::Object(obj) => Ok(obj

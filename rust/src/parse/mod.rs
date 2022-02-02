@@ -3,9 +3,9 @@ use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
 
-pub mod value;
+pub mod literal;
 
-pub use value::Value;
+pub use literal::Literal;
 
 #[derive(Parser)]
 #[grammar = "mistql.pest"]
@@ -14,7 +14,7 @@ pub struct MistQLParser;
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression<'a> {
     At,
-    Value(Value<'a>),
+    Literal(Literal<'a>),
     EOI,
 }
 
@@ -31,7 +31,7 @@ pub fn parse_expression(pair: Pair<Rule>) -> Result<Expression> {
         None => Err(Error::query(format!("no expression found"))),
         Some(expr) => match expr.as_rule() {
             Rule::at => Ok(Expression::At),
-            Rule::value => Ok(Expression::Value(value::parse_value(expr)?)),
+            Rule::literal => Ok(Expression::Literal(literal::parse_literal(expr)?)),
             Rule::EOI => Ok(Expression::EOI),
             _ => Err(Error::query(format!("unknown expression type {:?}", expr))),
         },

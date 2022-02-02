@@ -3,32 +3,32 @@ use crate::{Error, Result};
 use pest::iterators::Pair;
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum Value<'a> {
-    Object(Vec<(&'a str, Value<'a>)>),
-    Array(Vec<Value<'a>>),
+pub enum Literal<'a> {
+    Object(Vec<(&'a str, Literal<'a>)>),
+    Array(Vec<Literal<'a>>),
     String(&'a str),
     Number(serde_json::Number),
     Boolean(bool),
     Null,
 }
 
-pub fn parse_value(pair: Pair<Rule>) -> Result<Value> {
+pub fn parse_literal(pair: Pair<Rule>) -> Result<Literal> {
     match pair.into_inner().next() {
         None => Err(Error::query(format!("no value found"))),
         Some(value) => match value.as_rule() {
             Rule::object => parse_object(value),
             Rule::array => parse_array(value),
-            Rule::string => Ok(Value::String(value.as_str())),
-            Rule::number => Ok(Value::Number(value.as_str().parse().unwrap())),
-            Rule::boolean => Ok(Value::Boolean(value.as_str().parse().unwrap())),
-            Rule::null => Ok(Value::Null),
+            Rule::string => Ok(Literal::String(value.as_str())),
+            Rule::number => Ok(Literal::Number(value.as_str().parse().unwrap())),
+            Rule::boolean => Ok(Literal::Boolean(value.as_str().parse().unwrap())),
+            Rule::null => Ok(Literal::Null),
             _ => Err(Error::query(format!("unknown value type {:?}", value))),
         },
     }
 }
 
-pub fn parse_object(pair: Pair<Rule>) -> Result<Value> {
-    Ok(Value::Object(
+pub fn parse_object(pair: Pair<Rule>) -> Result<Literal> {
+    Ok(Literal::Object(
         pair.into_inner()
             .map(|inner_pair| match inner_pair.as_rule() {
                 Rule::keyval => {
@@ -36,7 +36,7 @@ pub fn parse_object(pair: Pair<Rule>) -> Result<Value> {
                     let val_iter = inner_pair.into_inner().skip(1).step_by(2);
                     key_iter.zip(val_iter).map(|(key, val)| {
                         let key_inner = key.into_inner().next().unwrap();
-                        (key_inner.as_str(), parse_value(val).unwrap())
+                        (key_inner.as_str(), parse_literal(val).unwrap())
                     })
                 }
                 _ => unreachable!("not a keyval"),
@@ -46,10 +46,10 @@ pub fn parse_object(pair: Pair<Rule>) -> Result<Value> {
     ))
 }
 
-pub fn parse_array(pair: Pair<Rule>) -> Result<Value> {
-    let contents: Result<Vec<Value>> = pair.into_inner().map(parse_value).collect();
+pub fn parse_array(pair: Pair<Rule>) -> Result<Literal> {
+    let contents: Result<Vec<Literal>> = pair.into_inner().map(parse_literal).collect();
     match contents {
-        Ok(arr) => Ok(Value::Array(arr)),
+        Ok(arr) => Ok(Literal::Array(arr)),
         Err(err) => Err(err),
     }
 }
@@ -198,7 +198,7 @@ mod tests {
                         string(1,4, [
                             inner(2,3)
                         ]),
-                        value(6,7, [
+                        literal(6,7, [
                             number(6,7)
                         ])
                     ]),
@@ -206,7 +206,7 @@ mod tests {
                         string(9,12, [
                             inner(10,11)
                         ]),
-                        value(14,15, [
+                        literal(14,15, [
                             number(14,15)
                         ])
                     ]),
@@ -214,7 +214,7 @@ mod tests {
                         string(17,20, [
                             inner(18,19)
                         ]),
-                        value(22,23, [
+                        literal(22,23, [
                             number(22,23)
                         ])
                     ]),
