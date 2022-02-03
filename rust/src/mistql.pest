@@ -14,16 +14,19 @@ at = { "@" }
 
 literal = { object | array | string | number | boolean | null }
 
-object = {
-    "{" ~ "}" |
-    "{" ~ keyval ~ ("," ~ keyval)* ~ "}"
-}
-keyval = { string ~ ":" ~ expression }
-
 array = {
     "[" ~ "]" |
     "[" ~ expression ~ ("," ~ expression)* ~ "]"
 }
+
+object = {
+    "{" ~ "}" |
+    "{" ~ keyval ~ ("," ~ keyval)* ~ "}"
+}
+keyval = { key ~ ":" ~ expression }
+key = { string | ident }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 string = ${ "\"" ~ inner ~ "\"" }
 inner = @{ char* }

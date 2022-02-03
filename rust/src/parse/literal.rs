@@ -4,7 +4,7 @@ use pest::iterators::Pair;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Literal<'a> {
-    Object(Vec<(&'a str, Expression<'a>)>),
+    Object(Vec<(String, Expression<'a>)>),
     Array(Vec<Expression<'a>>),
     String(&'a str),
     Number(serde_json::Number),
@@ -35,8 +35,9 @@ pub fn parse_object(pair: Pair<Rule>) -> Result<Literal> {
                     let key_iter = inner_pair.clone().into_inner().step_by(2);
                     let val_iter = inner_pair.into_inner().skip(1).step_by(2);
                     key_iter.zip(val_iter).map(|(key, val)| {
-                        let key_inner = key.into_inner().next().unwrap();
-                        (key_inner.as_str(), parse_expression(val).unwrap())
+                        let key = parse_obj_key(key);
+                        let val = parse_expression(val);
+                        (key, val.unwrap())
                     })
                 }
                 _ => unreachable!("not a keyval"),
@@ -44,6 +45,15 @@ pub fn parse_object(pair: Pair<Rule>) -> Result<Literal> {
             .flatten()
             .collect(),
     ))
+}
+
+fn parse_obj_key(pair: Pair<Rule>) -> String {
+    let inner = pair.into_inner().next().unwrap();
+    match inner.as_rule() {
+        Rule::string => inner.into_inner().next().unwrap().as_str().to_string(),
+        Rule::ident => inner.as_str().to_string(),
+        _ => unreachable!("not a key"),
+    }
 }
 
 pub fn parse_array(pair: Pair<Rule>) -> Result<Literal> {
@@ -195,8 +205,10 @@ mod tests {
             tokens: [
                 object(0,24, [
                     keyval(1,7, [
-                        string(1,4, [
-                            inner(2,3)
+                        key(1,4, [
+                            string(1,4, [
+                                inner(2,3)
+                            ])
                         ]),
                         expression(6,7, [
                             value(6,7, [
@@ -207,8 +219,10 @@ mod tests {
                         ])
                     ]),
                     keyval(9,15, [
-                        string(9,12, [
-                            inner(10,11)
+                        key(9,12, [
+                            string(9,12, [
+                                inner(10,11)
+                            ])
                         ]),
                         expression(14,15, [
                             value(14,15, [
@@ -219,13 +233,66 @@ mod tests {
                         ])
                     ]),
                     keyval(17,23, [
-                        string(17,20, [
-                            inner(18,19)
+                        key(17,20, [
+                            string(17,20, [
+                                inner(18,19)
+                            ])
                         ]),
                         expression(22,23, [
                             value(22,23, [
                                 literal(22,23, [
                                     number(22,23)
+                                ])
+                            ])
+                        ])
+                    ]),
+                ])
+            ]
+        }
+    }
+
+    #[test]
+    fn parsing_objects_with_unqouted_keys() {
+        let query = "{a: 1, b: 2, c: 3}";
+
+        parses_to! {
+            parser: MistQLParser,
+            input: query,
+            rule: Rule::object,
+            tokens: [
+                object(0,18, [
+                    keyval(1,5, [
+                        key(1,2, [
+                            ident(1,2)
+                        ]),
+                        expression(4,5, [
+                            value(4,5, [
+                                literal(4,5, [
+                                    number(4,5)
+                                ])
+                            ])
+                        ])
+                    ]),
+                    keyval(7,11, [
+                        key(7,8, [
+                            ident(7,8)
+                        ]),
+                        expression(10,11, [
+                            value(10,11, [
+                                literal(10,11, [
+                                    number(10,11)
+                                ])
+                            ])
+                        ])
+                    ]),
+                    keyval(13,17, [
+                        key(13,14, [
+                            ident(13,14)
+                        ]),
+                        expression(16,17, [
+                            value(16,17, [
+                                literal(16,17, [
+                                    number(16,17)
                                 ])
                             ])
                         ])
