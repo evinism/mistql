@@ -1,5 +1,5 @@
 use crate::parse::{Expression, Literal, Operator, Value};
-use crate::Result;
+use crate::{Error, Result};
 
 impl<'a> Expression<'a> {
     pub fn evaluate(&self, context: &serde_json::Value) -> Result<serde_json::Value> {
@@ -9,6 +9,7 @@ impl<'a> Expression<'a> {
                 op: Operator::Not,
                 target,
             } => Ok((!is_truthy(target.evaluate(context)?)).into()),
+            Self::FnCall { func, args } => call_fn(func.clone(), args.clone(), context),
         }
     }
 }
@@ -21,6 +22,24 @@ fn is_truthy(val: serde_json::Value) -> bool {
         serde_json::Value::String(string) => string.len() > 0,
         serde_json::Value::Array(arr) => arr.len() > 0,
         serde_json::Value::Object(obj) => obj.len() > 0,
+    }
+}
+
+fn call_fn(
+    func: String,
+    raw_args: Vec<Expression>,
+    context: &serde_json::Value,
+) -> Result<serde_json::Value> {
+    let args: Result<Vec<serde_json::Value>> =
+        raw_args.iter().map(|arg| arg.evaluate(context)).collect();
+
+    if func == "regex" {
+        Ok("regex".into())
+    } else {
+        Err(Error::unimplemented_evaluation(format!(
+            "Unknown function {}",
+            func
+        )))
     }
 }
 

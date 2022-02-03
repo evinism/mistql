@@ -18,6 +18,10 @@ pub enum Expression<'a> {
         op: Operator,
         target: Box<Expression<'a>>,
     },
+    FnCall {
+        func: String,
+        args: Vec<Expression<'a>>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -53,6 +57,18 @@ pub fn parse_expression(pair: Pair<Rule>) -> Result<Expression> {
                 Ok(Expression::Monad {
                     op: parse_operator(operator)?,
                     target: Box::new(parse_expression(target)?),
+                })
+            }
+            Rule::fncall => {
+                let mut inner = expr.into_inner();
+                let func = inner.next().unwrap().as_str().to_string();
+                let args: Vec<Expression> = inner
+                    .map(parse_expression)
+                    .collect::<Result<Vec<Expression>>>()?;
+
+                Ok(Expression::FnCall {
+                    func: func,
+                    args: args,
                 })
             }
             _ => Err(Error::query(format!("unknown expression type {:?}", expr))),
