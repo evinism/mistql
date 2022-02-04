@@ -10,9 +10,7 @@ monad = { monadic_op ~ expression }
 
 monadic_op = { "!" }
 
-// functions aren't always surrounded by parens but
-// I'll deal with that later
-fncall = { "(" ~ ident ~ expression* ~ ")" }
+fncall = { "("? ~ ident ~ expression* ~ ")"? }
 
 value = { at | literal }
 at = { "@" }

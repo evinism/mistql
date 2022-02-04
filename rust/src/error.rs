@@ -9,6 +9,7 @@ pub enum ErrorKind {
     QueryParse,
     Query(String),
     UnimplementedEvaluation(String),
+    Evaluation(String),
 }
 
 #[derive(Debug)]
@@ -42,6 +43,7 @@ impl fmt::Display for Error {
             ErrorKind::UnimplementedEvaluation(ref msg) => {
                 write!(f, "Unimplemented evaluation: {}", msg)
             }
+            ErrorKind::Evaluation(ref msg) => write!(f, "evaluation error: {}", msg),
         }
     }
 }
@@ -71,6 +73,13 @@ impl Error {
     pub fn unimplemented_evaluation(msg: String) -> Self {
         Self {
             kind: ErrorKind::UnimplementedEvaluation(msg),
+            source: None,
+        }
+    }
+
+    pub fn evaluation(msg: String) -> Self {
+        Self {
+            kind: ErrorKind::Evaluation(msg),
             source: None,
         }
     }

@@ -1,4 +1,4 @@
-use crate::parse::{Expression, Literal, Operator, Value};
+use crate::parse::{Expression, Function, Literal, Operator, Value};
 use crate::{Error, Result};
 
 impl<'a> Expression<'a> {
@@ -26,20 +26,20 @@ fn is_truthy(val: serde_json::Value) -> bool {
 }
 
 fn call_fn(
-    func: String,
+    func: Function,
     raw_args: Vec<Expression>,
     context: &serde_json::Value,
 ) -> Result<serde_json::Value> {
-    let args: Result<Vec<serde_json::Value>> =
+    let args: Vec<Result<serde_json::Value>> =
         raw_args.iter().map(|arg| arg.evaluate(context)).collect();
 
-    if func == "regex" {
-        Ok("regex".into())
-    } else {
-        Err(Error::unimplemented_evaluation(format!(
-            "Unknown function {}",
-            func
-        )))
+    match func {
+        Function::Regex => Ok("regex".into()),
+        Function::Count => match args.get(0) {
+            Some(Ok(serde_json::Value::Array(thing))) => Ok(thing.len().into()),
+            Some(_) => Err(Error::evaluation("uncountable argument".to_string())),
+            None => Err(Error::evaluation("count requires an argument".to_string())),
+        },
     }
 }
 

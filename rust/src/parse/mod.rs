@@ -3,8 +3,10 @@ use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
 
+pub mod function;
 pub mod literal;
 
+pub use function::Function;
 pub use literal::Literal;
 
 #[derive(Parser)]
@@ -19,7 +21,7 @@ pub enum Expression<'a> {
         target: Box<Expression<'a>>,
     },
     FnCall {
-        func: String,
+        func: Function,
         args: Vec<Expression<'a>>,
     },
 }
@@ -61,7 +63,7 @@ pub fn parse_expression(pair: Pair<Rule>) -> Result<Expression> {
             }
             Rule::fncall => {
                 let mut inner = expr.into_inner();
-                let func = inner.next().unwrap().as_str().to_string();
+                let func = inner.next().unwrap().as_str().parse()?;
                 let args: Vec<Expression> = inner
                     .map(parse_expression)
                     .collect::<Result<Vec<Expression>>>()?;
