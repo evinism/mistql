@@ -5,6 +5,7 @@ use std::str::FromStr;
 pub enum Function {
     Count,
     Regex,
+    Sum,
 }
 
 impl FromStr for Function {
@@ -14,6 +15,7 @@ impl FromStr for Function {
         match s {
             "count" => Ok(Function::Count),
             "regex" => Ok(Function::Regex),
+            "sum" => Ok(Function::Sum),
             _ => Err(Error::query(format!("unknown function {}", s))),
         }
     }
