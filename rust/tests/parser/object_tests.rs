@@ -107,8 +107,8 @@ fn fails_to_parse_unterminated_object_with_contents() {
         parser: MistQLParser,
         input: "{a: 1, b: 2",
         rule: Rule::query,
-        positives: vec![Rule::object, Rule::array, Rule::ident, Rule::string],
+        positives: vec![Rule::infix_op],
         negatives: vec![],
-        pos: 10
+        pos: 11
     }
 }

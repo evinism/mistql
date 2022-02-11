@@ -4,11 +4,18 @@ piped_expr = { simple_expr ~ ( "|" ~ simple_expr )+ }
 
 simple_expr = _{ function | value }
 
-value = _{ literal | reference | ( "(" ~ piped_expr ~ ")" ) }
+value = _{ simple_value ~ ( infix_op ~ simple_value )* }
+simple_value = _{ literal | reference | ( "(" ~ piped_expr ~ ")" ) }
 function = { fn_ident ~ value+ }
 fn_ident = _{
     ident |
     ( "(" ~ simple_expr ~ ")" )
+}
+
+infix_op = {
+    "+" | "-" | "*" | "/" | "%" |
+    "==" | "!=" | ">=" | ">" | "<=" | "<" |
+    "&&" | "||" | "=~"
 }
 
 reference = _{ ident | at }
