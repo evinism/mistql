@@ -8,7 +8,14 @@ value = _{ literal | reference | ( "(" ~ piped_expr ~ ")" ) }
 function = { ident ~ value+ }
 
 reference = _{ ident | at }
-literal = _{ array | string | number | bool | null }
+literal = _{ object | array | string | number | bool | null }
+
+object = {
+    "{" ~ "}" |
+    "{" ~ keyval ~ ("," ~ keyval)* ~ "}"
+}
+keyval = { key ~ ":" ~ simple_expr }
+key = _{ string | ident }
 
 array = {
     "[" ~ "]" |
