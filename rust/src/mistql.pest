@@ -2,9 +2,13 @@ query = _{ SOI ~ (piped_expr | simple_expr) ~ EOI }
 
 piped_expr = { simple_expr ~ ( "|" ~ simple_expr )+ }
 
-simple_expr = _{ literal }
+simple_expr = _{ function | value }
 
-literal = _{ array | string | number | bool | null | ident | at }
+value = _{ literal | reference | ( "(" ~ piped_expr ~ ")" ) }
+function = { ident ~ value+ }
+
+reference = _{ ident | at }
+literal = _{ array | string | number | bool | null }
 
 array = {
     "[" ~ "]" |
