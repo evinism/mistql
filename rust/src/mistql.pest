@@ -1,0 +1,4 @@
+query = _{ SOI ~ expr ~ EOI }
+
+expr = { at }
+at = { "@" }
