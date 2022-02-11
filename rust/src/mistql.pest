@@ -1,4 +1,29 @@
-query = _{ SOI ~ expr ~ EOI }
+query = _{ SOI ~ simple_expr ~ EOI }
 
-expr = { at }
-at = { "@" }
+simple_expr = _{ value }
+
+value = _{ string | number | bool | null | ident | at }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+string = ${ "\"" ~ inner ~ "\"" }
+inner = @{ char* }
+char = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+
+number = @{
+    "-"?
+    ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*)
+    ~ ("." ~ ASCII_DIGIT*)?
+    ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
+}
+
+bool = { "true" | "false" }
+null = { "null" }
+
+at = { "@" | "$.@"}
+
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
