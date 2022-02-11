@@ -1,8 +1,13 @@
 query = _{ SOI ~ simple_expr ~ EOI }
 
-simple_expr = _{ value }
+simple_expr = _{ literal }
 
-value = _{ string | number | bool | null | ident | at }
+literal = _{ array | string | number | bool | null | ident | at }
+
+array = {
+    "[" ~ "]" |
+    "[" ~ simple_expr ~ ("," ~ simple_expr)* ~ "]"
+}
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
