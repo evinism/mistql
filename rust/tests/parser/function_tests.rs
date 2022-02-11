@@ -56,31 +56,29 @@ fn parses_function_with_three_arguments() {
 //     }
 // }
 
-// #[test]
-// fn functions_are_first_class_citizens() {
-//     parses_to! {
-//         parser: MistQLParser,
-//         input: "(if toggle keys values) {one: \"two\"}",
-//         rule: Rule::query,
-//         tokens: [
-//             function(1,22, [
-//                 ident(1,3),
-//                 function(4,22, [
-//                     ident(4,10),
-//                     function(11,22, [
-//                         ident(11,15),
-//                         ident(16,22)
-//                     ])
-//                 ])
-//             ]),
-//             object(24,36, [
-//                 keyval(25,35, [
-//                     ident(25,28),
-//                     string(30,35, [
-//                         inner(31,34)
-//                     ])
-//                 ])
-//             ])
-//         ]
-//     }
-// }
+#[test]
+fn functions_are_first_class_citizens() {
+    parses_to! {
+        parser: MistQLParser,
+        input: "(if toggle keys values) {one: \"two\"}",
+        rule: Rule::query,
+        tokens: [
+            function(0,36, [
+                function(1,22, [
+                    ident(1,3),
+                    ident(4,10),
+                    ident(11,15),
+                    ident(16,22)
+                ]),
+                object(24,36, [
+                    keyval(25,35, [
+                        ident(25,28),
+                        string(30,35, [
+                            inner(31,34)
+                        ])
+                    ])
+                ])
+            ])
+        ]
+    }
+}

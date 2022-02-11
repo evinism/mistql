@@ -5,7 +5,11 @@ piped_expr = { simple_expr ~ ( "|" ~ simple_expr )+ }
 simple_expr = _{ function | value }
 
 value = _{ literal | reference | ( "(" ~ piped_expr ~ ")" ) }
-function = { ident ~ value+ }
+function = { fn_ident ~ value+ }
+fn_ident = _{
+    ident |
+    ( "(" ~ simple_expr ~ ")" )
+}
 
 reference = _{ ident | at }
 literal = _{ object | array | string | number | bool | null }
