@@ -1,4 +1,6 @@
-query = _{ SOI ~ simple_expr ~ EOI }
+query = _{ SOI ~ (piped_expr | simple_expr) ~ EOI }
+
+piped_expr = { simple_expr ~ ( "|" ~ simple_expr )+ }
 
 simple_expr = _{ literal }
 
