@@ -24,3 +24,22 @@ fn parses_piped_expressions() {
         ]
     }
 }
+
+#[test]
+fn parses_unoverwriting_using_dollar() {
+    parses_to! {
+        parser: MistQLParser,
+        input: "$.filter @ > 1 nums",
+        rule: Rule::query,
+        tokens: [
+            function(0,19, [
+                dollar(0,1),
+                ident(2,8),
+                at(9,10),
+                infix_op(11,12),
+                number(13,14),
+                ident(15,19)
+            ])
+        ]
+    }
+}

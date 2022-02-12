@@ -119,8 +119,9 @@ fn fails_to_parse_unterminated_array() {
         input: "[",
         rule: Rule::query,
         positives: vec![
-            Rule::indexed_value, Rule::prefix_op, Rule::object, Rule::array, Rule::ident,
-            Rule::string, Rule::number, Rule::bool, Rule::null, Rule::at, Rule::dollar
+            Rule::function, Rule::indexed_value, Rule::prefix_op, Rule::compound_reference,
+            Rule::object, Rule::array, Rule::ident, Rule::string, Rule::number, Rule::bool,
+            Rule::null, Rule::at, Rule::dollar
         ],
         negatives: vec![],
         pos: 1
