@@ -118,7 +118,10 @@ fn fails_to_parse_unterminated_array() {
         parser: MistQLParser,
         input: "[",
         rule: Rule::query,
-        positives: vec![Rule::object, Rule::array, Rule::ident, Rule::string, Rule::number, Rule::bool, Rule::null, Rule::at],
+        positives: vec![
+            Rule::indexed_value, Rule::prefix_op, Rule::object, Rule::array, Rule::ident,
+            Rule::string, Rule::number, Rule::bool, Rule::null, Rule::at
+        ],
         negatives: vec![],
         pos: 1
     }

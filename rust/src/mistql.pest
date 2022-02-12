@@ -2,7 +2,7 @@ query = _{ SOI ~ (piped_expr | simple_expr) ~ EOI }
 
 piped_expr = { simple_expr ~ ( "|" ~ simple_expr )+ }
 
-simple_expr = _{ function | value }
+simple_expr = _{ function | prefixed_value | indexed_value | value }
 
 value = _{ simple_value ~ ( infix_op ~ simple_value )* }
 simple_value = _{ literal | reference | ( "(" ~ simple_expr ~ ")" ) }
@@ -11,6 +11,16 @@ fn_ident = _{
     ident |
     ( "(" ~ simple_expr ~ ")" )
 }
+
+indexed_value = { value ~ "[" ~ (
+    range | low_range | high_range | number
+) ~ "]" }
+range = { number ~ ":" ~ number }
+low_range = { ":" ~ number }
+high_range = { number ~ ":" }
+
+prefixed_value = { prefix_op ~ simple_expr }
+prefix_op = { "!" }
 
 infix_op = {
     "+" | "-" | "*" | "/" | "%" |
@@ -53,6 +63,6 @@ number = @{
 bool = { "true" | "false" }
 null = { "null" }
 
-at = { "@" | "$.@"}
+at = { "@" }
 
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
