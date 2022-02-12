@@ -1,8 +1,10 @@
-use crate::parse::Query;
+use crate::parse::Node;
 use crate::{Error, Result};
 
-impl Query {
-    pub fn evaluate(&self, _context: &serde_json::Value) -> Result<serde_json::Value> {
-        Err(Error::eval("unimplemented".to_string()))
+impl Node {
+    pub fn evaluate(&self, context: &serde_json::Value) -> Result<serde_json::Value> {
+        match self {
+            Self::At => Ok(context.clone()),
+        }
     }
 }
