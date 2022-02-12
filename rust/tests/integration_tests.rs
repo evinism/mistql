@@ -171,7 +171,6 @@ fn parse_shared_tests() {
 }
 
 #[test]
-#[ignore]
 fn run_shared_tests() {
     let file = File::open("../shared/testdata.json").unwrap();
     let reader = BufReader::new(file);
