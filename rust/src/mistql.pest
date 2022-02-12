@@ -25,10 +25,10 @@ prefix_op = { "!" }
 infix_op = {
     "+" | "-" | "*" | "/" | "%" |
     "==" | "!=" | ">=" | ">" | "<=" | "<" |
-    "&&" | "||" | "=~"
+    "&&" | "||" | "=~" | "."
 }
 
-reference = _{ ident | at }
+reference = _{ ident | at | dollar }
 literal = _{ object | array | string | number | bool | null }
 
 object = {
@@ -64,5 +64,6 @@ bool = { "true" | "false" }
 null = { "null" }
 
 at = { "@" }
+dollar = { "$" }
 
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
