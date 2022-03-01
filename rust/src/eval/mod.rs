@@ -6,6 +6,11 @@ impl Node {
         match self {
             Self::At => Ok(context.clone()),
             Self::Value(val) => Ok(val.clone().into()),
+            Self::Array(arr) => Ok(arr
+                .iter()
+                .map(|elt| elt.evaluate(context))
+                .collect::<Result<Vec<serde_json::Value>>>()?
+                .into()),
         }
     }
 }

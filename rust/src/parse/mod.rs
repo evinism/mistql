@@ -11,6 +11,7 @@ pub struct MistQLParser;
 pub enum Node {
     At,
     Value(serde_json::Value),
+    Array(Vec<Node>),
 }
 
 pub fn parse_query(query: &str) -> Result<Node> {
@@ -19,23 +20,36 @@ pub fn parse_query(query: &str) -> Result<Node> {
         Ok(mut pair) => {
             // must be a Rule::query or MistQLParser::parse would have failed
             let root = pair.next().unwrap();
-            match root.as_rule() {
-                Rule::at => Ok(Node::At),
-                Rule::bool | Rule::number | Rule::string | Rule::null => parse_value(root),
-                _ => Err(Error::query(format!(
-                    "unimplemented rule {:?}",
-                    root.as_rule()
-                ))),
-            }
+            parse_expr(root)
         }
     }
 }
 
-fn parse_value(query: Pair<Rule>) -> Result<Node> {
-    match serde_json::from_str(query.as_str()) {
-        Ok(val) => Ok(Node::Value(val)),
-        Err(_) => Err(Error::query(format!("unparseable value {:?}", query))),
+fn parse_expr(expr: Pair<Rule>) -> Result<Node> {
+    match expr.as_rule() {
+        Rule::at => Ok(Node::At),
+        Rule::bool | Rule::number | Rule::string | Rule::null => parse_value(expr),
+        Rule::array => parse_array(expr),
+        _ => Err(Error::query(format!(
+            "unimplemented rule {:?}",
+            expr.as_rule()
+        ))),
     }
+}
+
+fn parse_value(value: Pair<Rule>) -> Result<Node> {
+    match serde_json::from_str(value.as_str()) {
+        Ok(val) => Ok(Node::Value(val)),
+        Err(_) => Err(Error::query(format!("unparseable value {:?}", value))),
+    }
+}
+
+fn parse_array(array: Pair<Rule>) -> Result<Node> {
+    let elts: Vec<Node> = array
+        .into_inner()
+        .map(|elt| parse_expr(elt))
+        .collect::<Result<Vec<Node>>>()?;
+    Ok(Node::Array(elts))
 }
 
 #[cfg(test)]
