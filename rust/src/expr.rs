@@ -1,19 +1,11 @@
-use super::Rule;
-use crate::error::{Error, Result};
+use crate::value::Value;
+use crate::{Error, Node, Result, Rule};
 use pest::iterators::Pair;
-
-pub trait Node {
-    fn from_pair(expr: Pair<Rule>) -> Result<Self>
-    where
-        Self: Sized;
-    fn evaluate(&self, context: &serde_json::Value) -> Result<serde_json::Value>;
-}
 
 pub enum SimpleExpr {
     At,
     Value(Value),
 }
-pub struct Value(serde_json::Value);
 
 impl Node for SimpleExpr {
     fn from_pair(expr: Pair<Rule>) -> Result<Self> {
@@ -34,18 +26,5 @@ impl Node for SimpleExpr {
             SimpleExpr::At => Ok(context.clone()),
             SimpleExpr::Value(val) => val.evaluate(context),
         }
-    }
-}
-
-impl Node for Value {
-    fn from_pair(expr: Pair<Rule>) -> Result<Self> {
-        match serde_json::from_str(expr.as_str()) {
-            Ok(val) => Ok(Self(val)),
-            Err(_) => Err(Error::query(format!("unparseable value {:?}", expr))),
-        }
-    }
-
-    fn evaluate(&self, _context: &serde_json::Value) -> Result<serde_json::Value> {
-        Ok(self.0.clone().into())
     }
 }
