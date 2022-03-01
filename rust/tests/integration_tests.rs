@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate pest;
 
-use mistql::parse::Rule;
+use mistql::Rule;
 use pest::Parser;
 use serde::Deserialize;
 use std::fmt;
@@ -66,7 +66,7 @@ fn default_throws() -> bool {
 }
 
 fn parse_query(name: String, assertion: &Assertion) -> TestResult {
-    let result = mistql::parse::MistQLParser::parse(Rule::query, &assertion.query);
+    let result = mistql::MistQLParser::parse(Rule::query, &assertion.query);
     match result {
         Ok(_) => TestResult {
             name: name,

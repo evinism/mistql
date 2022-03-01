@@ -1,4 +1,4 @@
-use mistql::parse::{MistQLParser, Rule};
+use mistql::{MistQLParser, Rule};
 
 const _GRAMMAR: &str = include_str!("../../src/mistql.pest");
 

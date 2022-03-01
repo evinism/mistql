@@ -1,14 +1,28 @@
 #[macro_use]
 extern crate pest;
 
+mod ast;
 mod error;
-mod eval;
-pub mod parse;
 
+use ast::{Node, SimpleExpr};
 pub use error::{Error, Result};
 
+use pest::Parser;
+use pest_derive::Parser;
+
+#[derive(Parser)]
+#[grammar = "mistql.pest"]
+pub struct MistQLParser;
+
 pub fn query_value(query_str: String, data: serde_json::Value) -> Result<serde_json::Value> {
-    parse::parse_query(&query_str)?.evaluate(&data)
+    match MistQLParser::parse(Rule::query, &query_str) {
+        Err(err) => Err(Error::query(err.to_string())),
+        Ok(mut pair) => {
+            // must be a Rule::query or MistQLParser::parse would have failed
+            let root = pair.next().unwrap();
+            SimpleExpr::from_pair(root)?.evaluate(&data)
+        }
+    }
 }
 
 pub fn query(query_str: String, data_str: String) -> Result<serde_json::Value> {
