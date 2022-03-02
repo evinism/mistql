@@ -4,6 +4,7 @@ use pest::iterators::Pair;
 use std::str::FromStr;
 
 enum FunctionName {
+    Count,
     Regex,
 }
 
@@ -12,6 +13,7 @@ impl FromStr for FunctionName {
 
     fn from_str(s: &str) -> Result<Self> {
         match s {
+            "count" => Ok(FunctionName::Count),
             "regex" => Ok(FunctionName::Regex),
             _ => Err(Error::query(format!("unknown function {}", s))),
         }
@@ -39,6 +41,12 @@ impl Node for Function {
 
     fn evaluate(&self, context: &serde_json::Value) -> Result<serde_json::Value> {
         match self.name {
+            FunctionName::Count => match self.args[0].evaluate(context)? {
+                serde_json::Value::Array(arr) => Ok(arr.len().into()),
+                _ => Err(Error::eval(
+                    "argument to count must be an array".to_string(),
+                )),
+            },
             // this makes integration tests work but we're not ready to handle it yet
             FunctionName::Regex => self.args[0].evaluate(context),
         }
