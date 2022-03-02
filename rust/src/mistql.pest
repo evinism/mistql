@@ -1,12 +1,11 @@
-query = _{ SOI ~ piped_expr ~ EOI }
+query = _{ SOI ~ expr ~ EOI }
 
-piped_expr = _{ simple_expr ~ pipe* }
-pipe = { "|" ~ simple_expr }
-
+expr = _{ piped_expr | simple_expr }
+piped_expr = { simple_expr ~ ( "|" ~ simple_expr )+ }
 simple_expr = _{ function | prefixed_value | indexed_value | value }
 
 value = _{ simple_value ~ ( infix_op ~ simple_value )* }
-simple_value = _{ literal | reference | ( "(" ~ piped_expr ~ ")" ) }
+simple_value = _{ literal | reference | ( "(" ~ expr ~ ")" ) }
 function = { fn_ident ~ value+ }
 fn_ident = _{
     ident |
@@ -21,7 +20,7 @@ range = { number ~ ":" ~ number }
 low_range = { ":" ~ number }
 high_range = { number ~ ":" }
 
-prefixed_value = { prefix_op ~ piped_expr }
+prefixed_value = { prefix_op ~ expr }
 prefix_op = _{ not_op }
 
 not_op = { "!" }
@@ -34,7 +33,7 @@ infix_op = {
 
 reference = _{ compound_reference | at | dollar | ident }
 compound_reference = {
-    ( at | dollar | ident | ( "(" ~ piped_expr ~ ")" ) ) ~
+    ( at | dollar | ident | ( "(" ~ expr ~ ")" ) ) ~
     ("." ~ reference)+ }
 literal = _{ object | array | string | number | bool | null }
 
@@ -42,12 +41,12 @@ object = {
     "{" ~ "}" |
     "{" ~ keyval ~ ("," ~ keyval)* ~ "}"
 }
-keyval = { key ~ ":" ~ piped_expr }
+keyval = { key ~ ":" ~ expr }
 key = _{ string | ident }
 
 array = {
     "[" ~ "]" |
-    "[" ~ piped_expr ~ ("," ~ piped_expr)* ~ "]"
+    "[" ~ expr ~ ("," ~ expr)* ~ "]"
 }
 
 ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
