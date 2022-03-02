@@ -10,7 +10,7 @@ fn parses_prefix_operators() {
         rule: Rule::query,
         tokens: [
             prefixed_value(0,5, [
-                prefix_op(0,1),
+                not_op(0,1),
                 bool(1,5)
             ])
         ]
@@ -25,7 +25,7 @@ fn parses_prefix_operators_with_space() {
         rule: Rule::query,
         tokens: [
             prefixed_value(0,6, [
-                prefix_op(0,1),
+                not_op(0,1),
                 bool(2,6)
             ])
         ]
@@ -40,9 +40,9 @@ fn parses_doubled_prefix_operators() {
         rule: Rule::query,
         tokens: [
             prefixed_value(0,6, [
-                prefix_op(0,1),
+                not_op(0,1),
                 prefixed_value(1,6, [
-                    prefix_op(1,2),
+                    not_op(1,2),
                     bool(2,6)
                 ])
             ])
@@ -58,9 +58,9 @@ fn parses_prefix_operator_on_expression() {
         rule: Rule::query,
         tokens: [
             prefixed_value(0,14, [
-                prefix_op(0,1),
+                not_op(0,1),
                 prefixed_value(1,14, [
-                    prefix_op(1,2),
+                    not_op(1,2),
                     function(3,13, [
                         ident(3,8),
                         string(9,13, [
@@ -82,9 +82,9 @@ fn parses_prefix_operator_on_ident() {
         rule: Rule::query,
         tokens: [
             prefixed_value(0,7, [
-                prefix_op(0,1),
+                not_op(0,1),
                 prefixed_value(1,7, [
-                    prefix_op(1,2),
+                    not_op(1,2),
                     ident(2,7)
                 ])
             ])

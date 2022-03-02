@@ -5,6 +5,7 @@ mod array;
 mod error;
 mod expr;
 mod object;
+mod operator;
 mod value;
 
 pub use error::{Error, Result};

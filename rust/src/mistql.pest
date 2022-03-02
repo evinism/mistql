@@ -22,7 +22,9 @@ low_range = { ":" ~ number }
 high_range = { number ~ ":" }
 
 prefixed_value = { prefix_op ~ piped_expr }
-prefix_op = { "!" }
+prefix_op = _{ not_op }
+
+not_op = { "!" }
 
 infix_op = {
     "+" | "-" | "*" | "/" | "%" |
