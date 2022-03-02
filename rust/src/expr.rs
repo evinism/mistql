@@ -1,4 +1,5 @@
 use crate::array::Array;
+use crate::function::Function;
 use crate::object::Object;
 use crate::operator::PrefixedValue;
 use crate::value::Value;
@@ -11,6 +12,7 @@ pub enum SimpleExpr {
     Array(Array),
     Object(Object),
     PrefixedValue(PrefixedValue),
+    Function(Function),
 }
 
 impl Node for SimpleExpr {
@@ -23,6 +25,7 @@ impl Node for SimpleExpr {
             Rule::array => Ok(Self::Array(Array::from_pair(expr)?)),
             Rule::object => Ok(Self::Object(Object::from_pair(expr)?)),
             Rule::prefixed_value => Ok(Self::PrefixedValue(PrefixedValue::from_pair(expr)?)),
+            Rule::function => Ok(Self::Function(Function::from_pair(expr)?)),
             _ => Err(Error::query(format!(
                 "unimplemented rule {:?}",
                 expr.as_rule()
@@ -37,6 +40,7 @@ impl Node for SimpleExpr {
             SimpleExpr::Array(arr) => arr.evaluate(context),
             SimpleExpr::Object(obj) => obj.evaluate(context),
             SimpleExpr::PrefixedValue(val) => val.evaluate(context),
+            SimpleExpr::Function(fun) => fun.evaluate(context),
         }
     }
 }

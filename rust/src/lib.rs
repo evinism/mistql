@@ -4,6 +4,7 @@ extern crate pest;
 mod array;
 mod error;
 mod expr;
+mod function;
 mod object;
 mod operator;
 mod value;
