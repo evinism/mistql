@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate pest;
 
+mod array;
 mod error;
 mod expr;
 mod value;
