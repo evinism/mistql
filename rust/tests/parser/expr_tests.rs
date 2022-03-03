@@ -33,9 +33,11 @@ fn parses_unoverwriting_using_dollar() {
             function(0,19, [
                 dollar(0,1),
                 ident(2,8),
-                at(9,10),
-                infix_op(11,12),
-                number(13,14),
+                infix_expr(9,15, [
+                    at(9,10),
+                    gt_op(11,12),
+                    number(13,14)
+                ]),
                 ident(15,19)
             ])
         ]

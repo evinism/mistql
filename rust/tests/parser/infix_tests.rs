@@ -9,9 +9,11 @@ fn parses_infix_operators() {
         input: "1 + 3",
         rule: Rule::query,
         tokens: [
-            number(0,1),
-            infix_op(2,3),
-            number(4,5)
+            infix_expr(0,5, [
+                number(0,1),
+                plus_op(2,3),
+                number(4,5)
+            ])
         ]
     }
 }
@@ -23,11 +25,13 @@ fn parses_nested_infix_operators() {
         input: "1 + 2 * 3",
         rule: Rule::query,
         tokens: [
-            number(0,1),
-            infix_op(2,3),
-            number(4,5),
-            infix_op(6,7),
-            number(8,9)
+            infix_expr(0,9, [
+                number(0,1),
+                plus_op(2,3),
+                number(4,5),
+                mult_op(6,7),
+                number(8,9)
+            ])
         ]
     }
 }
@@ -41,9 +45,11 @@ fn parses_infix_operators_as_function_args() {
         tokens: [
             function(0,19, [
                 ident(0,3),
-                at(4,5),
-                infix_op(6,7),
-                number(8,9),
+                infix_expr(4,10, [
+                    at(4,5),
+                    plus_op(6,7),
+                    number(8,9)
+                ]),
                 array(10,19, [
                     number(11,12),
                     number(14,15),

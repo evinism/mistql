@@ -38,24 +38,6 @@ fn parses_function_with_three_arguments() {
     }
 }
 
-// #[test]
-// fn parses_function_with_override_name() {
-//     parses_to! {
-//         parser: MistQLParser,
-//         input: "$.filter @ > 1 nums",
-//         rule: Rule::query,
-//         tokens: [
-//             function(0,19, [
-//                 ident(2,8),
-//                 at(9,10),
-//                 infix_op(11,12),
-//                 number(13,14),
-//                 ident(15,19)
-//             ])
-//         ]
-//     }
-// }
-
 #[test]
 fn functions_are_first_class_citizens() {
     parses_to! {
@@ -78,6 +60,33 @@ fn functions_are_first_class_citizens() {
                         ])
                     ])
                 ])
+            ])
+        ]
+    }
+}
+
+#[test]
+fn function_with_function_as_parameter() {
+    parses_to! {
+        parser: MistQLParser,
+        input: "reduce @[0] + @[1] 0 @",
+        rule: Rule::query,
+        tokens: [
+            function(0,22, [
+                ident(0,6),
+                infix_expr(7,19, [
+                    indexed_value(7,11, [
+                        at(7,8),
+                        number(9,10)
+                    ]),
+                    plus_op(12,13),
+                    indexed_value(14,18, [
+                        at(14,15),
+                        number(16,17)
+                    ])
+                ]),
+                number(19,20),
+                at(21,22)
             ])
         ]
     }

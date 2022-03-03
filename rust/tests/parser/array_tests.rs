@@ -120,8 +120,9 @@ fn fails_to_parse_unterminated_array() {
         rule: Rule::query,
         positives: vec![
             Rule::piped_expr, Rule::function, Rule::indexed_value, Rule::not_op,
-            Rule::compound_reference, Rule::object, Rule::array, Rule::ident,
-            Rule::string, Rule::number, Rule::bool, Rule::null, Rule::at, Rule::dollar
+            Rule::infix_expr, Rule::compound_reference, Rule::object, Rule::array,
+            Rule::ident, Rule::string, Rule::number, Rule::bool, Rule::null, Rule::at,
+            Rule::dollar
         ],
         negatives: vec![],
         pos: 1
@@ -134,7 +135,11 @@ fn fails_to_parse_unterminated_array_with_contents() {
         parser: MistQLParser,
         input: "[1,2,3",
         rule: Rule::query,
-        positives: vec![Rule::infix_op],
+        positives: vec![
+            Rule::plus_op, Rule::minus_op, Rule::mult_op, Rule::div_op, Rule::mod_op,
+            Rule::eq_op, Rule::ne_op, Rule::gte_op, Rule::gt_op, Rule::lte_op, Rule::lt_op,
+            Rule::and_op, Rule::or_op, Rule::match_op
+        ],
         negatives: vec![],
         pos: 6
     }

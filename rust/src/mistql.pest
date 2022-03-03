@@ -2,18 +2,18 @@ query = _{ SOI ~ expr ~ EOI }
 
 expr = _{ piped_expr | simple_expr }
 piped_expr = { simple_expr ~ ( "|" ~ simple_expr )+ }
-simple_expr = _{ function | prefixed_value | indexed_value | value }
+simple_expr = _{ function | prefixed_value | indexed_value | infix_expr | simple_value }
 
-value = _{ simple_value ~ ( infix_op ~ simple_value )* }
 simple_value = _{ literal | reference | ( "(" ~ expr ~ ")" ) }
-function = { fn_ident ~ value+ }
+function = { fn_ident ~ fn_arg+ }
+fn_arg = _{ infix_expr | prefixed_value | indexed_value | simple_value }
 fn_ident = _{
     ident |
     ( dollar ~ "." ~ ident ) |
     ( "(" ~ simple_expr ~ ")" )
 }
 
-indexed_value = { value ~ "[" ~ (
+indexed_value = { simple_value ~ "[" ~ (
     range | low_range | high_range | number
 ) ~ "]" }
 range = { number ~ ":" ~ number }
@@ -25,11 +25,30 @@ prefix_op = _{ not_op }
 
 not_op = { "!" }
 
-infix_op = {
-    "+" | "-" | "*" | "/" | "%" |
-    "==" | "!=" | ">=" | ">" | "<=" | "<" |
-    "&&" | "||" | "=~"
+infix_expr = { (indexed_value | prefixed_value | simple_value ) ~ 
+               ( infix_op ~ (indexed_value | prefixed_value | simple_value ) )+ }
+infix_op = _{
+    plus_op | minus_op | mult_op | div_op | mod_op |
+    eq_op | ne_op | gte_op | gt_op | lte_op | lt_op |
+    and_op | or_op | match_op
 }
+
+plus_op = { "+" }
+minus_op = { "-" }
+mult_op = { "*" }
+div_op = { "/" }
+mod_op = { "%" }
+
+eq_op = { "==" }
+ne_op = { "!=" }
+gte_op = { ">=" }
+gt_op = { ">" }
+lte_op = { "<=" }
+lt_op = { "<" }
+
+and_op = { "&&" }
+or_op = { "||" }
+match_op = { "=~" }
 
 reference = _{ compound_reference | at | dollar | ident }
 compound_reference = {
