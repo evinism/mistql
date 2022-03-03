@@ -28,9 +28,11 @@ fn parses_nested_infix_operators() {
             infix_expr(0,9, [
                 number(0,1),
                 plus_op(2,3),
-                number(4,5),
-                mult_op(6,7),
-                number(8,9)
+                infix_expr(4,9, [
+                    number(4,5),
+                    mult_op(6,7),
+                    number(8,9)
+                ])
             ])
         ]
     }

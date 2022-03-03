@@ -26,7 +26,7 @@ prefix_op = _{ not_op }
 not_op = { "!" }
 
 infix_expr = { (indexed_value | prefixed_value | simple_value ) ~ 
-               ( infix_op ~ (indexed_value | prefixed_value | simple_value ) )+ }
+               ( infix_op ~ simple_expr )+ }
 infix_op = _{
     plus_op | minus_op | mult_op | div_op | mod_op |
     eq_op | ne_op | gte_op | gt_op | lte_op | lt_op |

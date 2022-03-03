@@ -5,8 +5,9 @@ mod array;
 mod error;
 mod expr;
 mod function;
+mod infix_operator;
 mod object;
-mod operator;
+mod prefix_operator;
 mod value;
 
 pub use error::{Error, Result};
