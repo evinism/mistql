@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate pest;
 
-use mistql::Rule;
+use mistql::{error::ErrorKind, Rule};
 use pest::Parser;
 use serde::Deserialize;
 use std::fmt;
@@ -102,10 +102,17 @@ fn run_assertion(name: String, assertion: &Assertion) -> TestResult {
             passed: true,
             msg: "passed".to_string(),
         },
-        Err(_) if assertion.throws => TestResult {
-            name: name,
-            passed: true,
-            msg: "passed".to_string(),
+        Err(err) if assertion.throws => match err.kind {
+            ErrorKind::Unimplemented(msg) => TestResult {
+                name: name,
+                passed: false,
+                msg: msg,
+            },
+            _ => TestResult {
+                name: name,
+                passed: true,
+                msg: "passed".to_string(),
+            },
         },
         Err(err) => TestResult {
             name: name,

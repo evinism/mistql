@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate pest;
 
-mod error;
+pub mod error;
 
 pub use error::{Error, Result};
 
@@ -18,10 +18,7 @@ pub fn query_value(query_str: String, data: serde_json::Value) -> Result<serde_j
         Ok(mut pair) => {
             // must be a Rule::query or MistQLParser::parse would have failed
             let root = pair.next().unwrap();
-            Err(Error::query(format!(
-                "unimplemented rule {:?}",
-                root.as_rule()
-            )))
+            Err(Error::unimplemented(format!("rule {:?}", root.as_rule())))
         }
     }
 }

@@ -6,6 +6,7 @@ pub enum ErrorKind {
     JSON,
     Query(String),
     Eval(String),
+    Unimplemented(String),
 }
 
 #[derive(Debug)]
@@ -30,6 +31,7 @@ impl fmt::Display for Error {
             ErrorKind::JSON => write!(f, "JSON error: {:?}", self.source),
             ErrorKind::Query(msg) => write!(f, "Query error: {}", msg),
             ErrorKind::Eval(msg) => write!(f, "Eval error: {}", msg),
+            ErrorKind::Unimplemented(msg) => write!(f, "Unimplemented: {}", msg),
         }
     }
 }
@@ -48,9 +50,17 @@ impl Error {
             source: None,
         }
     }
+
     pub fn eval(msg: String) -> Self {
         Self {
             kind: ErrorKind::Eval(msg),
+            source: None,
+        }
+    }
+
+    pub fn unimplemented(msg: String) -> Self {
+        Self {
+            kind: ErrorKind::Unimplemented(msg),
             source: None,
         }
     }
