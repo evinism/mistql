@@ -2,10 +2,11 @@
 extern crate pest;
 
 pub mod error;
+mod eval;
 
 pub use error::{Error, Result};
 
-use pest::{iterators::Pair, Parser};
+use pest::Parser;
 use pest_derive::Parser;
 
 #[derive(Parser)]
@@ -16,9 +17,10 @@ pub fn query_value(query_str: String, data: serde_json::Value) -> Result<serde_j
     match MistQLParser::parse(Rule::query, &query_str) {
         Err(err) => Err(Error::query(err.to_string())),
         Ok(mut pair) => {
-            // must be a Rule::query or MistQLParser::parse would have failed
-            let root = pair.next().unwrap();
-            Err(Error::unimplemented(format!("rule {:?}", root.as_rule())))
+            match pair.next() {
+                Some(root) => eval::eval(root, &data),
+                None => unreachable!(), // parse() would have failed
+            }
         }
     }
 }
