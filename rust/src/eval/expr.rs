@@ -15,3 +15,23 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
         ))),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{MistQLParser, Rule};
+
+    #[test]
+    fn test_at() {
+        parses_to! {
+            parser: MistQLParser,
+            input: "@",
+            rule: Rule::query,
+            tokens: [
+                at(0,1)
+            ]
+        }
+
+        let result = crate::query("@".to_string(), "null".to_string()).unwrap();
+        assert_eq!(result, serde_json::Value::Null)
+    }
+}
