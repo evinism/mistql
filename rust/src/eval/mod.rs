@@ -4,6 +4,7 @@ use crate::{Result, Rule};
 
 mod array;
 mod expr;
+mod object;
 mod value;
 
 pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json::Value> {
