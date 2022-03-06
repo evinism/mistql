@@ -151,7 +151,7 @@ fn run_test_group(name: String, members: Vec<TestSuiteMember>, mode: TestMode) -
 
 #[test]
 fn parse_shared_tests() {
-    let file = File::open("../shared/testdata.json").unwrap();
+    let file = File::open("shared/testdata.json").unwrap();
     let reader = BufReader::new(file);
 
     let tests: TestSuite = serde_json::from_reader(reader).unwrap();
