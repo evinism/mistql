@@ -60,21 +60,6 @@ mod tests {
     }
 
     #[test]
-    fn parses_ident() {
-        parses_to! {
-            parser: MistQLParser,
-            input: "float",
-            rule: Rule::query,
-            tokens: [
-                ident(0,5)
-            ]
-        }
-
-        let result = crate::query("float".to_string(), "null".to_string()).unwrap();
-        assert_eq!(result, serde_json::Value::String("float".to_string()))
-    }
-
-    #[test]
     fn ident_doesnt_begin_with_integer() {
         fails_with! {
             parser: MistQLParser,

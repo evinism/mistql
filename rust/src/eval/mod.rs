@@ -4,6 +4,7 @@ use crate::{Result, Rule};
 
 mod array;
 mod expr;
+mod infix;
 mod object;
 mod value;
 
