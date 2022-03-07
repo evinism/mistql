@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::eval::{array, infix, object, value};
+use crate::eval::{array, function, infix, object, value};
 use crate::{Error, Result, Rule};
 
 pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json::Value> {
@@ -12,6 +12,7 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
         Rule::array => array::eval(pair, &context),
         Rule::object => object::eval(pair, &context),
         Rule::infix_expr => infix::eval(pair, &context),
+        Rule::function => function::eval(pair, &context),
         _ => Err(Error::unimplemented(format!(
             "unimplemented rule {:?}",
             pair.as_rule()
