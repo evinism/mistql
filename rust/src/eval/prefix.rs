@@ -17,16 +17,16 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
 
     match operator {
         PrefixOperator::Not => {
-            let falsiness = !(truthiness(operand));
+            let falsiness = !(truthiness(&operand));
             Ok(falsiness.into())
         }
     }
 }
 
-pub fn truthiness(val: serde_json::Value) -> bool {
+pub fn truthiness(val: &serde_json::Value) -> bool {
     match val {
         serde_json::Value::Null => false,
-        serde_json::Value::Bool(bool) => bool,
+        serde_json::Value::Bool(bool) => bool.clone(),
         serde_json::Value::Number(n) => n.as_f64() != Some(0.0),
         serde_json::Value::String(s) => s.len() != 0,
         serde_json::Value::Array(arr) => arr.len() != 0,
@@ -153,39 +153,39 @@ mod tests {
 
     #[test]
     fn truthiness_null_is_false() {
-        assert_eq!(truthiness(serde_json::Value::Null), false)
+        assert_eq!(truthiness(&serde_json::Value::Null), false)
     }
 
     #[test]
     fn truthiness_booleans_are_themselves() {
-        assert_eq!(truthiness(serde_json::Value::Bool(false)), false);
-        assert_eq!(truthiness(serde_json::Value::Bool(true)), true)
+        assert_eq!(truthiness(&serde_json::Value::Bool(false)), false);
+        assert_eq!(truthiness(&serde_json::Value::Bool(true)), true)
     }
 
     #[test]
     fn truthiness_zero_is_false() {
-        assert_eq!(truthiness(serde_json::Value::from(0)), false);
-        assert_eq!(truthiness(serde_json::Value::from(0.0)), false);
-        assert_eq!(truthiness(serde_json::Value::from(42)), true);
-        assert_eq!(truthiness(serde_json::Value::from(37.0)), true);
-        assert_eq!(truthiness(serde_json::Value::from(-1)), true);
-        assert_eq!(truthiness(serde_json::Value::from(-3.45)), true);
+        assert_eq!(truthiness(&serde_json::Value::from(0)), false);
+        assert_eq!(truthiness(&serde_json::Value::from(0.0)), false);
+        assert_eq!(truthiness(&serde_json::Value::from(42)), true);
+        assert_eq!(truthiness(&serde_json::Value::from(37.0)), true);
+        assert_eq!(truthiness(&serde_json::Value::from(-1)), true);
+        assert_eq!(truthiness(&serde_json::Value::from(-3.45)), true);
     }
 
     #[test]
     fn truthiness_empty_string_is_false() {
-        assert_eq!(truthiness(serde_json::Value::String(String::new())), false);
+        assert_eq!(truthiness(&serde_json::Value::String(String::new())), false);
         assert_eq!(
-            truthiness(serde_json::Value::String("abc".to_string())),
+            truthiness(&serde_json::Value::String("abc".to_string())),
             true
         );
     }
 
     #[test]
     fn truthiness_empty_array_is_false() {
-        assert_eq!(truthiness(serde_json::Value::Array(vec![])), false);
+        assert_eq!(truthiness(&serde_json::Value::Array(vec![])), false);
         assert_eq!(
-            truthiness(serde_json::Value::Array(vec![
+            truthiness(&serde_json::Value::Array(vec![
                 (1 as u32).into(),
                 (2 as u32).into(),
                 (3 as u32).into()
@@ -197,12 +197,12 @@ mod tests {
     #[test]
     fn truthiness_empty_object_is_false() {
         assert_eq!(
-            truthiness(serde_json::Value::Object(serde_json::Map::new())),
+            truthiness(&serde_json::Value::Object(serde_json::Map::new())),
             false
         );
 
         let mut map = serde_json::Map::new();
         map.insert("a".to_string(), (1 as u32).into());
-        assert_eq!(truthiness(serde_json::Value::Object(map)), true);
+        assert_eq!(truthiness(&serde_json::Value::Object(map)), true);
     }
 }
