@@ -4,10 +4,24 @@ use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use crate::eval::expr;
 use crate::{Error, Result, Rule};
 
+mod arithmetic;
+mod boolean;
+mod compare;
+
 lazy_static! {
     static ref INFIX_CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
         Operator::new(Rule::plus_op, Assoc::Left) | Operator::new(Rule::minus_op, Assoc::Left),
         Operator::new(Rule::mult_op, Assoc::Left)
+            | Operator::new(Rule::div_op, Assoc::Left)
+            | Operator::new(Rule::mod_op, Assoc::Left),
+        Operator::new(Rule::gte_op, Assoc::Left)
+            | Operator::new(Rule::gt_op, Assoc::Left)
+            | Operator::new(Rule::lte_op, Assoc::Left)
+            | Operator::new(Rule::lt_op, Assoc::Left),
+        Operator::new(Rule::eq_op, Assoc::Left)
+            | Operator::new(Rule::ne_op, Assoc::Left)
+            | Operator::new(Rule::match_op, Assoc::Left),
+        Operator::new(Rule::and_op, Assoc::Left) | Operator::new(Rule::or_op, Assoc::Left)
     ]);
 }
 
@@ -32,32 +46,23 @@ fn apply_operator(
     right: serde_json::Value,
 ) -> Result<serde_json::Value> {
     match op.as_rule() {
-        Rule::plus_op => add(left, right),
-        Rule::mult_op => multiply(left, right),
+        Rule::plus_op => arithmetic::add(left, right),
+        Rule::minus_op => arithmetic::subtract(left, right),
+        Rule::mult_op => arithmetic::multiply(left, right),
+        Rule::div_op => arithmetic::divide(left, right),
+        Rule::mod_op => arithmetic::modulo(left, right),
+        Rule::and_op => boolean::and(left, right),
+        Rule::or_op => boolean::or(left, right),
+        Rule::gte_op => compare::gte(left, right),
+        Rule::gt_op => compare::gt(left, right),
+        Rule::lte_op => compare::lte(left, right),
+        Rule::lt_op => compare::lt(left, right),
+        Rule::eq_op => compare::eq(left, right),
+        Rule::ne_op => compare::ne(left, right),
         _ => Err(Error::unimplemented(format!(
             "unimplemented operator {:?}",
             op.as_str()
         ))),
-    }
-}
-
-fn add(left: serde_json::Value, right: serde_json::Value) -> Result<serde_json::Value> {
-    if let (Some(l), Some(r)) = (left.as_i64(), right.as_i64()) {
-        Ok((l + r).into())
-    } else if let (Some(l), Some(r)) = (left.as_f64(), right.as_f64()) {
-        Ok((l + r).into())
-    } else {
-        Err(Error::eval("can't add non-numbers".to_string()))
-    }
-}
-
-fn multiply(left: serde_json::Value, right: serde_json::Value) -> Result<serde_json::Value> {
-    if let (Some(l), Some(r)) = (left.as_i64(), right.as_i64()) {
-        Ok((l * r).into())
-    } else if let (Some(l), Some(r)) = (left.as_f64(), right.as_f64()) {
-        Ok((l * r).into())
-    } else {
-        Err(Error::eval("can't add non-numbers".to_string()))
     }
 }
 

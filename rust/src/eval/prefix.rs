@@ -23,7 +23,7 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
     }
 }
 
-fn truthiness(val: serde_json::Value) -> bool {
+pub fn truthiness(val: serde_json::Value) -> bool {
     match val {
         serde_json::Value::Null => false,
         serde_json::Value::Bool(bool) => bool,
