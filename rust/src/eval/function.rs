@@ -35,7 +35,7 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
 }
 
 fn count(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
-    if let Some(serde_json::Value::Array(vals)) = args.get(1) {
+    if let Some(serde_json::Value::Array(vals)) = args.get(0) {
         Ok(vals.len().into())
     } else {
         Err(Error::eval(
@@ -45,7 +45,7 @@ fn count(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
 }
 
 fn log(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
-    if let Some(val) = args.get(1) {
+    if let Some(val) = args.get(0) {
         dbg!(val.clone());
         Ok(val.clone())
     } else {
