@@ -12,6 +12,7 @@ enum Function {
     Float,
     Log,
     String,
+    Sum,
 }
 
 impl FromStr for Function {
@@ -22,6 +23,7 @@ impl FromStr for Function {
             "count" => Ok(Function::Count),
             "float" => Ok(Function::Float),
             "log" => Ok(Function::Log),
+            "sum" => Ok(Function::Sum),
             "string" => Ok(Function::String),
             _ => Err(Error::query(format!("unknown function {}", s))),
         }
@@ -40,6 +42,7 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
         Function::Float => float::float(args),
         Function::Log => log(args),
         Function::String => string::string(args),
+        Function::Sum => sum(args),
     }
 }
 
@@ -53,12 +56,39 @@ fn count(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
     }
 }
 
+
 fn log(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
     if let Some(val) = args.get(0) {
         dbg!(val.clone());
         Ok(val.clone())
     } else {
         Err(Error::eval("log requires one argument".to_string()))
+    }
+}
+
+fn sum(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
+    if let Some(val) = args.get(0) {
+        match val {
+            serde_json::Value::Array(arr) => {
+                let mut sum: f64 = 0.0;
+                for item in arr {
+                    match item {
+                        serde_json::Value::Number(num) => {
+                            sum += num.as_f64().unwrap();
+                        }
+                        _ => {
+                            return Err(Error::eval("sum operates over an array".to_string()));
+                        }
+                    }
+                };
+                return Ok(serde_json::to_value(sum).unwrap());
+            }
+            _ => {
+                Err(Error::eval("sum operates over an array".to_string()))
+            }
+        }
+    } else {
+        Err(Error::eval("sum requires one argument".to_string()))
     }
 }
 
