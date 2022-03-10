@@ -750,12 +750,12 @@
                 {
                   "query": "float \"1\"",
                   "data": null,
-                  "expected": 1
+                  "expected": 1.0
                 },
                 {
                   "query": "float \"-30\"",
                   "data": null,
-                  "expected": -30
+                  "expected": -30.0
                 },
                 {
                   "query": "float \" -99.5\"  ",
@@ -765,7 +765,7 @@
                 {
                   "query": "float \"1.0\"",
                   "data": null,
-                  "expected": 1
+                  "expected": 1.0
                 },
                 {
                   "query": "float \"1.1\"",
@@ -775,7 +775,7 @@
                 {
                   "query": "float \"1.1e1\"",
                   "data": null,
-                  "expected": 11
+                  "expected": 11.0
                 },
                 {
                   "query": "float \"1.1e-1\"",
@@ -785,7 +785,7 @@
                 {
                   "query": "float \"5.\"",
                   "data": 5,
-                  "expected": 5
+                  "expected": 5.0
                 },
                 {
                   "query": "float \"1.1.1\"",
@@ -805,12 +805,12 @@
                 {
                   "query": "float 1",
                   "data": null,
-                  "expected": 1
+                  "expected": 1.0
                 },
                 {
                   "query": "float 1.0",
                   "data": null,
-                  "expected": 1
+                  "expected": 1.0
                 },
                 {
                   "query": "float 1.1",
@@ -825,12 +825,12 @@
                 {
                   "query": "float true",
                   "data": null,
-                  "expected": 1
+                  "expected": 1.0
                 },
                 {
                   "query": "float false",
                   "data": null,
-                  "expected": 0
+                  "expected": 0.0
                 }
               ]
             },
@@ -840,7 +840,7 @@
                 {
                   "query": "float null",
                   "data": null,
-                  "expected": 0
+                  "expected": 0.0
                 }
               ]
             },
