@@ -4,10 +4,12 @@ use std::str::FromStr;
 use crate::eval::expr;
 use crate::{Error, Result, Rule};
 
+mod float;
 mod string;
 
 enum Function {
     Count,
+    Float,
     Log,
     String,
 }
@@ -18,6 +20,7 @@ impl FromStr for Function {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "count" => Ok(Function::Count),
+            "float" => Ok(Function::Float),
             "log" => Ok(Function::Log),
             "string" => Ok(Function::String),
             _ => Err(Error::query(format!("unknown function {}", s))),
@@ -34,6 +37,7 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
 
     match function {
         Function::Count => count(args),
+        Function::Float => float::float(args),
         Function::Log => log(args),
         Function::String => string::string(args),
     }
