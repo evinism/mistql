@@ -1101,17 +1101,17 @@
                 {
                   "query": "sum []",
                   "data": null,
-                  "expected": 0
+                  "expected": 0.0
                 },
                 {
                   "query": "sum [1, 2, 3]",
                   "data": null,
-                  "expected": 6
+                  "expected": 6.0
                 },
                 {
                   "query": "sum [1, 2, 3, 4]",
                   "data": null,
-                  "expected": 10
+                  "expected": 10.0
                 },
                 {
                   "query": "sum [1, 2, 3, \"4\"]",
