@@ -92,15 +92,39 @@ fn run_assertion(name: String, assertion: &Assertion) -> TestResult {
             passed: false,
             msg: format!("expected error, got {}", res),
         },
-        Ok(res) if res != assertion.expected => TestResult {
-            name: name,
-            passed: false,
-            msg: format!("expected {} got {}", assertion.expected, res),
-        },
-        Ok(_res) => TestResult {
-            name: name,
-            passed: true,
-            msg: "passed".to_string(),
+        Ok(res) => match (assertion.expected.clone(), res.clone()) {
+            (serde_json::Value::Number(expected_num), serde_json::Value::Number(result_num)) => {
+                if expected_num == result_num
+                    || expected_num.as_f64().unwrap() == result_num.as_f64().unwrap()
+                {
+                    TestResult {
+                        name: name,
+                        passed: true,
+                        msg: "passed".to_string(),
+                    }
+                } else {
+                    TestResult {
+                        name: name,
+                        passed: false,
+                        msg: format!("expected {} got {}", assertion.expected, res),
+                    }
+                }
+            }
+            _ => {
+                if assertion.expected == res {
+                    TestResult {
+                        name: name,
+                        passed: true,
+                        msg: "passed".to_string(),
+                    }
+                } else {
+                    TestResult {
+                        name: name,
+                        passed: false,
+                        msg: format!("expected {} got {}", assertion.expected, res),
+                    }
+                }
+            }
         },
         Err(err) if assertion.throws => match err.kind {
             ErrorKind::Unimplemented(msg) => TestResult {
