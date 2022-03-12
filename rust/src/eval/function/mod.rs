@@ -10,6 +10,7 @@ mod string;
 enum Function {
     Count,
     Float,
+    Index,
     Log,
     String,
 }
@@ -21,6 +22,7 @@ impl FromStr for Function {
         match s {
             "count" => Ok(Function::Count),
             "float" => Ok(Function::Float),
+            "index" => Ok(Function::Index),
             "log" => Ok(Function::Log),
             "string" => Ok(Function::String),
             _ => Err(Error::query(format!("unknown function {}", s))),
@@ -38,6 +40,7 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
     match function {
         Function::Count => count(args),
         Function::Float => float::float(args),
+        Function::Index => super::index::index(args),
         Function::Log => log(args),
         Function::String => string::string(args),
     }

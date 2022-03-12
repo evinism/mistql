@@ -5,6 +5,7 @@ use crate::{Result, Rule};
 mod array;
 mod expr;
 mod function;
+mod index;
 mod infix;
 mod object;
 mod prefix;
