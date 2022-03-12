@@ -3,17 +3,17 @@ use pest::iterators::Pair;
 use crate::eval::{array, function, infix, object, prefix, value};
 use crate::{Error, Result, Rule};
 
-pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json::Value> {
+pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
     match pair.as_rule() {
-        Rule::at => Ok(context.clone()),
+        Rule::at => Ok(data.clone()),
         Rule::ident => Ok(pair.as_str().into()),
-        Rule::bool | Rule::number | Rule::string | Rule::null => value::eval(pair, &context),
-        Rule::array => array::eval(pair, &context),
-        Rule::object => object::eval(pair, &context),
-        Rule::infix_expr => infix::eval(pair, &context),
-        Rule::function => function::eval(pair, &context),
-        Rule::prefixed_value => prefix::eval(pair, &context),
-        Rule::piped_expr => eval_piped(pair, &context),
+        Rule::bool | Rule::number | Rule::string | Rule::null => value::eval(pair),
+        Rule::array => array::eval(pair, &data),
+        Rule::object => object::eval(pair, &data),
+        Rule::infix_expr => infix::eval(pair, &data),
+        Rule::function => function::eval(pair, &data),
+        Rule::prefixed_value => prefix::eval(pair, &data),
+        Rule::piped_expr => eval_piped(pair, &data),
         _ => Err(Error::unimplemented(format!(
             "unimplemented rule {:?}",
             pair.as_rule()
@@ -21,9 +21,9 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
     }
 }
 
-fn eval_piped(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json::Value> {
+fn eval_piped(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
     pair.into_inner()
-        .try_fold(context.clone(), |ctx, expr| eval(expr, &ctx))
+        .try_fold(data.clone(), |ctx, expr| eval(expr, &ctx))
 }
 
 #[cfg(test)]

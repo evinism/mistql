@@ -7,13 +7,13 @@ enum PrefixOperator {
     Not,
 }
 
-pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json::Value> {
+pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
     let mut prefix_iter = pair.into_inner();
     let operator = match prefix_iter.next().unwrap().as_rule() {
         Rule::not_op => PrefixOperator::Not,
         _ => unreachable!("unrecognized prefix operator"),
     };
-    let operand = expr::eval(prefix_iter.next().unwrap(), context)?;
+    let operand = expr::eval(prefix_iter.next().unwrap(), data)?;
 
     match operator {
         PrefixOperator::Not => {

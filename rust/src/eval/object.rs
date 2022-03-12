@@ -3,7 +3,7 @@ use pest::iterators::Pair;
 use crate::eval::expr;
 use crate::{Result, Rule};
 
-pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json::Value> {
+pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
     let elts = pair
         .into_inner()
         .map(|elt| {
@@ -17,7 +17,7 @@ pub fn eval(pair: Pair<Rule>, context: &serde_json::Value) -> Result<serde_json:
                 _ => unreachable!("unrecognized string as object key {:?}", key),
             };
 
-            Ok((key_str.into(), expr::eval(val, context)?))
+            Ok((key_str.into(), expr::eval(val, data)?))
         })
         .collect::<Result<serde_json::Map<String, serde_json::Value>>>()?;
     Ok(elts.into())
