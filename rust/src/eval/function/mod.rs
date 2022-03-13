@@ -30,12 +30,22 @@ impl FromStr for Function {
     }
 }
 
-pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
+pub fn eval(
+    pair: Pair<Rule>,
+    data: &serde_json::Value,
+    context: Option<serde_json::Value>,
+) -> Result<serde_json::Value> {
     let mut function_iter = pair.into_inner();
     let function: Function = function_iter.next().unwrap().as_str().parse()?;
-    let args = function_iter
-        .map(|arg| expr::eval(arg, data))
+
+    let mut args = function_iter
+        .map(|arg| expr::eval(arg, data, None))
         .collect::<Result<Vec<serde_json::Value>>>()?;
+
+    // if context is present, it becomes the first arg
+    if let Some(ctx) = context {
+        args.insert(0, ctx);
+    }
 
     match function {
         Function::Count => count(args),
