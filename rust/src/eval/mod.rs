@@ -12,5 +12,5 @@ mod prefix;
 mod value;
 
 pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
-    expr::eval(pair, data)
+    expr::eval(pair, data, None)
 }
