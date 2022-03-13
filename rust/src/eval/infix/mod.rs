@@ -29,7 +29,7 @@ pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Va
     let pairs = pair.into_inner();
     INFIX_CLIMBER.climb(
         pairs,
-        |current_pair: Pair<Rule>| expr::eval(current_pair, data),
+        |current_pair: Pair<Rule>| expr::eval(current_pair, data, None),
         |lhs: Result<serde_json::Value>, op: Pair<Rule>, rhs: Result<serde_json::Value>| match (
             lhs, rhs, op,
         ) {

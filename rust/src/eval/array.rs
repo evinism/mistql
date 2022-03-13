@@ -6,7 +6,7 @@ use crate::{Result, Rule};
 pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
     Ok(pair
         .into_inner()
-        .map(|elt| expr::eval(elt, data))
+        .map(|elt| expr::eval(elt, data, None))
         .collect::<Result<Vec<serde_json::Value>>>()?
         .into())
 }

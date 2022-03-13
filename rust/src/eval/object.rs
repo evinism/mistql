@@ -17,7 +17,7 @@ pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Va
                 _ => unreachable!("unrecognized string as object key {:?}", key),
             };
 
-            Ok((key_str.into(), expr::eval(val, data)?))
+            Ok((key_str.into(), expr::eval(val, data, None)?))
         })
         .collect::<Result<serde_json::Map<String, serde_json::Value>>>()?;
     Ok(elts.into())

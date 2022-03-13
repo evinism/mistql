@@ -13,7 +13,7 @@ pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Va
         Rule::not_op => PrefixOperator::Not,
         _ => unreachable!("unrecognized prefix operator"),
     };
-    let operand = expr::eval(prefix_iter.next().unwrap(), data)?;
+    let operand = expr::eval(prefix_iter.next().unwrap(), data, None)?;
 
     match operator {
         PrefixOperator::Not => {

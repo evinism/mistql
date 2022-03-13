@@ -3,7 +3,11 @@ use pest::iterators::Pair;
 use crate::eval::{array, function, infix, object, prefix, value};
 use crate::{Error, Result, Rule};
 
-pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
+pub fn eval(
+    pair: Pair<Rule>,
+    data: &serde_json::Value,
+    context: Option<serde_json::Value>,
+) -> Result<serde_json::Value> {
     match pair.as_rule() {
         Rule::at => Ok(data.clone()),
         Rule::ident => Ok(pair.as_str().into()),
@@ -11,7 +15,7 @@ pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Va
         Rule::array => array::eval(pair, &data),
         Rule::object => object::eval(pair, &data),
         Rule::infix_expr => infix::eval(pair, &data),
-        Rule::function => function::eval(pair, &data),
+        Rule::function => function::eval(pair, &data, context),
         Rule::prefixed_value => prefix::eval(pair, &data),
         Rule::piped_expr => eval_piped(pair, &data),
         _ => Err(Error::unimplemented(format!(
@@ -23,7 +27,7 @@ pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Va
 
 fn eval_piped(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
     pair.into_inner()
-        .try_fold(data.clone(), |ctx, expr| eval(expr, &ctx))
+        .try_fold(data.clone(), |ctx, expr| eval(expr, data, Some(ctx)))
 }
 
 #[cfg(test)]
