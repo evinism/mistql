@@ -14,6 +14,7 @@ pub fn index(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
         },
         (Some(val), Some(idx_low), Some(idx_high), None) => match val {
             serde_json::Value::String(s) => range_index_string(s, idx_low, idx_high),
+            serde_json::Value::Array(a) => range_index_array(a, idx_low, idx_high),
             _ => Err(Error::query("range index on unindexable type".to_string())),
         },
     }
@@ -144,7 +145,6 @@ fn range_index_string(
 ) -> Result<serde_json::Value> {
     let (low, high) = normalize_range(idx_low_raw, idx_high_raw, val.len() as i64)?;
 
-    dbg!((low, high));
     if low >= high || low > val.len() {
         Ok(serde_json::Value::Null)
     } else {
@@ -153,6 +153,26 @@ fn range_index_string(
             .skip(low)
             .take(high - low)
             .collect::<String>()
+            .into())
+    }
+}
+
+fn range_index_array(
+    val: &Vec<serde_json::Value>,
+    idx_low_raw: &serde_json::Value,
+    idx_high_raw: &serde_json::Value,
+) -> Result<serde_json::Value> {
+    let (low, high) = normalize_range(idx_low_raw, idx_high_raw, val.len() as i64)?;
+
+    if low >= high || low > val.len() {
+        Ok(serde_json::Value::Null)
+    } else {
+        Ok(val
+            .iter()
+            .skip(low)
+            .take(high - low)
+            .map(|elt| elt.clone())
+            .collect::<serde_json::Value>()
             .into())
     }
 }
@@ -502,6 +522,175 @@ mod tests {
             .unwrap(),
             serde_json::Value::Null
         );
+    }
+
+    #[test]
+    fn range_indexes_on_arrays() {
+        let array = serde_json::Value::Array(vec![
+            (1 as u32).into(),
+            (2 as u32).into(),
+            (3 as u32).into(),
+            (4 as u32).into(),
+            (5 as u32).into(),
+            (6 as u32).into(),
+        ]);
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::from(0 as i32),
+                serde_json::Value::from(2 as i32)
+            ])
+            .unwrap(),
+            serde_json::Value::Array(vec![(1 as u32).into(), (2 as u32).into(),])
+        );
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::from(2 as i32),
+                serde_json::Value::from(4 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::Array(vec![(3 as u32).into(), (4 as u32).into(),])
+        );
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::from(4 as i32),
+                serde_json::Value::from(7 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::Array(vec![(5 as u32).into(), (6 as u32).into()])
+        );
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::from(7 as i32),
+                serde_json::Value::from(12 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::Null
+        );
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::from(2 as i32),
+                serde_json::Value::from(-2 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::Array(vec![(3 as u32).into(), (4 as u32).into(),])
+        );
+
+        // can't specify a range where the low is greater than the high
+        assert!(index(vec![
+            array.clone(),
+            serde_json::Value::from(4 as i32),
+            serde_json::Value::from(2 as i32),
+        ])
+        .is_err());
+
+        // can't specify negative ranges greater than the length of the string
+        assert!(index(vec![
+            array.clone(),
+            serde_json::Value::from(4 as i32),
+            serde_json::Value::from(-10 as i32),
+        ])
+        .is_err());
+
+        assert!(index(vec![
+            array,
+            serde_json::Value::from(-10 as i32),
+            serde_json::Value::from(4 as i32),
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn range_indexes_with_nulls_on_arrays() {
+        let array = serde_json::Value::Array(vec![
+            (1 as u32).into(),
+            (2 as u32).into(),
+            (3 as u32).into(),
+            (4 as u32).into(),
+            (5 as u32).into(),
+            (6 as u32).into(),
+        ]);
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::from(2 as i32),
+                serde_json::Value::Null,
+            ])
+            .unwrap(),
+            serde_json::Value::Array(vec![
+                (3 as u32).into(),
+                (4 as u32).into(),
+                (5 as u32).into(),
+                (6 as u32).into(),
+            ])
+        );
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::from(-2 as i32),
+                serde_json::Value::Null,
+            ])
+            .unwrap(),
+            serde_json::Value::Array(vec![(5 as u32).into(), (6 as u32).into(),])
+        );
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::from(7 as i32),
+                serde_json::Value::Null,
+            ])
+            .unwrap(),
+            serde_json::Value::Null
+        );
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::Null,
+                serde_json::Value::from(4 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::Array(vec![
+                (1 as u32).into(),
+                (2 as u32).into(),
+                (3 as u32).into(),
+                (4 as u32).into(),
+            ])
+        );
+
+        assert_eq!(
+            index(vec![
+                array.clone(),
+                serde_json::Value::Null,
+                serde_json::Value::from(-2 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::Array(vec![
+                (1 as u32).into(),
+                (2 as u32).into(),
+                (3 as u32).into(),
+                (4 as u32).into(),
+            ])
+        );
+
+        assert!(index(vec![
+            array,
+            serde_json::Value::Null,
+            serde_json::Value::Null,
+        ])
+        .is_err());
     }
 
     #[test]
