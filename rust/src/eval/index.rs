@@ -12,9 +12,10 @@ pub fn index(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
             serde_json::Value::Object(o) => index_object(o, idx),
             _ => Err(Error::query("index on unindexable type".to_string())),
         },
-        (Some(val), Some(idx_low), Some(idx_high), None) => {
-            Err(Error::unimplemented("range index".to_string()))
-        }
+        (Some(val), Some(idx_low), Some(idx_high), None) => match val {
+            serde_json::Value::String(s) => range_index_string(s, idx_low, idx_high),
+            _ => Err(Error::query("range index on unindexable type".to_string())),
+        },
     }
 }
 
@@ -65,6 +66,94 @@ fn index_array(
             }
         }
         None => Err(Error::query("array index must be an integer".to_string())),
+    }
+}
+
+fn normalize_range(
+    raw_low: &serde_json::Value,
+    raw_high: &serde_json::Value,
+    length: i64,
+) -> Result<(usize, usize)> {
+    match (
+        raw_low.as_null(),
+        raw_low.as_i64(),
+        raw_high.as_null(),
+        raw_high.as_i64(),
+    ) {
+        (_, Some(low_num), _, Some(high_num)) => {
+            let low = if low_num < 0 {
+                length + low_num
+            } else {
+                low_num
+            };
+
+            let high = if high_num < 0 {
+                length + high_num
+            } else {
+                high_num
+            };
+
+            if high < 0 || low < 0 || high < low {
+                Err(Error::query(
+                    "indexes must be integers that specify a range".to_string(),
+                ))
+            } else {
+                Ok((low as usize, high as usize))
+            }
+        }
+        (Some(_), _, _, Some(high_num)) => {
+            let high = if high_num < 0 {
+                length + high_num
+            } else {
+                high_num
+            };
+
+            if high < 0 {
+                Err(Error::query(
+                    "indexes must be integers that specify a range".to_string(),
+                ))
+            } else {
+                Ok((0, high as usize))
+            }
+        }
+        (_, Some(low_num), Some(_), _) => {
+            let low = if low_num < 0 {
+                length + low_num
+            } else {
+                low_num
+            };
+
+            if low < 0 {
+                Err(Error::query(
+                    "indexes must be integers that specify a range".to_string(),
+                ))
+            } else {
+                Ok((low as usize, length as usize))
+            }
+        }
+        _ => Err(Error::query(
+            "indexes must be integers that specify a range".to_string(),
+        )),
+    }
+}
+
+fn range_index_string(
+    val: &str,
+    idx_low_raw: &serde_json::Value,
+    idx_high_raw: &serde_json::Value,
+) -> Result<serde_json::Value> {
+    let (low, high) = normalize_range(idx_low_raw, idx_high_raw, val.len() as i64)?;
+
+    dbg!((low, high));
+    if low >= high || low > val.len() {
+        Ok(serde_json::Value::Null)
+    } else {
+        Ok(val
+            .chars()
+            .skip(low)
+            .take(high - low)
+            .collect::<String>()
+            .into())
     }
 }
 
@@ -193,6 +282,142 @@ mod tests {
             .unwrap(),
             serde_json::Value::Null
         );
+    }
+
+    #[test]
+    fn range_indexes_on_strings() {
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::from(0 as i32),
+                serde_json::Value::from(2 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::String("ab".to_string())
+        );
+
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::from(2 as i32),
+                serde_json::Value::from(4 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::String("cd".to_string())
+        );
+
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::from(4 as i32),
+                serde_json::Value::from(7 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::String("ef".to_string())
+        );
+
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::from(7 as i32),
+                serde_json::Value::from(12 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::Null
+        );
+
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::from(2 as i32),
+                serde_json::Value::from(-2 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::String("cd".to_string())
+        );
+
+        // can't specify a range where the low is greater than the high
+        assert!(index(vec![
+            serde_json::Value::String("abcdef".to_string()),
+            serde_json::Value::from(4 as i32),
+            serde_json::Value::from(2 as i32),
+        ])
+        .is_err());
+
+        // can't specify negative ranges greater than the length of the string
+        assert!(index(vec![
+            serde_json::Value::String("abcdef".to_string()),
+            serde_json::Value::from(4 as i32),
+            serde_json::Value::from(-10 as i32),
+        ])
+        .is_err());
+
+        assert!(index(vec![
+            serde_json::Value::String("abcdef".to_string()),
+            serde_json::Value::from(-10 as i32),
+            serde_json::Value::from(4 as i32),
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn range_indexes_with_nulls_on_strings() {
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::from(2 as i32),
+                serde_json::Value::Null,
+            ])
+            .unwrap(),
+            serde_json::Value::String("cdef".to_string())
+        );
+
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::from(-2 as i32),
+                serde_json::Value::Null,
+            ])
+            .unwrap(),
+            serde_json::Value::String("ef".to_string())
+        );
+
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::from(7 as i32),
+                serde_json::Value::Null,
+            ])
+            .unwrap(),
+            serde_json::Value::Null
+        );
+
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::Null,
+                serde_json::Value::from(4 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::String("abcd".to_string())
+        );
+
+        assert_eq!(
+            index(vec![
+                serde_json::Value::String("abcdef".to_string()),
+                serde_json::Value::Null,
+                serde_json::Value::from(-2 as i32),
+            ])
+            .unwrap(),
+            serde_json::Value::String("abcd".to_string())
+        );
+
+        assert!(index(vec![
+            serde_json::Value::String("abcdef".to_string()),
+            serde_json::Value::Null,
+            serde_json::Value::Null,
+        ])
+        .is_err());
     }
 
     #[test]
