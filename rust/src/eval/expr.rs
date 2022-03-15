@@ -9,7 +9,14 @@ pub fn eval(
     context: Option<serde_json::Value>,
 ) -> Result<serde_json::Value> {
     match pair.as_rule() {
-        Rule::at => Ok(data.clone()),
+        Rule::at => {
+            // there is only context if we are in a pipe
+            if let Some(ctx) = context {
+                Ok(ctx.clone())
+            } else {
+                Ok(data.clone())
+            }
+        }
         Rule::ident => Ok(pair.as_str().into()),
         Rule::bool | Rule::number | Rule::string | Rule::null => value::eval(pair),
         Rule::array => array::eval(pair, &data),

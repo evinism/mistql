@@ -37,14 +37,26 @@ pub fn eval(
 ) -> Result<serde_json::Value> {
     let mut function_iter = pair.into_inner();
     let function: Function = function_iter.next().unwrap().as_str().parse()?;
+    let mut use_implicit_context = true;
+    let mut args = vec![];
 
-    let mut args = function_iter
-        .map(|arg| expr::eval(arg, data, None))
-        .collect::<Result<Vec<serde_json::Value>>>()?;
+    // lot of mutation required here but we need to capture use_implicit_context
+    // as a side effect so an iterator chain is even more gross
+    for arg in function_iter {
+        match arg.as_rule() {
+            Rule::at => {
+                args.push(expr::eval(arg, data, context.clone())?);
+                use_implicit_context = false
+            }
+            _ => args.push(expr::eval(arg, data, None)?),
+        }
+    }
 
-    // if context is present, it becomes the first arg
-    if let Some(ctx) = context {
-        args.insert(0, ctx);
+    // if context is present, it becomes the last arg
+    if use_implicit_context {
+        if let Some(ctx) = context {
+            args.push(ctx);
+        }
     }
 
     match function {
@@ -60,15 +72,15 @@ fn count(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
     if let Some(serde_json::Value::Array(vals)) = args.get(0) {
         Ok(vals.len().into())
     } else {
-        Err(Error::eval(
-            "argument to count must be an array".to_string(),
-        ))
+        Err(Error::eval(format!(
+            "argument to count must be an array (got {:?}",
+            args
+        )))
     }
 }
 
 fn log(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
     if let Some(val) = args.get(0) {
-        dbg!(val.clone());
         Ok(val.clone())
     } else {
         Err(Error::eval("log requires one argument".to_string()))
