@@ -723,6 +723,23 @@ mod tests {
     }
 
     #[test]
+    fn indexed_value_behaves_like_index_function() {
+        let result = crate::query(
+            "(@[-1:]) == (index (-1) null @)".to_string(),
+            "[1,2,3,4]".to_string(),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::Bool(true));
+
+        let result = crate::query(
+            "(@[:-2]) == (index null (-2) @)".to_string(),
+            "[1,2,3,4]".to_string(),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::Bool(true))
+    }
+
+    #[test]
     fn parses_indexed_value() {
         let query = "@[1]";
         parses_to! {
@@ -780,8 +797,22 @@ mod tests {
             tokens: [
                 indexed_value(0,5, [
                     at(0,1),
-                    low_range(2,4, [
+                    high_range(2,4, [
                         number(3,4)
+                    ])
+                ])
+            ]
+        }
+
+        parses_to! {
+            parser: MistQLParser,
+            input: "@[:-4]",
+            rule: Rule::query,
+            tokens: [
+                indexed_value(0,6, [
+                    at(0,1),
+                    high_range(2,5, [
+                        number(3,5)
                     ])
                 ])
             ]
@@ -797,8 +828,22 @@ mod tests {
             tokens: [
                 indexed_value(0,5, [
                     at(0,1),
-                    high_range(2,4, [
+                    low_range(2,4, [
                         number(2,3)
+                    ])
+                ])
+            ]
+        }
+
+        parses_to! {
+            parser: MistQLParser,
+            input: "@[-4:]",
+            rule: Rule::query,
+            tokens: [
+                indexed_value(0,6, [
+                    at(0,1),
+                    low_range(2,5, [
+                        number(2,4)
                     ])
                 ])
             ]
