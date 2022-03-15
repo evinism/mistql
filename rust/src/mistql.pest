@@ -17,8 +17,8 @@ indexed_value = { simple_value ~ "[" ~ (
     range | low_range | high_range | number
 ) ~ "]" }
 range = { number ~ ":" ~ number }
-low_range = { ":" ~ number }
-high_range = { number ~ ":" }
+low_range = { number ~ ":" }
+high_range = { ":" ~ number }
 
 prefixed_value = { prefix_op ~ expr }
 prefix_op = _{ not_op }
