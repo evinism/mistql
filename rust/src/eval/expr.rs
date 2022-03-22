@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::eval::{array, function, index, infix, object, prefix, value};
+use crate::eval::{array, function, index, infix, object, prefix, terminal};
 use crate::{Error, Result, Rule};
 
 pub fn eval(
@@ -18,7 +18,7 @@ pub fn eval(
             }
         }
         Rule::ident => Ok(pair.as_str().into()),
-        Rule::bool | Rule::number | Rule::string | Rule::null => value::eval(pair),
+        Rule::bool | Rule::number | Rule::string | Rule::null => terminal::eval(pair),
         Rule::array => array::eval(pair, &data),
         Rule::object => object::eval(pair, &data),
         Rule::infix_expr => infix::eval(pair, &data),

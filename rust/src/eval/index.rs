@@ -1,4 +1,4 @@
-use crate::eval::{expr, value};
+use crate::eval::{expr, terminal};
 use crate::{Error, Result, Rule};
 use pest::iterators::Pair;
 
@@ -8,22 +8,22 @@ pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Va
     let target = expr::eval(itr.next().unwrap(), data, None)?;
     let index_val = itr.next().unwrap();
     match index_val.as_rule() {
-        Rule::number => index(vec![value::eval(index_val)?, target]),
+        Rule::number => index(vec![terminal::eval(index_val)?, target]),
         Rule::low_range => index(vec![
-            value::eval(index_val.into_inner().next().unwrap())?,
+            terminal::eval(index_val.into_inner().next().unwrap())?,
             serde_json::Value::Null,
             target,
         ]),
         Rule::high_range => index(vec![
             serde_json::Value::Null,
-            value::eval(index_val.into_inner().next().unwrap())?,
+            terminal::eval(index_val.into_inner().next().unwrap())?,
             target,
         ]),
         Rule::range => {
             let mut index_itr = index_val.into_inner();
             index(vec![
-                value::eval(index_itr.next().unwrap())?,
-                value::eval(index_itr.next().unwrap())?,
+                terminal::eval(index_itr.next().unwrap())?,
+                terminal::eval(index_itr.next().unwrap())?,
                 target,
             ])
         }
