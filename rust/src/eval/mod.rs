@@ -9,7 +9,7 @@ mod index;
 mod infix;
 mod object;
 mod prefix;
-mod value;
+mod terminal;
 
 pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
     expr::eval(pair, data, None)
