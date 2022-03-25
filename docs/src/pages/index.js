@@ -38,7 +38,7 @@ export default function Home() {
   return (
     <Layout
       title={`${siteConfig.title}`}
-      description="MistQL: A miniature language for performing computations on JSON-like structures">
+      description={`${siteConfig.tagline}`}>
       <HomepageHeader />
       <main>
         <HomepageFeatures />

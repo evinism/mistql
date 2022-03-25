@@ -140,9 +140,9 @@ export default function HomepageFeatures() {
           <p>
             JMESPath and MistQL are similar in scope, but MistQL provides more
             out of the box, including arithmetic operations and regexes. A goal
-            of MistQL is to not simply be a query language, but a language for
-            defining a broad set of computations on a JSON-like object. One of 
-            the major driving factors behind MistQL is the fact that JMESPath 
+            of MistQL is to not simply be a query language, but a common expression 
+            language for defining a broad set of computations on a JSON-like object.
+            One of  the major driving factors behind MistQL is the fact that JMESPath
             isn't able to capture many of the key operations that MistQL provides.
           </p>
           <p>
@@ -162,11 +162,11 @@ export default function HomepageFeatures() {
           <h3 className="text--center">jq</h3>
           <p>
             jq is primarily used as a command-line tool rather than as an
-            embeddable query language. Despite its ubiquity, jq doesn't have a
-            robust, portable browser implementation, nor does it seem to be a
-            major goal of the project. However, if your primary use case is as a
-            CLI tool, jq is almost certainly your best bet, as it's a very
-            well-known tool with a large amount of community support.
+            embeddable query / common expression language. Despite its ubiquity,
+            jq doesn't have a robust, portable browser implementation, nor does 
+            it seem to be a major goal of the project. However, if your primary 
+            use case is as a CLI tool, jq is almost certainly your best bet, as
+            it's a very well-known tool with a large amount of community support.
           </p>
           <p>
             The decision criteria for whether to use jq or MistQL is very
