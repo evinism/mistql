@@ -8,7 +8,7 @@ from mistql.expression import (
     ObjectExpression,
     PipeExpression,
 )
-from typing import Union, List
+from typing import Union, List, Any
 import json
 
 from mistql.expression import Expression
@@ -44,6 +44,8 @@ def process_lark_tree(lark_node: Tree) -> Expression:
     elif lark_node.data == "object":
         obj = {}
         for child in lark_node.children:
+            if isinstance(child, str):
+                raise OpenAnIssueIfYouGetThisError(f"Got string for child when we didn't expect it.")
             key = from_lark(child.children[0])
             if isinstance(key, ValueExpression):
                 key = key.value.value
@@ -70,7 +72,11 @@ def process_lark_tree(lark_node: Tree) -> Expression:
         # This is gross becase i can't figure out how to get the tree to look a little more
         # sensible.
         base, indexing = lark_node.children
+        if isinstance(indexing, str):
+            raise OpenAnIssueIfYouGetThisError(f"Got string for child when we didn't expect it.")
         innards = indexing.children[0]
+        if isinstance(indexing, str):
+            raise OpenAnIssueIfYouGetThisError(f"Got string for child when we didn't expect it.")
         fnexp_args: List[Expression] = []
         prev_was_token = True
         for child in innards.children:
@@ -114,7 +120,7 @@ def process_lark_token(lark_node: Token) -> Expression:
         raise OpenAnIssueIfYouGetThisError(f"Unknown token type {lark_node.type}")
 
 
-def from_lark(lark_node: Union[Tree, Token]):
+def from_lark(lark_node: Union[Any, str, Tree, Token]):
     if isinstance(lark_node, Token):
         return process_lark_token(lark_node)
     elif isinstance(lark_node, Tree):
