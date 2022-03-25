@@ -33,3 +33,5 @@ jobs:
         run: poetry install
       - name: Test
         run: poetry run pytest
+      - name: Typechexk
+        run: poetry run mypy -p mistql
