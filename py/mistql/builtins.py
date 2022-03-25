@@ -1,6 +1,6 @@
 from typing import List, Dict, Callable, Tuple, Union
 from mistql.runtime_value import RuntimeValue, RuntimeValueType, assert_type
-from mistql.expression import Expression
+from mistql.expression import BaseExpression
 from mistql.stack import Stack
 from mistql.expression import RefExpression
 from mistql.stack import add_runtime_value_to_stack
@@ -8,11 +8,11 @@ import re
 from functools import cmp_to_key
 import statistics
 
-from mistql.exceptions import MistQLRuntimeError, MistQLTypeError
+from mistql.exceptions import MistQLRuntimeError, MistQLTypeError, OpenAnIssueIfYouGetThisError
 
 
-Args = List[Expression]
-Exec = Callable[[Expression, Stack], RuntimeValue]
+Args = List[BaseExpression]
+Exec = Callable[[BaseExpression, Stack], RuntimeValue]
 
 FunctionDefinitionType = Callable[
     [Args, Stack, Exec],
@@ -32,7 +32,7 @@ def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
         def wrapped(arguments: Args, stack: Stack, exec: Exec):
             if not min_args < 0 and len(arguments) < min_args:
                 raise MistQLRuntimeError(f"{name} takes at least {min_args} arguments")
-            if not max_args < 0 and len(arguments) > max_args:
+            if (max_args is not None) and (not max_args < 0 and len(arguments) > max_args):
                 raise MistQLRuntimeError(f"{name} takes at most {max_args} arguments")
             return fn(arguments, stack, exec)
 
@@ -364,12 +364,6 @@ def regex(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     )
 
 
-@builtin("stringjoin", 1)
-def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
-    arg = assert_type(exec(arguments[0], stack), RVT.Array)
-    return RuntimeValue.of("".join(x.to_string() for x in arg.value))
-
-
 @builtin("sort", 1)
 def sort(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     arg = assert_type(exec(arguments[0], stack), RVT.Array)
@@ -425,7 +419,7 @@ def values(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def groupby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = assert_type(exec(arguments[1], stack), RVT.Array)
     mut = arguments[0]
-    groups = {}
+    groups: Dict[str, List[RuntimeValue]] = {}
     for item in target.value:
         key = exec(mut, add_runtime_value_to_stack(item, stack)).to_string()
         if key not in groups:
@@ -476,6 +470,8 @@ def match(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     elif pattern.type == RVT.String:
         compiled = re.compile(pattern.value)
         return RuntimeValue.of(bool(compiled.search(target.value)))
+    raise OpenAnIssueIfYouGetThisError("Unexpectedly reaching end of function in match call.")
+
 
 
 @builtin("=~", 2)
@@ -499,6 +495,7 @@ def replace(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
         return RuntimeValue.of(
             target.value.replace(pattern.value, replacement.value, 1)
         )
+    raise OpenAnIssueIfYouGetThisError("Unexpectedly reaching end of function in match call.")
 
 
 @builtin("split", 2)
@@ -512,6 +509,7 @@ def split(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
         return RuntimeValue.of(target.value.split(separator))
     elif delimiter.type == RVT.Regex:
         return RuntimeValue.of(list(delimiter.value.split(target.value)))
+    raise OpenAnIssueIfYouGetThisError("Unexpectedly reaching end of function in match call.")
 
 
 @builtin("stringjoin", 2)

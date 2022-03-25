@@ -1,4 +1,3 @@
-from enum import Enum
 from lark import Lark, Tree, Token
 from mistql.expression import (
     RefExpression,
@@ -11,7 +10,7 @@ from mistql.expression import (
 from typing import Union, List, Any
 import json
 
-from mistql.expression import Expression
+from mistql.expression import BaseExpression
 from mistql.exceptions import OpenAnIssueIfYouGetThisError
 
 
@@ -38,7 +37,7 @@ function_mappings = {
 }
 
 
-def process_lark_tree(lark_node: Tree) -> Expression:
+def process_lark_tree(lark_node: Tree) -> BaseExpression:
     if lark_node.data == "array":
         return ArrayExpression([from_lark(child) for child in lark_node.children])
     elif lark_node.data == "object":
@@ -75,9 +74,9 @@ def process_lark_tree(lark_node: Tree) -> Expression:
         if isinstance(indexing, str):
             raise OpenAnIssueIfYouGetThisError(f"Got string for child when we didn't expect it.")
         innards = indexing.children[0]
-        if isinstance(indexing, str):
+        if isinstance(innards, str):
             raise OpenAnIssueIfYouGetThisError(f"Got string for child when we didn't expect it.")
-        fnexp_args: List[Expression] = []
+        fnexp_args: List[BaseExpression] = []
         prev_was_token = True
         for child in innards.children:
             if isinstance(child, Token) and child.value == ":":
@@ -98,7 +97,7 @@ def process_lark_tree(lark_node: Tree) -> Expression:
         )
 
 
-def process_lark_token(lark_node: Token) -> Expression:
+def process_lark_token(lark_node: Token) -> BaseExpression:
     if lark_node.type == "NUMBER":
         return ValueExpression.of(float(lark_node.value))
     elif lark_node.type == "ESCAPED_STRING":
