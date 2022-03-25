@@ -5,7 +5,8 @@ class OpenAnIssueIfYouGetThisError(Exception):
     """
 
     def __init__(self, message: str):
-        self.message = message + "\n\n" + self.__doc__
+        docstr = self.__doc__ or ""
+        self.message = message + "\n\n" + docstr
         super().__init__(message)
 
     pass
