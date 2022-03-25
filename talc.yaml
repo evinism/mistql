@@ -21,7 +21,7 @@ commands:
       - name: py
         doc: Test the JS subproject
         shell:
-          "cd py && poetry run pytest"
+          "cd py && poetry run pytest && poetry run mypy -m mistql"
   - name: build
     doc: Build a subproject!
     commands:
