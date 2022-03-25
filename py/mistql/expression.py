@@ -1,7 +1,6 @@
 from enum import Enum
-from typing import Dict, List, Union, Any, Sequence
+from typing import Dict, List, Union, Any
 from mistql.runtime_value import RuntimeValue
-import json
 
 from typeguard import typechecked
 
@@ -53,7 +52,7 @@ class ValueExpression(BaseExpression):
 
 class ArrayExpression(BaseExpression):
     @typechecked
-    def __init__(self, items: Sequence[BaseExpression]):
+    def __init__(self, items: List[BaseExpression]):
         super().__init__(ExpressionType.Array)
         self.items = items
 
@@ -67,7 +66,7 @@ class ObjectExpression(BaseExpression):
 
 class PipeExpression(BaseExpression):
     @typechecked
-    def __init__(self, stages: Sequence[BaseExpression]):
+    def __init__(self, stages: List[BaseExpression]):
         super().__init__(ExpressionType.Pipe)
         self.stages = stages
 
