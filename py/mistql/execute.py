@@ -19,7 +19,7 @@ from typeguard import typechecked
 
 
 @typechecked
-def execute_fncall(head: Expression, arguments: List[Expression], stack: Stack):
+def execute_fncall(head: BaseExpression, arguments: List[BaseExpression], stack: Stack):
     fn = execute(head, stack)
     if fn.type != RuntimeValueType.Function:
         raise MistQLTypeError(f"Tried to call a non-function: {fn}")
@@ -29,15 +29,15 @@ def execute_fncall(head: Expression, arguments: List[Expression], stack: Stack):
 
 
 @typechecked
-def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
-    first: Expression = stages[0]
-    remaining: List[Expression] = stages[1:]
+def execute_pipe(stages: List[BaseExpression], stack: Stack) -> RuntimeValue:
+    first: BaseExpression = stages[0]
+    remaining: List[BaseExpression] = stages[1:]
     data = execute(first, stack)
 
     for stage_ast in remaining:
         new_stack = add_runtime_value_to_stack(data, stack)
-        fn: Expression
-        args: List[Expression]
+        fn: BaseExpression
+        args: List[BaseExpression]
         if isinstance(stage_ast, FnExpression):
             fn = stage_ast.fn
             args = stage_ast.args.copy()
@@ -52,7 +52,7 @@ def execute_pipe(stages: List[Expression], stack: Stack) -> RuntimeValue:
 
 
 @typechecked
-def execute(ast: Expression, stack: Stack) -> RuntimeValue:
+def execute(ast: BaseExpression, stack: Stack) -> RuntimeValue:
     if not isinstance(ast, BaseExpression):
         raise OpenAnIssueIfYouGetThisError(
             f"Expected to evaluate an expression, got {ast}"
@@ -71,7 +71,7 @@ def execute(ast: Expression, stack: Stack) -> RuntimeValue:
         )
     elif isinstance(ast, PipeExpression):
         return execute_pipe(ast.stages, stack)
-    raise NotImplementedError("execute() not implemented for " + ast.type)
+    raise NotImplementedError("execute() not implemented for " + str(ast.type))
 
 
 def execute_outer(ast: Expression, data: RuntimeValue) -> RuntimeValue:
