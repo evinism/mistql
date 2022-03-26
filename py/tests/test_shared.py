@@ -18,9 +18,9 @@ for block in testdata["data"]:
                 (
                     [
                         (
-                            assertion["query"], 
-                            assertion["data"], 
-                            assertion.get("expected"), 
+                            assertion["query"],
+                            assertion["data"],
+                            assertion.get("expected"),
                             assertion.get("throws")
                         ) for assertion in test["assertions"]
                     ],
