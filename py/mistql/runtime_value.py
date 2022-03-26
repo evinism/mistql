@@ -21,7 +21,6 @@ class RuntimeValueType(Enum):
     Regex = "regex"
 
 
-
 # String formatting algorithm
 # Passes tests but is also super gross
 UPPER_NUM_FORMATTING_BREAKPOINT = 1e21
@@ -33,10 +32,7 @@ e_zero_regex = re.compile(r"e-0+")
 
 
 def format_number(value: float) -> str:
-    if (
-        value < UPPER_NUM_FORMATTING_BREAKPOINT
-        and value >= MAX_SAFE_INT
-    ):
+    if value < UPPER_NUM_FORMATTING_BREAKPOINT and value >= MAX_SAFE_INT:
         return str(int(value))
     elif value < UPPER_NUM_FORMATTING_BREAKPOINT and value == int(value):
         return str(int(value))

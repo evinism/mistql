@@ -8,7 +8,11 @@ import re
 from functools import cmp_to_key
 import statistics
 
-from mistql.exceptions import MistQLRuntimeError, MistQLTypeError, OpenAnIssueIfYouGetThisError
+from mistql.exceptions import (
+    MistQLRuntimeError,
+    MistQLTypeError,
+    OpenAnIssueIfYouGetThisError,
+)
 
 
 Args = List[BaseExpression]
@@ -32,7 +36,9 @@ def builtin(name: str, min_args: int, max_args: Union[None, int] = None):
         def wrapped(arguments: Args, stack: Stack, exec: Exec):
             if not min_args < 0 and len(arguments) < min_args:
                 raise MistQLRuntimeError(f"{name} takes at least {min_args} arguments")
-            if (max_args is not None) and (not max_args < 0 and len(arguments) > max_args):
+            if (max_args is not None) and (
+                not max_args < 0 and len(arguments) > max_args
+            ):
                 raise MistQLRuntimeError(f"{name} takes at most {max_args} arguments")
             return fn(arguments, stack, exec)
 
@@ -164,7 +170,7 @@ def dot(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     left = exec(arguments[0], stack)
     right = arguments[1]
     if not isinstance(right, RefExpression):
-        raise MistQLRuntimeError(f"dot: RHS of the dot operator is not a ref")
+        raise MistQLRuntimeError("dot: RHS of the dot operator is not a ref")
     return _index_single(RuntimeValue.of(right.name), left)
 
 
@@ -278,11 +284,11 @@ def _index_double(
     if index_two.type == RVT.Null:
         index_two = RuntimeValue.of(len(operand.value))
     if index_one.type != RVT.Number or index_two.type != RVT.Number:
-        raise MistQLRuntimeError(f"index: Non-numbers cannot be used on arrays")
+        raise MistQLRuntimeError("index: Non-numbers cannot be used on arrays")
     index_one_num = index_one.value
     index_two_num = index_two.value
     if index_one_num % 1 != 0 or index_two_num % 1 != 0:
-        raise MistQLRuntimeError(f"index: Non-integers cannot be used on arrays")
+        raise MistQLRuntimeError("index: Non-integers cannot be used on arrays")
     if index_one_num < 0:
         index_one_num = len(operand.value) + index_one_num
     if index_two_num < 0:
@@ -295,7 +301,7 @@ def _index_single(index: RuntimeValue, operand: RuntimeValue):
         assert_type(index, RVT.Number)
         index_num = index.value
         if index_num % 1 != 0:
-            raise MistQLRuntimeError(f"index: Non-integers cannot be used on arrays")
+            raise MistQLRuntimeError("index: Non-integers cannot be used on arrays")
         if index_num < 0:
             index_num = len(operand.value) + index_num
         if index_num < 0 or index_num >= len(operand.value):
@@ -308,7 +314,6 @@ def _index_single(index: RuntimeValue, operand: RuntimeValue):
         return RuntimeValue.of(None)
     else:
         raise MistQLRuntimeError(f"index: Cannot index {operand.type}")
-
 
 
 @builtin("index", 2, 3)
@@ -470,8 +475,9 @@ def match(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     elif pattern.type == RVT.String:
         compiled = re.compile(pattern.value)
         return RuntimeValue.of(bool(compiled.search(target.value)))
-    raise OpenAnIssueIfYouGetThisError("Unexpectedly reaching end of function in match call.")
-
+    raise OpenAnIssueIfYouGetThisError(
+        "Unexpectedly reaching end of function in match call."
+    )
 
 
 @builtin("=~", 2)
@@ -495,7 +501,9 @@ def replace(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
         return RuntimeValue.of(
             target.value.replace(pattern.value, replacement.value, 1)
         )
-    raise OpenAnIssueIfYouGetThisError("Unexpectedly reaching end of function in match call.")
+    raise OpenAnIssueIfYouGetThisError(
+        "Unexpectedly reaching end of function in match call."
+    )
 
 
 @builtin("split", 2)
@@ -509,7 +517,9 @@ def split(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
         return RuntimeValue.of(target.value.split(separator))
     elif delimiter.type == RVT.Regex:
         return RuntimeValue.of(list(delimiter.value.split(target.value)))
-    raise OpenAnIssueIfYouGetThisError("Unexpectedly reaching end of function in match call.")
+    raise OpenAnIssueIfYouGetThisError(
+        "Unexpectedly reaching end of function in match call."
+    )
 
 
 @builtin("stringjoin", 2)
@@ -527,6 +537,7 @@ def sum(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     for entry in target.value:
         total += assert_type(entry, RVT.Number).value
     return RuntimeValue.of(total)
+
 
 @builtin("summarize", 1)
 def summarize(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
@@ -585,5 +596,3 @@ def flatten(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     for entry in target.value:
         result.extend(assert_type(entry, RVT.Array).value)
     return RuntimeValue.of(result)
-
-
