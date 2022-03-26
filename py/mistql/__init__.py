@@ -1,3 +1,3 @@
 __version__ = "0.4.7"
 
-from .query import query
+from .query import query  # noqa: F401

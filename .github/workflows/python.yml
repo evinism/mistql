@@ -33,5 +33,7 @@ jobs:
         run: poetry install
       - name: Test
         run: poetry run pytest
-      - name: Typechexk
+      - name: Typecheck
         run: poetry run mypy -p mistql
+      - name: Lint
+        run: poetry run flake8

@@ -33,7 +33,7 @@ class FnExpression(BaseExpression):
 
 class RefExpression(BaseExpression):
     @typechecked
-    def __init__(self, name: str, absolute: bool=False):
+    def __init__(self, name: str, absolute: bool = False):
         super().__init__(ExpressionType.Reference)
         self.name = name
         self.absolute = absolute

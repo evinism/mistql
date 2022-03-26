@@ -44,7 +44,9 @@ def process_lark_tree(lark_node: Tree) -> BaseExpression:
         obj = {}
         for child in lark_node.children:
             if isinstance(child, str):
-                raise OpenAnIssueIfYouGetThisError(f"Got string for child when we didn't expect it.")
+                raise OpenAnIssueIfYouGetThisError(
+                    "Got string for child when we didn't expect it."
+                )
             key = from_lark(child.children[0])
             if isinstance(key, ValueExpression):
                 key = key.value.value
@@ -68,14 +70,18 @@ def process_lark_tree(lark_node: Tree) -> BaseExpression:
             [from_lark(child) for child in lark_node.children[:]],
         )
     elif lark_node.data == "index":
-        # This is gross becase i can't figure out how to get the tree to look a little more
-        # sensible.
+        # This is gross becase i can't figure out how to get the tree to look
+        # a little more sensible.
         base, indexing = lark_node.children
         if isinstance(indexing, str):
-            raise OpenAnIssueIfYouGetThisError(f"Got string for child when we didn't expect it.")
+            raise OpenAnIssueIfYouGetThisError(
+                "Got string for child when we didn't expect it."
+            )
         innards = indexing.children[0]
         if isinstance(innards, str):
-            raise OpenAnIssueIfYouGetThisError(f"Got string for child when we didn't expect it.")
+            raise OpenAnIssueIfYouGetThisError(
+                "Got string for child when we didn't expect it."
+            )
         fnexp_args: List[BaseExpression] = []
         prev_was_token = True
         for child in innards.children:
@@ -129,6 +135,7 @@ def from_lark(lark_node: Union[Any, str, Tree, Token]):
 
 
 def parse(raw):
-    # TODO: Translate errors from this function to something that inherits from MistQLException
+    # TODO: Translate errors from this function to something that inherits
+    # from MistQLException
     parsed = mistql_parser.parse(raw)
     return from_lark(parsed)

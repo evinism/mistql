@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
 from mistql.expression import (
     Expression,
