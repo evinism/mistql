@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use crate::Error;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Null,
 }
