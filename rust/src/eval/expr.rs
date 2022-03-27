@@ -1,31 +1,27 @@
 use pest::iterators::Pair;
 
-use crate::eval::{array, function, index, infix, object, prefix, terminal};
+use crate::eval::Value;
 use crate::{Error, Result, Rule};
 
-pub fn eval(
-    pair: Pair<Rule>,
-    data: &serde_json::Value,
-    context: Option<serde_json::Value>,
-) -> Result<serde_json::Value> {
+pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
     match pair.as_rule() {
-        Rule::at => {
-            // there is only context if we are in a pipe
-            if let Some(ctx) = context {
-                Ok(ctx.clone())
-            } else {
-                Ok(data.clone())
-            }
-        }
-        Rule::ident => Ok(pair.as_str().into()),
-        Rule::bool | Rule::number | Rule::string | Rule::null => terminal::eval(pair),
-        Rule::array => array::eval(pair, &data),
-        Rule::object => object::eval(pair, &data),
-        Rule::infix_expr => infix::eval(pair, &data),
-        Rule::function => function::eval(pair, &data, context),
-        Rule::prefixed_value => prefix::eval(pair, &data),
-        Rule::piped_expr => eval_piped(pair, &data),
-        Rule::indexed_value => index::eval(pair, &data),
+        // Rule::at => {
+        //     // there is only context if we are in a pipe
+        //     if let Some(ctx) = context {
+        //         Ok(ctx.clone())
+        //     } else {
+        //         Ok(data.clone())
+        //     }
+        // }
+        // Rule::ident => Ok(pair.as_str().into()),
+        // Rule::bool | Rule::number | Rule::string | Rule::null => terminal::eval(pair),
+        // Rule::array => array::eval(pair, &data),
+        // Rule::object => object::eval(pair, &data),
+        // Rule::infix_expr => infix::eval(pair, &data),
+        // Rule::function => function::eval(pair, &data, context),
+        // Rule::prefixed_value => prefix::eval(pair, &data),
+        // Rule::piped_expr => eval_piped(pair, &data),
+        // Rule::indexed_value => index::eval(pair, &data),
         _ => Err(Error::unimplemented(format!(
             "unimplemented rule {:?}",
             pair.as_rule()
@@ -33,10 +29,10 @@ pub fn eval(
     }
 }
 
-fn eval_piped(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
-    pair.into_inner()
-        .try_fold(data.clone(), |ctx, expr| eval(expr, data, Some(ctx)))
-}
+// fn eval_piped(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
+//     pair.into_inner()
+//         .try_fold(data.clone(), |ctx, expr| eval(expr, data, Some(ctx)))
+// }
 
 #[cfg(test)]
 mod tests {

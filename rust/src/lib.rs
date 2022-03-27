@@ -20,7 +20,7 @@ pub fn query_value(query_str: String, data: serde_json::Value) -> Result<serde_j
         Err(err) => Err(Error::query(err.to_string())),
         Ok(mut pair) => {
             match pair.next() {
-                Some(root) => eval::eval(root, &data),
+                Some(root) => eval::eval(root, data),
                 None => unreachable!(), // parse() would have failed
             }
         }
