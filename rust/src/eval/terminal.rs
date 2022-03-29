@@ -1,13 +1,24 @@
 use pest::iterators::Pair;
 
-use crate::{Error, Result, Rule};
+use crate::{eval::Value, Error, Result, Rule};
 
-pub fn eval(pair: Pair<Rule>) -> Result<serde_json::Value> {
-    let parsed: std::result::Result<serde_json::Value, serde_json::Error> =
-        serde_json::from_str(pair.as_str());
-    match parsed {
-        Ok(val) => Ok(val.clone().into()),
-        Err(_) => Err(Error::query(format!("unparseable value {:?}", pair))),
+pub fn eval(pair: Pair<Rule>) -> Result<Value> {
+    match pair.as_rule() {
+        Rule::null => Ok(Value::Null),
+        Rule::bool => match pair.as_str() {
+            "true" => Ok(Value::Boolean(true)),
+            "false" => Ok(Value::Boolean(false)),
+            _ => unreachable!("boolean terminal"),
+        },
+        Rule::number => match (pair.as_str().parse::<i64>(), pair.as_str().parse::<f64>()) {
+            (Ok(i), _) => Ok(Value::Int(i)),
+            (_, Ok(f)) => Ok(Value::Float(f)),
+            (Err(_), Err(err)) => Err(Error::query(format!("unparseable number: {:?}", err))),
+        },
+        Rule::string => Ok(Value::String(
+            pair.into_inner().next().unwrap().as_str().to_string(),
+        )),
+        _ => Err(Error::unimplemented(format!("terminal {:?}", pair))),
     }
 }
 
