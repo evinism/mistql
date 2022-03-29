@@ -9,7 +9,7 @@ mod expr;
 // mod infix;
 // mod object;
 // mod prefix;
-// mod terminal;
+mod terminal;
 mod value;
 
 pub use value::Value;
