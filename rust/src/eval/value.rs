@@ -9,6 +9,7 @@ pub enum Value {
     Int(i64),
     Float(f64),
     String(String),
+    Array(Vec<Value>),
 }
 
 impl TryFrom<serde_json::Value> for Value {
@@ -43,6 +44,11 @@ impl TryFrom<Value> for serde_json::Value {
             Value::Int(i) => Ok(serde_json::Value::from(i)),
             Value::Float(f) => Ok(serde_json::Value::from(f)),
             Value::String(s) => Ok(serde_json::Value::String(s)),
+            Value::Array(a) => Ok(serde_json::Value::Array(
+                a.iter()
+                    .map(|elt| elt.clone().try_into())
+                    .collect::<Result<Vec<serde_json::Value>, Error>>()?,
+            )),
         }
     }
 }
