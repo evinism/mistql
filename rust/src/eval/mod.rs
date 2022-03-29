@@ -2,7 +2,7 @@ use pest::iterators::Pair;
 
 use crate::{Result, Rule};
 
-// mod array;
+mod array;
 mod expr;
 // mod function;
 // mod index;
