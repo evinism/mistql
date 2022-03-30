@@ -31,9 +31,28 @@ impl TryFrom<serde_json::Value> for Value {
                 }
             }
             serde_json::Value::String(s) => Ok(Value::String(s)),
-            _ => Err(Error::unimplemented(format!("json -> value {:?}", val))),
+            serde_json::Value::Array(a) => Ok(Value::Array(
+                a.iter()
+                    .map(|elt| elt.clone().try_into())
+                    .collect::<Result<Vec<Value>, Error>>()?,
+            )),
+            serde_json::Value::Object(o) => Ok(Value::Object(json_to_object(o)?)),
         }
     }
+}
+
+fn json_to_object(
+    obj: serde_json::Map<String, serde_json::Value>,
+) -> Result<HashMap<String, Value>, Error> {
+    let pairs = obj
+        .iter()
+        .map(|(k, v)| match v.clone().try_into() {
+            Ok(val) => Ok((k.clone(), val)),
+            Err(e) => Err(e),
+        })
+        .collect::<Result<Vec<(String, Value)>, Error>>()?;
+
+    Ok(HashMap::from_iter(pairs))
 }
 
 impl TryFrom<Value> for serde_json::Value {
