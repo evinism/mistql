@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::TryFrom;
 
 use crate::Error;
@@ -10,6 +11,7 @@ pub enum Value {
     Float(f64),
     String(String),
     Array(Vec<Value>),
+    Object(HashMap<String, Value>),
 }
 
 impl TryFrom<serde_json::Value> for Value {
@@ -49,6 +51,21 @@ impl TryFrom<Value> for serde_json::Value {
                     .map(|elt| elt.clone().try_into())
                     .collect::<Result<Vec<serde_json::Value>, Error>>()?,
             )),
+            Value::Object(o) => Ok(serde_json::Value::Object(object_to_json(o)?)),
         }
     }
+}
+
+fn object_to_json(
+    obj: HashMap<String, Value>,
+) -> Result<serde_json::Map<String, serde_json::Value>, Error> {
+    let pairs = obj
+        .iter()
+        .map(|(k, v)| match v.clone().try_into() {
+            Ok(val) => Ok((k.clone(), val)),
+            Err(e) => Err(e),
+        })
+        .collect::<Result<Vec<(String, serde_json::Value)>, Error>>()?;
+
+    Ok(serde_json::Map::from_iter(pairs))
 }

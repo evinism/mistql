@@ -7,7 +7,7 @@ mod expr;
 // mod function;
 // mod index;
 // mod infix;
-// mod object;
+mod object;
 // mod prefix;
 mod terminal;
 mod value;
