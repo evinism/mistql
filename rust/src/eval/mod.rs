@@ -15,5 +15,8 @@ mod value;
 pub use value::Value;
 
 pub fn eval(pair: Pair<Rule>, data: serde_json::Value) -> Result<serde_json::Value> {
-    expr::eval(pair, &data.try_into()?, None)?.try_into()
+    match expr::eval(pair, &data.into(), None) {
+        Ok(val) => Ok(val.into()),
+        Err(e) => Err(e),
+    }
 }
