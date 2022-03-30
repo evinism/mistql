@@ -1,11 +1,11 @@
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 
-use crate::eval::expr;
+use crate::eval::{expr, Value};
 use crate::{Error, Result, Rule};
 
 mod arithmetic;
-mod boolean;
+// mod boolean;
 mod compare;
 
 lazy_static! {
@@ -25,14 +25,12 @@ lazy_static! {
     ]);
 }
 
-pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Value> {
+pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
     let pairs = pair.into_inner();
     INFIX_CLIMBER.climb(
         pairs,
         |current_pair: Pair<Rule>| expr::eval(current_pair, data, None),
-        |lhs: Result<serde_json::Value>, op: Pair<Rule>, rhs: Result<serde_json::Value>| match (
-            lhs, rhs, op,
-        ) {
+        |lhs: Result<Value>, op: Pair<Rule>, rhs: Result<Value>| match (lhs, rhs, op) {
             (Err(err), _, _) => Err(err),
             (_, Err(err), _) => Err(err),
             (Ok(left), Ok(right), op) => apply_operator(left, op, right),
@@ -40,25 +38,21 @@ pub fn eval(pair: Pair<Rule>, data: &serde_json::Value) -> Result<serde_json::Va
     )
 }
 
-fn apply_operator(
-    left: serde_json::Value,
-    op: Pair<Rule>,
-    right: serde_json::Value,
-) -> Result<serde_json::Value> {
+fn apply_operator(left: Value, op: Pair<Rule>, right: Value) -> Result<Value> {
     match op.as_rule() {
         Rule::plus_op => arithmetic::add(left, right),
         Rule::minus_op => arithmetic::subtract(left, right),
         Rule::mult_op => arithmetic::multiply(left, right),
         Rule::div_op => arithmetic::divide(left, right),
         Rule::mod_op => arithmetic::modulo(left, right),
-        Rule::and_op => boolean::and(left, right),
-        Rule::or_op => boolean::or(left, right),
-        Rule::gte_op => compare::gte(left, right),
-        Rule::gt_op => compare::gt(left, right),
-        Rule::lte_op => compare::lte(left, right),
-        Rule::lt_op => compare::lt(left, right),
-        Rule::eq_op => compare::eq(left, right),
-        Rule::ne_op => compare::ne(left, right),
+        // Rule::and_op => boolean::and(left, right),
+        // Rule::or_op => boolean::or(left, right),
+        // Rule::gte_op => compare::gte(left, right),
+        // Rule::gt_op => compare::gt(left, right),
+        // Rule::lte_op => compare::lte(left, right),
+        // Rule::lt_op => compare::lt(left, right),
+        // Rule::eq_op => compare::eq(left, right),
+        // Rule::ne_op => compare::ne(left, right),
         _ => Err(Error::unimplemented(format!(
             "unimplemented operator {:?}",
             op.as_str()
