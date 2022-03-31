@@ -178,7 +178,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn parses_array_with_expression_elements() {
         let query = "[3 + 2, 4 + 3]";
         parses_to! {

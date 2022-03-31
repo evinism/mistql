@@ -144,7 +144,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn parses_object_with_expression_values() {
         let query = "{a: 1 + 2, b: 3 * 4}";
 
