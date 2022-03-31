@@ -47,12 +47,12 @@ fn apply_operator(left: Value, op: Pair<Rule>, right: Value) -> Result<Value> {
         Rule::mod_op => arithmetic::modulo(left, right),
         Rule::and_op => boolean::and(left, right),
         Rule::or_op => boolean::or(left, right),
-        // Rule::gte_op => compare::gte(left, right),
-        // Rule::gt_op => compare::gt(left, right),
-        // Rule::lte_op => compare::lte(left, right),
-        // Rule::lt_op => compare::lt(left, right),
-        // Rule::eq_op => compare::eq(left, right),
-        // Rule::ne_op => compare::ne(left, right),
+        Rule::gte_op => compare::gte(left, right),
+        Rule::gt_op => compare::gt(left, right),
+        Rule::lte_op => compare::lte(left, right),
+        Rule::lt_op => compare::lt(left, right),
+        Rule::eq_op => compare::eq(left, right),
+        Rule::ne_op => compare::ne(left, right),
         _ => Err(Error::unimplemented(format!(
             "unimplemented operator {:?}",
             op.as_str()
