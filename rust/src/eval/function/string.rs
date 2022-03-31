@@ -1,20 +1,24 @@
+use crate::eval::Value;
 use crate::{Error, Result};
 
-pub fn string(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
+pub fn string(args: Vec<Value>) -> Result<Value> {
     if let Some(val) = args.get(0) {
         match val {
-            serde_json::Value::Number(num) => match num.as_f64() {
-                Some(float_num) => Ok(from_number(float_num)),
-                None => Ok(val.to_string().into()),
-            },
-            _ => Ok(val.to_string().into()),
+            Value::Null => Ok(Value::String("null".to_string())),
+            Value::Boolean(b) => Ok(Value::String(b.to_string())),
+            Value::Float(num) => Ok(from_number(*num)),
+            Value::Int(num) => Ok(from_number(*num as f64)),
+            Value::String(_) => Ok(val.clone()),
+            Value::Array(_) | Value::Object(_) => Err(Error::eval(
+                "can't cast object or array to string".to_string(),
+            )),
         }
     } else {
         Err(Error::eval("string requires one argument".to_string()))
     }
 }
 
-fn from_number(num: f64) -> serde_json::Value {
+fn from_number(num: f64) -> Value {
     const FORMAT: u128 = lexical::NumberFormatBuilder::new()
         .required_digits(true)
         .no_positive_mantissa_sign(true)
@@ -30,7 +34,9 @@ fn from_number(num: f64) -> serde_json::Value {
         .build()
         .unwrap();
 
-    lexical::to_string_with_options::<f64, FORMAT>(num, &options).into()
+    Value::String(lexical::to_string_with_options::<f64, FORMAT>(
+        num, &options,
+    ))
 }
 
 #[cfg(test)]
