@@ -1,18 +1,18 @@
 use pest::iterators::Pair;
 use std::str::FromStr;
 
-use crate::eval::expr;
+use crate::eval::{expr, Value};
 use crate::{Error, Result, Rule};
 
-mod float;
-mod string;
+// mod float;
+// mod string;
 
 enum Function {
-    Count,
-    Float,
-    Index,
+    // Count,
+    // Float,
+    // Index,
     Log,
-    String,
+    // String,
 }
 
 impl FromStr for Function {
@@ -20,21 +20,17 @@ impl FromStr for Function {
 
     fn from_str(s: &str) -> Result<Self> {
         match s {
-            "count" => Ok(Function::Count),
-            "float" => Ok(Function::Float),
-            "index" => Ok(Function::Index),
+            // "count" => Ok(Function::Count),
+            // "float" => Ok(Function::Float),
+            // "index" => Ok(Function::Index),
             "log" => Ok(Function::Log),
-            "string" => Ok(Function::String),
+            // "string" => Ok(Function::String),
             _ => Err(Error::query(format!("unknown function {}", s))),
         }
     }
 }
 
-pub fn eval(
-    pair: Pair<Rule>,
-    data: &serde_json::Value,
-    context: Option<serde_json::Value>,
-) -> Result<serde_json::Value> {
+pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
     let mut function_iter = pair.into_inner();
     let function: Function = function_iter.next().unwrap().as_str().parse()?;
     let mut use_implicit_context = true;
@@ -60,11 +56,11 @@ pub fn eval(
     }
 
     match function {
-        Function::Count => count(args),
-        Function::Float => float::float(args),
-        Function::Index => super::index::index(args),
+        // Function::Count => count(args),
+        // Function::Float => float::float(args),
+        // Function::Index => super::index::index(args),
         Function::Log => log(args),
-        Function::String => string::string(args),
+        // Function::String => string::string(args),
     }
 }
 
@@ -79,7 +75,7 @@ fn count(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
     }
 }
 
-fn log(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
+fn log(args: Vec<Value>) -> Result<Value> {
     if let Some(val) = args.get(0) {
         Ok(val.clone())
     } else {
