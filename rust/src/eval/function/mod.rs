@@ -4,12 +4,12 @@ use std::str::FromStr;
 use crate::eval::{expr, Value};
 use crate::{Error, Result, Rule};
 
-// mod float;
+mod float;
 mod string;
 
 enum Function {
     Count,
-    // Float,
+    Float,
     Index,
     Log,
     String,
@@ -21,7 +21,7 @@ impl FromStr for Function {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "count" => Ok(Function::Count),
-            // "float" => Ok(Function::Float),
+            "float" => Ok(Function::Float),
             "index" => Ok(Function::Index),
             "log" => Ok(Function::Log),
             "string" => Ok(Function::String),
@@ -57,7 +57,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
 
     match function {
         Function::Count => count(args),
-        // Function::Float => float::float(args),
+        Function::Float => float::float(args),
         Function::Index => super::index::index(args),
         Function::Log => log(args),
         Function::String => string::string(args),
