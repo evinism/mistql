@@ -10,7 +10,7 @@ use crate::{Error, Result, Rule};
 enum Function {
     // Count,
     // Float,
-    // Index,
+    Index,
     Log,
     // String,
 }
@@ -22,7 +22,7 @@ impl FromStr for Function {
         match s {
             // "count" => Ok(Function::Count),
             // "float" => Ok(Function::Float),
-            // "index" => Ok(Function::Index),
+            "index" => Ok(Function::Index),
             "log" => Ok(Function::Log),
             // "string" => Ok(Function::String),
             _ => Err(Error::query(format!("unknown function {}", s))),
@@ -58,7 +58,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     match function {
         // Function::Count => count(args),
         // Function::Float => float::float(args),
-        // Function::Index => super::index::index(args),
+        Function::Index => super::index::index(args),
         Function::Log => log(args),
         // Function::String => string::string(args),
     }
