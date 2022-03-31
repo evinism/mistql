@@ -1,14 +1,15 @@
 use crate::eval::prefix::truthiness;
+use crate::eval::Value;
 use crate::Result;
 
-pub fn and(left: serde_json::Value, right: serde_json::Value) -> Result<serde_json::Value> {
+pub fn and(left: Value, right: Value) -> Result<Value> {
     match (truthiness(&left), truthiness(&right)) {
         (false, _) => Ok(left),
         (true, _) => Ok(right),
     }
 }
 
-pub fn or(left: serde_json::Value, right: serde_json::Value) -> Result<serde_json::Value> {
+pub fn or(left: Value, right: Value) -> Result<Value> {
     match (truthiness(&left), truthiness(&right)) {
         (true, _) => Ok(left),
         (false, _) => Ok(right),

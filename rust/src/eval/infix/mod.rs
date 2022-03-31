@@ -5,7 +5,7 @@ use crate::eval::{expr, Value};
 use crate::{Error, Result, Rule};
 
 mod arithmetic;
-// mod boolean;
+mod boolean;
 mod compare;
 
 lazy_static! {
@@ -45,8 +45,8 @@ fn apply_operator(left: Value, op: Pair<Rule>, right: Value) -> Result<Value> {
         Rule::mult_op => arithmetic::multiply(left, right),
         Rule::div_op => arithmetic::divide(left, right),
         Rule::mod_op => arithmetic::modulo(left, right),
-        // Rule::and_op => boolean::and(left, right),
-        // Rule::or_op => boolean::or(left, right),
+        Rule::and_op => boolean::and(left, right),
+        Rule::or_op => boolean::or(left, right),
         // Rule::gte_op => compare::gte(left, right),
         // Rule::gt_op => compare::gt(left, right),
         // Rule::lte_op => compare::lte(left, right),
