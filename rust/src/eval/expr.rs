@@ -54,7 +54,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn parses_piped_expression() {
         let query = "[1,2,3] | count @";
         parses_to! {

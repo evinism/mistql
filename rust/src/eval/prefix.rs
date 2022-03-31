@@ -131,7 +131,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn parses_prefix_operator_on_ident() {
         // it's weird that this is legal
         let query = "!!float";
