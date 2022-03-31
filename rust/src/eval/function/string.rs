@@ -9,6 +9,7 @@ pub fn string(args: Vec<Value>) -> Result<Value> {
             Value::Float(num) => Ok(from_number(*num)),
             Value::Int(num) => Ok(from_number(*num as f64)),
             Value::String(_) => Ok(val.clone()),
+            Value::Ident(s) => Ok(Value::String(s.clone())),
             Value::Array(_) | Value::Object(_) => Err(Error::eval(
                 "can't cast object or array to string".to_string(),
             )),

@@ -29,7 +29,7 @@ pub fn truthiness(val: &Value) -> bool {
         Value::Boolean(bool) => bool.clone(),
         Value::Int(i) => *i != 0,
         Value::Float(f) => *f != 0.0,
-        Value::String(s) => s.len() != 0,
+        Value::String(s) | Value::Ident(s) => s.len() != 0,
         Value::Array(arr) => arr.len() != 0,
         Value::Object(obj) => obj.len() != 0,
     }

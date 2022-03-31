@@ -9,6 +9,7 @@ pub enum Value {
     String(String),
     Array(Vec<Value>),
     Object(HashMap<String, Value>),
+    Ident(String),
 }
 
 impl From<serde_json::Value> for Value {
@@ -50,6 +51,7 @@ impl From<Value> for serde_json::Value {
             Value::Object(o) => serde_json::Value::Object(serde_json::Map::from_iter(
                 o.iter().map(|(k, v)| (k.clone(), v.clone().into())),
             )),
+            Value::Ident(s) => serde_json::Value::String(s),
         }
     }
 }
