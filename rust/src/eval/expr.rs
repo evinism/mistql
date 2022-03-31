@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::eval::{array, infix, object, prefix, terminal, Value};
+use crate::eval::{array, index, infix, object, prefix, terminal, Value};
 use crate::{Error, Result, Rule};
 
 pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
@@ -21,7 +21,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         // Rule::function => function::eval(pair, &data, context),
         Rule::prefixed_value => prefix::eval(pair, &data),
         Rule::piped_expr => eval_piped(pair, &data),
-        // Rule::indexed_value => index::eval(pair, &data),
+        Rule::indexed_value => index::eval(pair, &data),
         _ => Err(Error::unimplemented(format!(
             "unimplemented rule {:?}",
             pair.as_rule()
