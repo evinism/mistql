@@ -8,7 +8,7 @@ mod expr;
 // mod index;
 mod infix;
 mod object;
-// mod prefix;
+mod prefix;
 mod terminal;
 mod value;
 
