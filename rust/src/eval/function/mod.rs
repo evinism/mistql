@@ -8,7 +8,7 @@ use crate::{Error, Result, Rule};
 // mod string;
 
 enum Function {
-    // Count,
+    Count,
     // Float,
     Index,
     Log,
@@ -20,7 +20,7 @@ impl FromStr for Function {
 
     fn from_str(s: &str) -> Result<Self> {
         match s {
-            // "count" => Ok(Function::Count),
+            "count" => Ok(Function::Count),
             // "float" => Ok(Function::Float),
             "index" => Ok(Function::Index),
             "log" => Ok(Function::Log),
@@ -56,7 +56,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     }
 
     match function {
-        // Function::Count => count(args),
+        Function::Count => count(args),
         // Function::Float => float::float(args),
         Function::Index => super::index::index(args),
         Function::Log => log(args),
@@ -64,9 +64,9 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     }
 }
 
-fn count(args: Vec<serde_json::Value>) -> Result<serde_json::Value> {
-    if let Some(serde_json::Value::Array(vals)) = args.get(0) {
-        Ok(vals.len().into())
+fn count(args: Vec<Value>) -> Result<Value> {
+    if let Some(Value::Array(vals)) = args.get(0) {
+        Ok(Value::Int(vals.len() as i64))
     } else {
         Err(Error::eval(format!(
             "argument to count must be an array (got {:?}",
