@@ -11,10 +11,26 @@ impl fmt::Display for Value {
             Value::Int(num) => write!(f, "{}", from_number(*num as f64)),
             Value::String(s) => write!(f, "{}", s),
             Value::Ident(s) => write!(f, "{}", s),
-            _ => write!(f, "unimplemented")
-            // Value::Array(_) | Value::Object(_) => Err(Error::eval(
-            //     "can't cast object or array to string".to_string(),
-            // )),
+            Value::Array(a) => {
+                write!(
+                    f,
+                    "[{}]",
+                    a.iter()
+                        .map(|elt| elt.to_string())
+                        .collect::<Vec<String>>()
+                        .join(",")
+                )
+            }
+            Value::Object(o) => {
+                write!(
+                    f,
+                    "{{{}}}",
+                    o.iter()
+                        .map(|(k, v)| format!("\"{}\":{}", k.to_string(), v.to_string()))
+                        .collect::<Vec<String>>()
+                        .join(",")
+                )
+            }
         }
     }
 }
@@ -44,7 +60,7 @@ mod tests {
     #[test]
     fn casts_int_to_string() {
         let result = Value::Int(1).to_string();
-        assert_eq!(result, "1".to_string())
+        assert_eq!(result, "1")
     }
 
     #[test]
@@ -62,5 +78,15 @@ mod tests {
             let (input, output) = example;
             assert_eq!(Value::Float(input).to_string(), output);
         }
+    }
+
+    #[test]
+    fn casts_array_to_string() {
+        let result = Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]).to_string();
+        assert_eq!(result, "[1,2,3]");
+
+        let result =
+            Value::Array(vec![Value::Int(1), Value::Boolean(false), Value::Null]).to_string();
+        assert_eq!(result, "[1,false,null]");
     }
 }

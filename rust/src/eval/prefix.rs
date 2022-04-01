@@ -196,11 +196,11 @@ mod tests {
     #[test]
     fn truthiness_empty_object_is_false() {
         assert_eq!(
-            truthiness(&Value::Object(std::collections::HashMap::new())),
+            truthiness(&Value::Object(std::collections::BTreeMap::new())),
             false
         );
 
-        let mut map = std::collections::HashMap::new();
+        let mut map = std::collections::BTreeMap::new();
         map.insert("a".to_string(), Value::Int(1));
         assert_eq!(truthiness(&Value::Object(map)), true);
     }

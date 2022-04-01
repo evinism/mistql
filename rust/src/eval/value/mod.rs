@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 mod display;
 mod json;
@@ -11,6 +11,6 @@ pub enum Value {
     Float(f64),
     String(String),
     Array(Vec<Value>),
-    Object(HashMap<String, Value>),
+    Object(BTreeMap<String, Value>),
     Ident(String),
 }

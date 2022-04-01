@@ -186,7 +186,7 @@ fn range_index_array(val: &Vec<Value>, idx_low_raw: &Value, idx_high_raw: &Value
     }
 }
 
-fn index_object(val: &std::collections::HashMap<String, Value>, idx_raw: &Value) -> Result<Value> {
+fn index_object(val: &std::collections::BTreeMap<String, Value>, idx_raw: &Value) -> Result<Value> {
     if let Value::String(idx) = idx_raw {
         match val.get(idx) {
             Some(elt) => Ok(elt.clone()),
@@ -548,7 +548,7 @@ mod tests {
 
     #[test]
     fn indexes_strings_on_objects() {
-        let mut map = std::collections::HashMap::new();
+        let mut map = std::collections::BTreeMap::new();
         map.insert("a".to_string(), Value::Int(1));
         map.insert("b".to_string(), Value::Int(2));
         map.insert("c".to_string(), Value::Int(3));

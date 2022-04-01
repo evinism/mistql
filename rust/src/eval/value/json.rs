@@ -1,5 +1,5 @@
 use super::Value;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 impl From<serde_json::Value> for Value {
     fn from(val: serde_json::Value) -> Self {
@@ -19,7 +19,7 @@ impl From<serde_json::Value> for Value {
             serde_json::Value::Array(a) => {
                 Value::Array(a.iter().map(|elt| elt.clone().into()).collect())
             }
-            serde_json::Value::Object(o) => Value::Object(HashMap::from_iter(
+            serde_json::Value::Object(o) => Value::Object(BTreeMap::from_iter(
                 o.iter().map(|(k, v)| (k.clone(), v.clone().into())),
             )),
         }
