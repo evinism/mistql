@@ -1,5 +1,5 @@
 use pest::iterators::Pair;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::eval::{expr, Value};
 use crate::{Result, Rule};
@@ -20,7 +20,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
 
             Ok((key_str.into(), expr::eval(val, data, None)?))
         })
-        .collect::<Result<HashMap<String, Value>>>()?;
+        .collect::<Result<BTreeMap<String, Value>>>()?;
     Ok(Value::Object(elts))
 }
 
@@ -140,6 +140,41 @@ mod tests {
         expected.insert("a".to_string(), (1 as u32).into());
         expected.insert("b".to_string(), (2 as u32).into());
         expected.insert("c".to_string(), (3 as u32).into());
+        assert_eq!(result, serde_json::Value::Object(expected))
+    }
+
+    #[test]
+    fn parses_object_with_stringified_int_values() {
+        let query = "{a: 1, b: 2, c: \"3\"}";
+        parses_to! {
+            parser: MistQLParser,
+            input: query,
+            rule: Rule::query,
+            tokens: [
+                object(0,20, [
+                    keyval(1,5, [
+                        ident(1,2),
+                        number(4,5)
+                    ]),
+                    keyval(7,11, [
+                        ident(7,8),
+                        number(10,11)
+                    ]),
+                    keyval(13,19, [
+                        ident(13,14),
+                        string(16,19, [
+                            inner(17,18)
+                        ])
+                    ])
+                ])
+            ]
+        }
+
+        let result = crate::query(query.to_string(), "null".to_string()).unwrap();
+        let mut expected = serde_json::Map::new();
+        expected.insert("a".to_string(), (1 as u32).into());
+        expected.insert("b".to_string(), (2 as u32).into());
+        expected.insert("c".to_string(), "3".into());
         assert_eq!(result, serde_json::Value::Object(expected))
     }
 
