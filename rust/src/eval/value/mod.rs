@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+mod display;
 mod json;
 
 #[derive(Clone, Debug, PartialEq)]

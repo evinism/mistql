@@ -5,7 +5,6 @@ use crate::eval::{expr, Value};
 use crate::{Error, Result, Rule};
 
 mod float;
-mod string;
 
 enum Function {
     Count,
@@ -60,7 +59,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         Function::Float => float::float(args),
         Function::Index => super::index::index(args),
         Function::Log => log(args),
-        Function::String => string::string(args),
+        Function::String => string(args),
     }
 }
 
@@ -80,6 +79,14 @@ fn log(args: Vec<Value>) -> Result<Value> {
         Ok(val.clone())
     } else {
         Err(Error::eval("log requires one argument".to_string()))
+    }
+}
+
+fn string(args: Vec<Value>) -> Result<Value> {
+    if let Some(val) = args.get(0) {
+        Ok(Value::String(val.to_string()))
+    } else {
+        Err(Error::eval("string requires one argument".to_string()))
     }
 }
 
