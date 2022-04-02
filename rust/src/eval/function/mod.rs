@@ -38,8 +38,13 @@ impl FromStr for Function {
 }
 
 pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
-    let mut function_iter = pair.into_inner();
-    let function: Function = function_iter.next().unwrap().as_str().parse()?;
+    let mut function_iter = pair.clone().into_inner();
+    let function: Function = match pair.as_rule() {
+        Rule::ident => pair.as_str().parse()?,
+        Rule::function => function_iter.next().unwrap().as_str().parse()?,
+        _ => unreachable!(),
+    };
+
     let mut use_implicit_context = true;
     let mut args = vec![];
 
