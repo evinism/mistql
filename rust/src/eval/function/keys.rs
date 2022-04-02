@@ -1,7 +1,6 @@
 use crate::{eval::Value, Error, Result};
 
 pub fn keys(args: Vec<Value>) -> Result<Value> {
-    dbg!(args.clone());
     match (args.len(), args.get(0)) {
         (1, Some(Value::Object(val))) => Ok(Value::Array(
             val.keys()
