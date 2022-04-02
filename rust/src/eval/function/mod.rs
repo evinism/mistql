@@ -4,7 +4,15 @@ use std::str::FromStr;
 use crate::eval::{expr, Value};
 use crate::{Error, Result, Rule};
 
+mod count;
 mod float;
+mod log;
+mod string;
+
+use count::count;
+use float::float;
+use log::log;
+use string::string;
 
 enum Function {
     Count,
@@ -56,37 +64,10 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
 
     match function {
         Function::Count => count(args),
-        Function::Float => float::float(args),
+        Function::Float => float(args),
         Function::Index => super::index::index(args),
         Function::Log => log(args),
         Function::String => string(args),
-    }
-}
-
-fn count(args: Vec<Value>) -> Result<Value> {
-    if let Some(Value::Array(vals)) = args.get(0) {
-        Ok(Value::Int(vals.len() as i64))
-    } else {
-        Err(Error::eval(format!(
-            "argument to count must be an array (got {:?}",
-            args
-        )))
-    }
-}
-
-fn log(args: Vec<Value>) -> Result<Value> {
-    if let Some(val) = args.get(0) {
-        Ok(val.clone())
-    } else {
-        Err(Error::eval("log requires one argument".to_string()))
-    }
-}
-
-fn string(args: Vec<Value>) -> Result<Value> {
-    if let Some(val) = args.get(0) {
-        Ok(Value::String(val.to_string()))
-    } else {
-        Err(Error::eval("string requires one argument".to_string()))
     }
 }
 
