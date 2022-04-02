@@ -6,18 +6,15 @@ use crate::{Error, Result, Rule};
 
 mod count;
 mod float;
+mod keys;
 mod log;
 mod string;
-
-use count::count;
-use float::float;
-use log::log;
-use string::string;
 
 enum Function {
     Count,
     Float,
     Index,
+    Keys,
     Log,
     String,
 }
@@ -30,6 +27,7 @@ impl FromStr for Function {
             "count" => Ok(Function::Count),
             "float" => Ok(Function::Float),
             "index" => Ok(Function::Index),
+            "keys" => Ok(Function::Keys),
             "log" => Ok(Function::Log),
             "string" => Ok(Function::String),
             _ => Err(Error::query(format!("unknown function {}", s))),
@@ -68,11 +66,12 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     }
 
     match function {
-        Function::Count => count(args),
-        Function::Float => float(args),
+        Function::Count => count::count(args),
+        Function::Float => float::float(args),
         Function::Index => super::index::index(args),
-        Function::Log => log(args),
-        Function::String => string(args),
+        Function::Keys => keys::keys(args),
+        Function::Log => log::log(args),
+        Function::String => string::string(args),
     }
 }
 
