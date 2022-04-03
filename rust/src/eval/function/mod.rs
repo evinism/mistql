@@ -8,6 +8,7 @@ mod count;
 mod float;
 mod keys;
 mod log;
+mod map;
 mod string;
 mod sum;
 mod values;
@@ -18,6 +19,7 @@ enum Function {
     Index,
     Keys,
     Log,
+    Map,
     String,
     Sum,
     Values,
@@ -33,10 +35,20 @@ impl FromStr for Function {
             "index" => Ok(Function::Index),
             "keys" => Ok(Function::Keys),
             "log" => Ok(Function::Log),
+            "map" => Ok(Function::Map),
             "string" => Ok(Function::String),
             "sum" => Ok(Function::Sum),
             "values" => Ok(Function::Values),
             _ => Err(Error::query(format!("unknown function {}", s))),
+        }
+    }
+}
+
+impl Function {
+    fn takes_fn_arg(&self) -> bool {
+        match self {
+            Function::Map => true,
+            _ => false,
         }
     }
 }
@@ -50,6 +62,10 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     };
 
     let mut use_implicit_context = true;
+    let fn_arg = match function.takes_fn_arg() {
+        true => Some(function_iter.next().unwrap()),
+        false => None,
+    };
     let mut args = vec![];
 
     // lot of mutation required here but we need to capture use_implicit_context
@@ -77,6 +93,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         Function::Index => super::index::index(args),
         Function::Keys => keys::keys(args),
         Function::Log => log::log(args),
+        Function::Map => map::map(fn_arg.unwrap(), args),
         Function::String => string::string(args),
         Function::Sum => sum::sum(args),
         Function::Values => values::values(args),
