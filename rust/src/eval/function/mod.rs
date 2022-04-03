@@ -9,6 +9,7 @@ mod float;
 mod keys;
 mod log;
 mod string;
+mod sum;
 mod values;
 
 enum Function {
@@ -18,6 +19,7 @@ enum Function {
     Keys,
     Log,
     String,
+    Sum,
     Values,
 }
 
@@ -32,6 +34,7 @@ impl FromStr for Function {
             "keys" => Ok(Function::Keys),
             "log" => Ok(Function::Log),
             "string" => Ok(Function::String),
+            "sum" => Ok(Function::Sum),
             "values" => Ok(Function::Values),
             _ => Err(Error::query(format!("unknown function {}", s))),
         }
@@ -75,6 +78,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         Function::Keys => keys::keys(args),
         Function::Log => log::log(args),
         Function::String => string::string(args),
+        Function::Sum => sum::sum(args),
         Function::Values => values::values(args),
     }
 }
