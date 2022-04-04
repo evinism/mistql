@@ -1,4 +1,4 @@
-use crate::{eval::Value, Error, Result};
+use crate::{Error, Result, Value};
 
 pub fn log(args: Vec<Value>) -> Result<Value> {
     if args.len() == 1 {
@@ -13,7 +13,7 @@ pub fn log(args: Vec<Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::log;
-    use crate::eval::Value;
+    use crate::Value;
 
     #[test]
     fn log_takes_one_arg() {

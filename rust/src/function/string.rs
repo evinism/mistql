@@ -1,4 +1,4 @@
-use crate::{eval::Value, Error, Result};
+use crate::{Error, Result, Value};
 
 pub fn string(args: Vec<Value>) -> Result<Value> {
     match (args.len(), args.get(0)) {
@@ -10,7 +10,7 @@ pub fn string(args: Vec<Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::string;
-    use crate::eval::Value;
+    use crate::Value;
 
     #[test]
     fn string_takes_one_arg() {

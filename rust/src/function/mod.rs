@@ -1,8 +1,7 @@
 use pest::iterators::Pair;
 use std::str::FromStr;
 
-use crate::eval::{expr, Value};
-use crate::{Error, Result, Rule};
+use crate::{expr, Error, Result, Rule, Value};
 
 mod count;
 mod float;

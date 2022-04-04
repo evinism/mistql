@@ -1,8 +1,7 @@
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 
-use crate::eval::{expr, Value};
-use crate::{Error, Result, Rule};
+use crate::{expr, Error, Result, Rule, Value};
 
 pub mod arithmetic;
 mod boolean;

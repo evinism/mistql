@@ -1,7 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::eval::{expr, Value};
-use crate::{Result, Rule};
+use crate::{expr, Result, Rule, Value};
 
 pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
     let arr = pair

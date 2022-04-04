@@ -1,5 +1,4 @@
-use crate::eval::Value;
-use crate::{Error, Result};
+use crate::{Error, Result, Value};
 
 pub fn float(args: Vec<Value>) -> Result<Value> {
     if let Some(val) = args.get(0) {

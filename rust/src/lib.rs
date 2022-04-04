@@ -3,10 +3,19 @@ extern crate lazy_static;
 #[macro_use]
 extern crate pest;
 
+mod array;
 pub mod error;
-mod eval;
+mod expr;
+mod function;
+mod index;
+mod infix;
+mod object;
+mod prefix;
+mod terminal;
+mod value;
 
 pub use error::{Error, Result};
+pub use value::Value;
 
 use pest::Parser;
 use pest_derive::Parser;
@@ -18,12 +27,10 @@ pub struct MistQLParser;
 pub fn query_value(query_str: String, data: serde_json::Value) -> Result<serde_json::Value> {
     match MistQLParser::parse(Rule::query, &query_str) {
         Err(err) => Err(Error::query(err.to_string())),
-        Ok(mut pair) => {
-            match pair.next() {
-                Some(root) => eval::eval(root, data),
-                None => unreachable!(), // parse() would have failed
-            }
-        }
+        Ok(mut pair) => match expr::eval(pair.next().unwrap(), &data.into(), None) {
+            Ok(val) => Ok(val.into()),
+            Err(e) => Err(e),
+        },
     }
 }
 

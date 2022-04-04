@@ -1,6 +1,6 @@
-use crate::eval::prefix::truthiness;
-use crate::eval::Value;
+use crate::prefix::truthiness;
 use crate::Result;
+use crate::Value;
 
 pub fn and(left: Value, right: Value) -> Result<Value> {
     match (truthiness(&left), truthiness(&right)) {

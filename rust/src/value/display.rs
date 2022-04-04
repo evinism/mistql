@@ -1,4 +1,4 @@
-use crate::eval::Value;
+use crate::Value;
 use std::fmt;
 
 impl fmt::Display for Value {
@@ -56,7 +56,7 @@ fn from_number(num: f64) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::eval::Value;
+    use crate::Value;
     #[test]
     fn casts_int_to_string() {
         let result = Value::Int(1).to_string();

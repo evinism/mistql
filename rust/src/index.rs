@@ -1,5 +1,4 @@
-use crate::eval::{expr, terminal, Value};
-use crate::{Error, Result, Rule};
+use crate::{expr, terminal, Error, Result, Rule, Value};
 use pest::iterators::Pair;
 
 pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
@@ -200,8 +199,7 @@ fn index_object(val: &std::collections::BTreeMap<String, Value>, idx_raw: &Value
 #[cfg(test)]
 mod tests {
     use super::index;
-    use crate::eval::Value;
-    use crate::{MistQLParser, Rule};
+    use crate::{MistQLParser, Rule, Value};
 
     #[test]
     fn cant_index_bool_or_number() {

@@ -1,5 +1,4 @@
-use crate::eval::Value;
-use crate::{Error, Result};
+use crate::{Error, Result, Value};
 
 pub fn gte(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
