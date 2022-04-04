@@ -1,4 +1,4 @@
-use crate::eval::Value;
+use crate::Value;
 use crate::{Error, Result};
 
 pub fn add(left: Value, right: Value) -> Result<Value> {

@@ -1,8 +1,7 @@
 use pest::iterators::Pair;
 use std::collections::BTreeMap;
 
-use crate::eval::{expr, Value};
-use crate::{Result, Rule};
+use crate::{expr, Result, Rule, Value};
 
 pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
     let elts = pair

@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::{eval::Value, Error, Result, Rule};
+use crate::{Error, Result, Rule, Value};
 
 pub fn eval(pair: Pair<Rule>) -> Result<Value> {
     match pair.as_rule() {

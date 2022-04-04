@@ -1,4 +1,4 @@
-use crate::{eval::Value, Error, Result};
+use crate::{Error, Result, Value};
 
 pub fn values(args: Vec<Value>) -> Result<Value> {
     match (args.len(), args.get(0)) {
@@ -19,8 +19,7 @@ pub fn values(args: Vec<Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::values;
-    use crate::eval::Value;
-    use crate::{MistQLParser, Rule};
+    use crate::{MistQLParser, Rule, Value};
     use std::collections::BTreeMap;
 
     #[test]

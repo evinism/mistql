@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::eval::{array, function, index, infix, object, prefix, terminal, Value};
+use crate::{array, function, index, infix, object, prefix, terminal, Value};
 use crate::{Error, Result, Rule};
 
 pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {

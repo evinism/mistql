@@ -1,7 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::eval::{expr, Value};
-use crate::{Result, Rule};
+use crate::{expr, Result, Rule, Value};
 
 enum PrefixOperator {
     Not,
@@ -38,8 +37,7 @@ pub fn truthiness(val: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::truthiness;
-    use crate::eval::Value;
-    use crate::{MistQLParser, Rule};
+    use crate::{MistQLParser, Rule, Value};
 
     #[test]
     fn parses_prefix_operators() {

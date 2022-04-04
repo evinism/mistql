@@ -1,5 +1,5 @@
-use crate::eval::infix::arithmetic::add;
-use crate::{eval::Value, Error, Result};
+use crate::infix::arithmetic::add;
+use crate::{Error, Result, Value};
 
 pub fn sum(args: Vec<Value>) -> Result<Value> {
     match (args.len(), args.get(0)) {
@@ -17,7 +17,7 @@ pub fn sum(args: Vec<Value>) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::sum;
-    use crate::eval::Value;
+    use crate::Value;
 
     #[test]
     fn sum_takes_one_arg() {
