@@ -30,7 +30,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
     }
 }
 
-fn item_index(idx: &Value, target: &Value) -> Result<Value> {
+pub fn item_index(idx: &Value, target: &Value) -> Result<Value> {
     match target {
         Value::Null => index_null(idx),
         Value::String(s) => index_string(s, idx),
@@ -43,7 +43,7 @@ fn item_index(idx: &Value, target: &Value) -> Result<Value> {
     }
 }
 
-fn range_index(low: &Value, high: &Value, target: &Value) -> Result<Value> {
+pub fn range_index(low: &Value, high: &Value, target: &Value) -> Result<Value> {
     match target {
         Value::String(s) => range_index_string(s, low, high),
         Value::Array(a) => range_index_array(a, low, high),
