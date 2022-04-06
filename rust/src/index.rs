@@ -7,49 +7,50 @@ pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
     let target = expr::eval(itr.next().unwrap(), data, None)?;
     let index_val = itr.next().unwrap();
     match index_val.as_rule() {
-        Rule::number => index(vec![terminal::eval(index_val)?, target]),
-        Rule::low_range => index(vec![
-            terminal::eval(index_val.into_inner().next().unwrap())?,
-            Value::Null,
-            target,
-        ]),
-        Rule::high_range => index(vec![
-            Value::Null,
-            terminal::eval(index_val.into_inner().next().unwrap())?,
-            target,
-        ]),
+        Rule::number => item_index(&terminal::eval(index_val)?, &target),
+        Rule::low_range => range_index(
+            &terminal::eval(index_val.into_inner().next().unwrap())?,
+            &Value::Null,
+            &target,
+        ),
+        Rule::high_range => range_index(
+            &Value::Null,
+            &terminal::eval(index_val.into_inner().next().unwrap())?,
+            &target,
+        ),
         Rule::range => {
             let mut index_itr = index_val.into_inner();
-            index(vec![
-                terminal::eval(index_itr.next().unwrap())?,
-                terminal::eval(index_itr.next().unwrap())?,
-                target,
-            ])
+            range_index(
+                &terminal::eval(index_itr.next().unwrap())?,
+                &terminal::eval(index_itr.next().unwrap())?,
+                &target,
+            )
         }
         _ => unreachable!(),
     }
 }
 
-pub fn index(args: Vec<Value>) -> Result<Value> {
-    match (args.get(0), args.get(1), args.get(2), args.get(3)) {
-        (None, _, _, _) | (_, None, _, _) | (_, _, _, Some(_)) => Err(Error::eval(
-            "index must have two or three arguments".to_string(),
-        )),
-        (Some(idx), Some(val), None, None) => match val {
-            Value::Null => index_null(idx),
-            Value::String(s) => index_string(s, idx),
-            Value::Array(a) => index_array(a, idx),
-            Value::Object(o) => index_object(o, idx),
-            _ => Err(Error::query(format!("index on unindexable type {:?}", val))),
-        },
-        (Some(idx_low), Some(idx_high), Some(val), None) => match val {
-            Value::String(s) => range_index_string(s, idx_low, idx_high),
-            Value::Array(a) => range_index_array(a, idx_low, idx_high),
-            _ => Err(Error::query(format!(
-                "range index on unindexable type {:?}",
-                val
-            ))),
-        },
+fn item_index(idx: &Value, target: &Value) -> Result<Value> {
+    match target {
+        Value::Null => index_null(idx),
+        Value::String(s) => index_string(s, idx),
+        Value::Array(a) => index_array(a, idx),
+        Value::Object(o) => index_object(o, idx),
+        _ => Err(Error::query(format!(
+            "index on unindexable type {:?}",
+            target
+        ))),
+    }
+}
+
+fn range_index(low: &Value, high: &Value, target: &Value) -> Result<Value> {
+    match target {
+        Value::String(s) => range_index_string(s, low, high),
+        Value::Array(a) => range_index_array(a, low, high),
+        _ => Err(Error::query(format!(
+            "range index on unindexable type {:?}",
+            target
+        ))),
     }
 }
 
@@ -198,56 +199,56 @@ fn index_object(val: &std::collections::BTreeMap<String, Value>, idx_raw: &Value
 
 #[cfg(test)]
 mod tests {
-    use super::index;
+    use super::{item_index, range_index};
     use crate::{MistQLParser, Rule, Value};
 
     #[test]
     fn cant_index_bool_or_number() {
-        assert!(index(vec![Value::Int(1), Value::Int(1)]).is_err());
-        assert!(index(vec![Value::Boolean(true), Value::Int(1)]).is_err());
+        assert!(item_index(&Value::Int(1), &Value::Int(1)).is_err());
+        assert!(item_index(&Value::Boolean(true), &Value::Int(1)).is_err());
     }
 
     #[test]
     fn indexes_on_null() {
         assert_eq!(
-            index(vec![Value::Int(0), Value::Null,]).unwrap(),
+            item_index(&Value::Int(0), &Value::Null).unwrap(),
             Value::Null
         );
 
         assert_eq!(
-            index(vec![Value::String("a".to_string()), Value::Null,]).unwrap(),
+            item_index(&Value::String("a".to_string()), &Value::Null).unwrap(),
             Value::Null
         );
 
-        assert!(index(vec![Value::Null, Value::Boolean(true)]).is_err())
+        assert!(item_index(&Value::Null, &Value::Boolean(true)).is_err())
     }
 
     #[test]
     fn index_must_be_an_int() {
-        assert!(index(vec![Value::Float(4.5), Value::String("abc".to_string()),]).is_err());
+        assert!(item_index(&Value::Float(4.5), &Value::String("abc".to_string())).is_err());
 
-        assert!(index(vec![
-            Value::Int(4),
-            Value::Float(7.5),
-            Value::String("abc".to_string()),
-        ])
+        assert!(range_index(
+            &Value::Int(4),
+            &Value::Float(7.5),
+            &Value::String("abc".to_string())
+        )
         .is_err())
     }
 
     #[test]
     fn indexes_on_postive_ints_on_strings() {
         assert_eq!(
-            index(vec![Value::Int(0), Value::String("abc".to_string()),]).unwrap(),
+            item_index(&Value::Int(0), &Value::String("abc".to_string())).unwrap(),
             Value::String("a".to_string())
         );
 
         assert_eq!(
-            index(vec![Value::Int(1), Value::String("abc".to_string()),]).unwrap(),
+            item_index(&Value::Int(1), &Value::String("abc".to_string())).unwrap(),
             Value::String("b".to_string())
         );
 
         assert_eq!(
-            index(vec![Value::Int(4), Value::String("abc".to_string()),]).unwrap(),
+            item_index(&Value::Int(4), &Value::String("abc".to_string())).unwrap(),
             Value::Null
         );
     }
@@ -255,17 +256,17 @@ mod tests {
     #[test]
     fn indexes_on_negative_ints_on_strings() {
         assert_eq!(
-            index(vec![Value::Int(-1), Value::String("abc".to_string()),]).unwrap(),
+            item_index(&Value::Int(-1), &Value::String("abc".to_string())).unwrap(),
             Value::String("c".to_string())
         );
 
         assert_eq!(
-            index(vec![Value::Int(-2), Value::String("abc".to_string()),]).unwrap(),
+            item_index(&Value::Int(-2), &Value::String("abc".to_string())).unwrap(),
             Value::String("b".to_string())
         );
 
         assert_eq!(
-            index(vec![Value::Int(-4), Value::String("abc".to_string()),]).unwrap(),
+            item_index(&Value::Int(-4), &Value::String("abc".to_string())).unwrap(),
             Value::Null
         );
     }
@@ -273,176 +274,158 @@ mod tests {
     #[test]
     fn range_indexes_on_strings() {
         assert_eq!(
-            index(vec![
-                Value::Int(0),
-                Value::Int(2),
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Int(0),
+                &Value::Int(2),
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::String("ab".to_string())
         );
 
         assert_eq!(
-            index(vec![
-                Value::Int(2),
-                Value::Int(4),
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Int(2),
+                &Value::Int(4),
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::String("cd".to_string())
         );
 
         assert_eq!(
-            index(vec![
-                Value::Int(4),
-                Value::Int(7),
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Int(4),
+                &Value::Int(7),
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::String("ef".to_string())
         );
 
         assert_eq!(
-            index(vec![
-                Value::Int(7),
-                Value::Int(12),
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Int(7),
+                &Value::Int(12),
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::Null
         );
 
         assert_eq!(
-            index(vec![
-                Value::Int(2),
-                Value::Int(-2),
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Int(2),
+                &Value::Int(-2),
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::String("cd".to_string())
         );
 
         // can't specify a range where the low is greater than the high
-        assert!(index(vec![
-            Value::Int(4),
-            Value::Int(2),
-            Value::String("abcdef".to_string()),
-        ])
+        assert!(range_index(
+            &Value::Int(4),
+            &Value::Int(2),
+            &Value::String("abcdef".to_string()),
+        )
         .is_err());
 
         // can't specify negative ranges greater than the length of the string
-        assert!(index(vec![
-            Value::Int(4),
-            Value::Int(-10),
-            Value::String("abcdef".to_string()),
-        ])
+        assert!(range_index(
+            &Value::Int(4),
+            &Value::Int(-10),
+            &Value::String("abcdef".to_string()),
+        )
         .is_err());
 
-        assert!(index(vec![
-            Value::Int(-10),
-            Value::Int(4),
-            Value::String("abcdef".to_string()),
-        ])
+        assert!(range_index(
+            &Value::Int(-10),
+            &Value::Int(4),
+            &Value::String("abcdef".to_string()),
+        )
         .is_err());
     }
 
     #[test]
     fn range_indexes_with_nulls_on_strings() {
         assert_eq!(
-            index(vec![
-                Value::Int(2),
-                Value::Null,
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Int(2),
+                &Value::Null,
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::String("cdef".to_string())
         );
 
         assert_eq!(
-            index(vec![
-                Value::Int(-2),
-                Value::Null,
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Int(-2),
+                &Value::Null,
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::String("ef".to_string())
         );
 
         assert_eq!(
-            index(vec![
-                Value::Int(7),
-                Value::Null,
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Int(7),
+                &Value::Null,
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::Null
         );
 
         assert_eq!(
-            index(vec![
-                Value::Null,
-                Value::Int(4),
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Null,
+                &Value::Int(4),
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::String("abcd".to_string())
         );
 
         assert_eq!(
-            index(vec![
-                Value::Null,
-                Value::Int(-2),
-                Value::String("abcdef".to_string()),
-            ])
+            range_index(
+                &Value::Null,
+                &Value::Int(-2),
+                &Value::String("abcdef".to_string()),
+            )
             .unwrap(),
             Value::String("abcd".to_string())
         );
 
-        assert!(index(vec![
-            Value::Null,
-            Value::Null,
-            Value::String("abcdef".to_string()),
-        ])
+        assert!(range_index(
+            &Value::Null,
+            &Value::Null,
+            &Value::String("abcdef".to_string()),
+        )
         .is_err());
     }
 
     #[test]
     fn indexes_on_postive_ints_on_arrays() {
         let array = Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]);
-        assert_eq!(
-            index(vec![Value::Int(0), array.clone()]).unwrap(),
-            Value::Int(1),
-        );
+        assert_eq!(item_index(&Value::Int(0), &array).unwrap(), Value::Int(1),);
 
-        assert_eq!(
-            index(vec![Value::Int(1), array.clone()]).unwrap(),
-            Value::Int(2)
-        );
+        assert_eq!(item_index(&Value::Int(1), &array).unwrap(), Value::Int(2));
 
-        assert_eq!(
-            index(vec![Value::Int(4), array.clone()]).unwrap(),
-            Value::Null
-        );
+        assert_eq!(item_index(&Value::Int(4), &array).unwrap(), Value::Null);
     }
 
     #[test]
     fn indexes_on_negative_ints_on_arrays() {
         let array = Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]);
 
-        assert_eq!(
-            index(vec![Value::Int(-1), array.clone()]).unwrap(),
-            Value::Int(3)
-        );
+        assert_eq!(item_index(&Value::Int(-1), &array).unwrap(), Value::Int(3));
 
-        assert_eq!(
-            index(vec![Value::Int(-2), array.clone()]).unwrap(),
-            Value::Int(2)
-        );
+        assert_eq!(item_index(&Value::Int(-2), &array).unwrap(), Value::Int(2));
 
-        assert_eq!(
-            index(vec![Value::Int(-4), array.clone()]).unwrap(),
-            Value::Null
-        );
+        assert_eq!(item_index(&Value::Int(-4), &array).unwrap(), Value::Null);
     }
 
     #[test]
@@ -457,37 +440,37 @@ mod tests {
         ]);
 
         assert_eq!(
-            index(vec![Value::Int(0), Value::Int(2), array.clone(),]).unwrap(),
+            range_index(&Value::Int(0), &Value::Int(2), &array).unwrap(),
             Value::Array(vec![Value::Int(1), Value::Int(2),])
         );
 
         assert_eq!(
-            index(vec![Value::Int(2), Value::Int(4), array.clone(),]).unwrap(),
+            range_index(&Value::Int(2), &Value::Int(4), &array).unwrap(),
             Value::Array(vec![Value::Int(3), Value::Int(4),])
         );
 
         assert_eq!(
-            index(vec![Value::Int(4), Value::Int(7), array.clone(),]).unwrap(),
+            range_index(&Value::Int(4), &Value::Int(7), &array).unwrap(),
             Value::Array(vec![Value::Int(5), Value::Int(6),])
         );
 
         assert_eq!(
-            index(vec![Value::Int(7), Value::Int(12), array.clone(),]).unwrap(),
+            range_index(&Value::Int(7), &Value::Int(12), &array).unwrap(),
             Value::Null
         );
 
         assert_eq!(
-            index(vec![Value::Int(2), Value::Int(-2), array.clone(),]).unwrap(),
+            range_index(&Value::Int(2), &Value::Int(-2), &array).unwrap(),
             Value::Array(vec![Value::Int(3), Value::Int(4),])
         );
 
         // can't specify a range where the low is greater than the high
-        assert!(index(vec![Value::Int(4), Value::Int(2), array.clone(),]).is_err());
+        assert!(range_index(&Value::Int(4), &Value::Int(2), &array).is_err());
 
         // can't specify negative ranges greater than the length of the string
-        assert!(index(vec![Value::Int(4), Value::Int(-10), array.clone(),]).is_err());
+        assert!(range_index(&Value::Int(4), &Value::Int(-10), &array).is_err());
 
-        assert!(index(vec![Value::Int(-10), Value::Int(4), array,]).is_err());
+        assert!(range_index(&Value::Int(-10), &Value::Int(4), &array).is_err());
     }
 
     #[test]
@@ -502,7 +485,7 @@ mod tests {
         ]);
 
         assert_eq!(
-            index(vec![Value::Int(2), Value::Null, array.clone(),]).unwrap(),
+            range_index(&Value::Int(2), &Value::Null, &array).unwrap(),
             Value::Array(vec![
                 Value::Int(3),
                 Value::Int(4),
@@ -512,17 +495,17 @@ mod tests {
         );
 
         assert_eq!(
-            index(vec![Value::Int(-2), Value::Null, array.clone(),]).unwrap(),
-            Value::Array(vec![Value::Int(5), Value::Int(6),])
+            range_index(&Value::Int(-2), &Value::Null, &array).unwrap(),
+            Value::Array(vec![Value::Int(5), Value::Int(6)])
         );
 
         assert_eq!(
-            index(vec![Value::Int(7), Value::Null, array.clone(),]).unwrap(),
+            range_index(&Value::Int(7), &Value::Null, &array).unwrap(),
             Value::Null
         );
 
         assert_eq!(
-            index(vec![Value::Null, Value::Int(4), array.clone(),]).unwrap(),
+            range_index(&Value::Null, &Value::Int(4), &array).unwrap(),
             Value::Array(vec![
                 Value::Int(1),
                 Value::Int(2),
@@ -532,7 +515,7 @@ mod tests {
         );
 
         assert_eq!(
-            index(vec![Value::Null, Value::Int(-2), array.clone(),]).unwrap(),
+            range_index(&Value::Null, &Value::Int(-2), &array).unwrap(),
             Value::Array(vec![
                 Value::Int(1),
                 Value::Int(2),
@@ -541,7 +524,7 @@ mod tests {
             ])
         );
 
-        assert!(index(vec![Value::Null, Value::Null, array,]).is_err());
+        assert!(range_index(&Value::Null, &Value::Null, &array).is_err());
     }
 
     #[test]
@@ -553,17 +536,17 @@ mod tests {
         let val = Value::Object(map);
 
         assert_eq!(
-            index(vec![Value::String("a".to_string()), val.clone(),]).unwrap(),
+            item_index(&Value::String("a".to_string()), &val).unwrap(),
             Value::Int(1)
         );
 
         assert_eq!(
-            index(vec![Value::String("b".to_string()), val.clone(),]).unwrap(),
+            item_index(&Value::String("b".to_string()), &val).unwrap(),
             Value::Int(2)
         );
 
         assert_eq!(
-            index(vec![Value::String("m".to_string()), val]).unwrap(),
+            item_index(&Value::String("m".to_string()), &val).unwrap(),
             Value::Null
         );
     }
