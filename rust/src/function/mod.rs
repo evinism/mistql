@@ -21,12 +21,12 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     };
 
     match function {
-        "log" => log::log(function_iter, data, context),
         "count" => count::count(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
         "index" => index::index(function_iter, data, context),
         "keys" => keys::keys(function_iter, data, context),
-        // Function::Log => log::log(args),
+        "log" => log::log(function_iter, data, context),
+
         // Function::Map => map::map(fn_arg.unwrap(), args),
         // Function::String => string::string(args),
         // Function::Sum => sum::sum(args),
