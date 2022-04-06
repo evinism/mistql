@@ -9,7 +9,7 @@ mod keys;
 mod log;
 // mod map;
 // mod string;
-// mod sum;
+mod sum;
 mod values;
 
 pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
@@ -26,10 +26,9 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "index" => index::index(function_iter, data, context),
         "keys" => keys::keys(function_iter, data, context),
         "log" => log::log(function_iter, data, context),
-
         // Function::Map => map::map(fn_arg.unwrap(), args),
         // Function::String => string::string(args),
-        // Function::Sum => sum::sum(args),
+        "sum" => sum::sum(function_iter, data, context),
         "values" => values::values(function_iter, data, context),
         _ => Err(Error::unimplemented(format!("function {}", function))),
     }
