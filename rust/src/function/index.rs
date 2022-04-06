@@ -27,6 +27,10 @@ pub fn index(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>)
             &expr::eval(high, data, None)?,
             &expr::eval(target, data, None)?,
         ),
-        _ => return Err(Error::eval("count requires one argument".to_string())),
+        _ => {
+            return Err(Error::eval(
+                "index requires two or three argument".to_string(),
+            ))
+        }
     }
 }
