@@ -1,72 +1,63 @@
 use crate::infix::arithmetic::add;
-use crate::{Error, Result, Value};
+use crate::{expr, Error, Result, Rule, Value};
+use pest::iterators::Pairs;
 
-pub fn sum(args: Vec<Value>) -> Result<Value> {
-    match (args.len(), args.get(0)) {
-        (1, Some(Value::Array(val))) => val
+pub fn sum(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
+    let arg = match (context_opt, arg_itr.next(), arg_itr.next()) {
+        (Some(val), None, None) => val,
+        (None, Some(val), None) => expr::eval(val, data, None)?,
+        _ => return Err(Error::eval("sum requires one argument".to_string())),
+    };
+
+    match arg {
+        Value::Array(arr) => arr
             .iter()
             .try_fold(Value::Int(0), |acc, x| add(acc, x.clone())),
-        (1, Some(val)) => Err(Error::eval(format!(
+        _ => Err(Error::eval(format!(
             "argument to sum must be an array (got {:?}",
-            val
+            arg
         ))),
-        (n, _) => Err(Error::eval(format!("sum expected 1 argument, got {}", n))),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::sum;
-    use crate::Value;
+    use crate::query_value;
 
     #[test]
     fn sum_takes_one_arg() {
-        assert!(sum(vec![]).is_err());
-        assert!(sum(vec![Value::Array(vec![])]).is_ok());
-        assert!(sum(vec![Value::Array(vec![]), Value::Array(vec![])]).is_err());
+        assert!(query_value("sum [1,2,3]".to_string(), serde_json::Value::Null).is_ok());
+        assert!(query_value("sum [1,2,3] null".to_string(), serde_json::Value::Null).is_err());
     }
 
     #[test]
     fn sum_arg_must_be_an_array() {
-        assert!(sum(vec![Value::Int(1)]).is_err());
-        assert!(sum(vec![Value::String("abc".to_string())]).is_err());
+        assert!(query_value("sum \"123\"".to_string(), serde_json::Value::Null).is_err());
+        assert!(query_value("sum {a: 1, b: 2}".to_string(), serde_json::Value::Null).is_err());
     }
 
     #[test]
     fn sum_arg_must_only_contain_numbers() {
-        assert!(sum(vec![Value::Array(vec![Value::Int(1)])]).is_ok());
-
-        assert!(sum(vec![Value::Array(vec![Value::Int(1), Value::Float(2.0)])]).is_ok());
-
-        assert!(sum(vec![Value::Array(vec![
-            Value::Int(1),
-            Value::Boolean(true)
-        ])])
-        .is_err());
+        assert!(query_value("sum [1,2.0,3.75]".to_string(), serde_json::Value::Null).is_ok());
+        assert!(query_value("sum [1,true,3]".to_string(), serde_json::Value::Null).is_err());
+        assert!(query_value("sum [1,2,nukll]".to_string(), serde_json::Value::Null).is_err());
     }
 
     #[test]
     fn sum_sums() {
-        assert_eq!(Value::Int(0), sum(vec![Value::Array(vec![])]).unwrap());
-
         assert_eq!(
-            Value::Int(6),
-            sum(vec![Value::Array(vec![
-                Value::Int(1),
-                Value::Int(2),
-                Value::Int(3)
-            ])])
-            .unwrap()
+            query_value("sum []".to_string(), serde_json::Value::Null).unwrap(),
+            serde_json::Value::from(0 as i64)
         );
 
         assert_eq!(
-            Value::Float(0.0),
-            sum(vec![Value::Array(vec![
-                Value::Int(1),
-                Value::Int(2),
-                Value::Float(-3.0)
-            ])])
-            .unwrap()
+            query_value("sum [1,2,3]".to_string(), serde_json::Value::Null).unwrap(),
+            serde_json::Value::from(6 as i64)
+        );
+
+        assert_eq!(
+            query_value("sum [1,2.0,3.75]".to_string(), serde_json::Value::Null).unwrap(),
+            serde_json::Value::from(6.75 as f64)
         );
     }
 }
