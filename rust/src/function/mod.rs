@@ -3,7 +3,7 @@ use pest::iterators::Pair;
 use crate::{Error, Result, Rule, Value};
 
 mod count;
-// mod float;
+mod float;
 // mod keys;
 mod log;
 // mod map;
@@ -22,7 +22,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     match function {
         "log" => log::log(function_iter, data, context),
         "count" => count::count(function_iter, data, context),
-        // Function::Float => float::float(args),
+        "float" => float::float(function_iter, data, context),
         // Function::Index => super::index::index(args),
         // Function::Keys => keys::keys(args),
         // Function::Log => log::log(args),
