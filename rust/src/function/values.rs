@@ -1,42 +1,33 @@
-use crate::{Error, Result, Value};
+use crate::{expr, Error, Result, Rule, Value};
+use pest::iterators::Pairs;
 
-pub fn values(args: Vec<Value>) -> Result<Value> {
-    match (args.len(), args.get(0)) {
-        (1, Some(Value::Object(val))) => {
-            Ok(Value::Array(val.values().cloned().collect::<Vec<Value>>()))
-        }
-        (1, Some(val)) => Err(Error::eval(format!(
-            "argument to values must be an object (got {:?}",
-            val
-        ))),
-        (n, _) => Err(Error::eval(format!(
-            "values expected 1 argument, got {}",
-            n
-        ))),
+pub fn values(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
+    let arg = match (context_opt, arg_itr.next(), arg_itr.next()) {
+        (Some(val), None, None) => val,
+        (None, Some(val), None) => expr::eval(val, data, None)?,
+        _ => return Err(Error::eval("values requires one argument".to_string())),
+    };
+
+    match arg {
+        Value::Object(val) => Ok(Value::Array(val.values().cloned().collect::<Vec<Value>>())),
+        _ => Err(Error::eval(format!("values expected object, got {}", arg))),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::values;
-    use crate::{MistQLParser, Rule, Value};
-    use std::collections::BTreeMap;
+    use crate::{query_value, MistQLParser, Rule};
 
     #[test]
     fn values_takes_one_arg() {
-        assert!(values(vec![]).is_err());
-        assert!(values(vec![Value::Object(BTreeMap::new())]).is_ok());
-        assert!(values(vec![
-            Value::Object(BTreeMap::new()),
-            Value::Object(BTreeMap::new())
-        ])
-        .is_err());
+        assert!(query_value("values {}".to_string(), serde_json::Value::Null).is_ok());
+        assert!(query_value("values {} 4".to_string(), serde_json::Value::Null).is_err());
     }
 
     #[test]
     fn values_arg_must_be_an_object() {
-        assert!(values(vec![Value::Int(1)]).is_err());
-        assert!(values(vec![Value::String("abc".to_string())]).is_err());
+        assert!(query_value("values null".to_string(), serde_json::Value::Null).is_err());
+        assert!(query_value("values [1,2,3]".to_string(), serde_json::Value::Null).is_err());
     }
 
     #[test]

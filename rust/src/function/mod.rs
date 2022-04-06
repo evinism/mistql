@@ -5,12 +5,12 @@ use crate::{Error, Result, Rule, Value};
 mod count;
 mod float;
 mod index;
-// mod keys;
+mod keys;
 mod log;
 // mod map;
 // mod string;
 // mod sum;
-// mod values;
+mod values;
 
 pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
     let mut function_iter = pair.clone().into_inner();
@@ -25,12 +25,12 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "count" => count::count(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
         "index" => index::index(function_iter, data, context),
-        // Function::Keys => keys::keys(args),
+        "keys" => keys::keys(function_iter, data, context),
         // Function::Log => log::log(args),
         // Function::Map => map::map(fn_arg.unwrap(), args),
         // Function::String => string::string(args),
         // Function::Sum => sum::sum(args),
-        // Function::Values => values::values(args),
+        "values" => values::values(function_iter, data, context),
         _ => Err(Error::unimplemented(format!("function {}", function))),
     }
 }
