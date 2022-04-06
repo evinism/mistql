@@ -1,22 +1,24 @@
-use crate::{Error, Result, Value};
+use crate::{expr, Error, Result, Rule, Value};
+use pest::iterators::Pairs;
 
-pub fn string(args: Vec<Value>) -> Result<Value> {
-    match (args.len(), args.get(0)) {
-        (1, Some(val)) => Ok(Value::String(val.to_string())),
-        (n, _) => Err(Error::eval(format!("count expected 1 argument, got {}", n))),
-    }
+pub fn string(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
+    let arg = match (context_opt, arg_itr.next(), arg_itr.next()) {
+        (Some(val), None, None) => val,
+        (None, Some(val), None) => expr::eval(val, data, None)?,
+        _ => return Err(Error::eval("string requires one argument".to_string())),
+    };
+
+    Ok(Value::String(arg.to_string()))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::string;
-    use crate::Value;
+    use crate::query_value;
 
     #[test]
     fn string_takes_one_arg() {
-        assert!(string(vec![Value::Int(1)]).is_ok());
-        assert!(string(vec![]).is_err());
-        assert!(string(vec![Value::Int(1), Value::Float(2.0)]).is_err());
+        assert!(query_value("string [1,2,3]".to_string(), serde_json::Value::Null).is_ok());
+        assert!(query_value("string [1,2,3] 4".to_string(), serde_json::Value::Null).is_err());
     }
 
     // since this function delegates to the Display trait on value, unit
