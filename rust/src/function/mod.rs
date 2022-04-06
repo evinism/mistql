@@ -4,6 +4,7 @@ use crate::{Error, Result, Rule, Value};
 
 mod count;
 mod float;
+mod index;
 // mod keys;
 mod log;
 // mod map;
@@ -23,7 +24,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "log" => log::log(function_iter, data, context),
         "count" => count::count(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
-        // Function::Index => super::index::index(args),
+        "index" => index::index(function_iter, data, context),
         // Function::Keys => keys::keys(args),
         // Function::Log => log::log(args),
         // Function::Map => map::map(fn_arg.unwrap(), args),
