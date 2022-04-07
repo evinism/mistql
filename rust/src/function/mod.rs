@@ -7,7 +7,7 @@ mod float;
 mod index;
 mod keys;
 mod log;
-// mod map;
+mod map;
 mod string;
 mod sum;
 mod values;
@@ -26,7 +26,9 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "index" => index::index(function_iter, data, context),
         "keys" => keys::keys(function_iter, data, context),
         "log" => log::log(function_iter, data, context),
-        // Function::Map => map::map(fn_arg.unwrap(), args),
+        "map" => map::map(function_iter, data, context),
+        "mapkeys" => map::mapkeys(function_iter, data, context),
+        "mapvalues" => map::mapvalues(function_iter, data, context),
         "string" => string::string(function_iter, data, context),
         "sum" => sum::sum(function_iter, data, context),
         "values" => values::values(function_iter, data, context),
