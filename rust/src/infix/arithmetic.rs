@@ -7,7 +7,9 @@ pub fn add(left: Value, right: Value) -> Result<Value> {
         (Value::Int(l), Value::Float(r)) => Ok(Value::Float(l as f64 + r)),
         (Value::Float(l), Value::Int(r)) => Ok(Value::Float(l + r as f64)),
         (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l + r)),
-        _ => Err(Error::eval("can't add non-numbers".to_string())),
+        (Value::String(l), Value::String(r)) => Ok(Value::String(format!("{}{}", l, r))),
+        (Value::Array(l), Value::Array(r)) => Ok(Value::Array(vec![l, r].concat())),
+        _ => Err(Error::eval("invalid types for addition".to_string())),
     }
 }
 
@@ -17,7 +19,7 @@ pub fn subtract(left: Value, right: Value) -> Result<Value> {
         (Value::Int(l), Value::Float(r)) => Ok(Value::Float(l as f64 - r)),
         (Value::Float(l), Value::Int(r)) => Ok(Value::Float(l - r as f64)),
         (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l - r)),
-        _ => Err(Error::eval("can't add non-numbers".to_string())),
+        _ => Err(Error::eval("can't subtract non-numbers".to_string())),
     }
 }
 
@@ -27,7 +29,7 @@ pub fn multiply(left: Value, right: Value) -> Result<Value> {
         (Value::Int(l), Value::Float(r)) => Ok(Value::Float(l as f64 * r)),
         (Value::Float(l), Value::Int(r)) => Ok(Value::Float(l * r as f64)),
         (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l * r)),
-        _ => Err(Error::eval("can't add non-numbers".to_string())),
+        _ => Err(Error::eval("can't multiply non-numbers".to_string())),
     }
 }
 
@@ -37,7 +39,7 @@ pub fn divide(left: Value, right: Value) -> Result<Value> {
         (Value::Int(l), Value::Float(r)) => Ok(Value::Float(l as f64 / r)),
         (Value::Float(l), Value::Int(r)) => Ok(Value::Float(l / r as f64)),
         (Value::Float(l), Value::Float(r)) => Ok(Value::Float(l / r)),
-        _ => Err(Error::eval("can't add non-numbers".to_string())),
+        _ => Err(Error::eval("can't divide non-numbers".to_string())),
     }
 }
 
