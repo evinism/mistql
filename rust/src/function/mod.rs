@@ -4,6 +4,7 @@ use crate::{Error, Result, Rule, Value};
 
 mod count;
 mod entries;
+mod flatten;
 mod float;
 mod index;
 mod keys;
@@ -24,6 +25,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     match function {
         "count" => count::count(function_iter, data, context),
         "entries" => entries::entries(function_iter, data, context),
+        "flatten" => flatten::flatten(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
         "index" => index::index(function_iter, data, context),
         "keys" => keys::keys(function_iter, data, context),

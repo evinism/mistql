@@ -1477,6 +1477,11 @@
                   "query": "flatten [1, 2, 3]",
                   "data": null,
                   "throws": true
+                },
+                {
+                  "query": "flatten [[1, 2], 3]",
+                  "data": null,
+                  "throws": true
                 }
               ]
             }
