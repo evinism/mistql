@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Debug)]
 pub enum ErrorKind {
     JSON,
+    Regex,
     Query(String),
     Eval(String),
     Unimplemented(String),
@@ -29,6 +30,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.kind {
             ErrorKind::JSON => write!(f, "JSON error: {:?}", self.source),
+            ErrorKind::Regex => write!(f, "Regex error: {:?}", self.source),
             ErrorKind::Query(msg) => write!(f, "Query error: {}", msg),
             ErrorKind::Eval(msg) => write!(f, "Eval error: {}", msg),
             ErrorKind::Unimplemented(msg) => write!(f, "Unimplemented: {}", msg),
@@ -40,6 +42,13 @@ impl Error {
     pub fn json(err: serde_json::Error) -> Self {
         Self {
             kind: ErrorKind::JSON,
+            source: Some(Box::new(err)),
+        }
+    }
+
+    pub fn regex(err: regex::Error) -> Self {
+        Self {
+            kind: ErrorKind::Regex,
             source: Some(Box::new(err)),
         }
     }

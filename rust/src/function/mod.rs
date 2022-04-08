@@ -10,6 +10,7 @@ mod index;
 mod keys;
 mod log;
 mod map;
+mod regex;
 mod string;
 mod sum;
 mod values;
@@ -33,6 +34,8 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "map" => map::map(function_iter, data, context),
         "mapkeys" => map::mapkeys(function_iter, data, context),
         "mapvalues" => map::mapvalues(function_iter, data, context),
+        "match" => regex::match_pattern(function_iter, data, context),
+        "regex" => regex::regex(function_iter, data, context),
         "string" => string::string(function_iter, data, context),
         "sum" => sum::sum(function_iter, data, context),
         "values" => values::values(function_iter, data, context),

@@ -13,4 +13,5 @@ pub enum Value {
     Array(Vec<Value>),
     Object(BTreeMap<String, Value>),
     Ident(String),
+    Regex(String, Option<String>),
 }

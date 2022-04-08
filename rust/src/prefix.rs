@@ -31,6 +31,7 @@ pub fn truthiness(val: &Value) -> bool {
         Value::String(s) | Value::Ident(s) => s.len() != 0,
         Value::Array(arr) => arr.len() != 0,
         Value::Object(obj) => obj.len() != 0,
+        Value::Regex(_, _) => true,
     }
 }
 
