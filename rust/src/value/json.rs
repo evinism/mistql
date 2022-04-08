@@ -41,6 +41,10 @@ impl From<Value> for serde_json::Value {
                 o.iter().map(|(k, v)| (k.clone(), v.clone().into())),
             )),
             Value::Ident(s) => serde_json::Value::String(s),
+            Value::Regex(exp, Some(flags)) => {
+                serde_json::Value::String(format!("regex {} {}", exp, flags))
+            }
+            Value::Regex(exp, None) => serde_json::Value::String(format!("regex {}", exp)),
         }
     }
 }

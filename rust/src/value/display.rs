@@ -4,6 +4,9 @@ use std::fmt;
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Value::Regex(pattern, flags) => {
+                write!(f, "{}{}", pattern, regex_flags(flags.clone()))
+            }
             Value::Null => write!(f, "null"),
             Value::Boolean(true) => write!(f, "true"),
             Value::Boolean(false) => write!(f, "false"),
@@ -32,6 +35,13 @@ impl fmt::Display for Value {
                 )
             }
         }
+    }
+}
+
+fn regex_flags(flags: Option<String>) -> String {
+    match flags {
+        Some(s) => format!("(?{}:exp)", s),
+        None => String::new(),
     }
 }
 
