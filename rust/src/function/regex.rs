@@ -28,7 +28,7 @@ pub fn regex(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>)
     }
 }
 
-pub fn match_pattern(
+pub fn match_fn(
     mut arg_itr: Pairs<Rule>,
     data: &Value,
     context_opt: Option<Value>,
@@ -47,8 +47,12 @@ pub fn match_pattern(
             }
         };
 
-    let pattern = match pattern_val {
-        Value::Regex(_, _) | Value::String(_) => match Regex::new(&pattern_val.to_string()) {
+    match_op(target_val, pattern_val)
+}
+
+pub fn match_op(left: Value, right: Value) -> Result<Value> {
+    let pattern = match right {
+        Value::Regex(_, _) | Value::String(_) => match Regex::new(&right.to_string()) {
             Ok(pat) => Ok(pat),
             Err(err) => Err(Error::regex(err)),
         },
@@ -57,7 +61,7 @@ pub fn match_pattern(
         )),
     }?;
 
-    let target = match target_val {
+    let target = match left {
         Value::String(s) => Ok(s),
         _ => Err(Error::eval("match target must be a string".to_string())),
     }?;

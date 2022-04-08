@@ -1,7 +1,7 @@
 use pest::iterators::Pair;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 
-use crate::{expr, Error, Result, Rule, Value};
+use crate::{expr, function::regex, Error, Result, Rule, Value};
 
 pub mod arithmetic;
 mod boolean;
@@ -52,6 +52,7 @@ fn apply_operator(left: Value, op: Pair<Rule>, right: Value) -> Result<Value> {
         Rule::lt_op => compare::lt(left, right),
         Rule::eq_op => compare::eq(left, right),
         Rule::ne_op => compare::ne(left, right),
+        Rule::match_op => regex::match_op(left, right),
         _ => Err(Error::unimplemented(format!(
             "unimplemented operator {:?}",
             op.as_str()
