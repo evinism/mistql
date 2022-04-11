@@ -36,6 +36,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "mapvalues" => map::mapvalues(function_iter, data, context),
         "match" => regex::match_fn(function_iter, data, context),
         "regex" => regex::regex(function_iter, data, context),
+        "split" => regex::split(function_iter, data, context),
         "string" => string::string(function_iter, data, context),
         "sum" => sum::sum(function_iter, data, context),
         "values" => values::values(function_iter, data, context),

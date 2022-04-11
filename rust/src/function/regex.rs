@@ -68,3 +68,41 @@ pub fn match_op(left: Value, right: Value) -> Result<Value> {
 
     Ok(Value::Boolean(pattern.is_match(&target)))
 }
+
+pub fn split(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
+    let (pattern_val, target_val) =
+        match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
+            (Some(target), Some(pattern), None, None) => (expr::eval(pattern, data, None)?, target),
+            (None, Some(pattern), Some(target), None) => (
+                expr::eval(pattern, data, None)?,
+                expr::eval(target, data, None)?,
+            ),
+            _ => {
+                return Err(Error::eval(
+                    "aplit requires a regex and a target".to_string(),
+                ))
+            }
+        };
+
+    let pattern = match pattern_val {
+        Value::Regex(s, _) | Value::String(s) => match Regex::new(&s) {
+            Ok(pat) => Ok(pat),
+            Err(err) => Err(Error::regex(err)),
+        },
+        _ => Err(Error::eval(
+            "split pattern must be a regex or a string".to_string(),
+        )),
+    }?;
+
+    let target = match target_val {
+        Value::String(s) => Ok(s),
+        _ => Err(Error::eval("split target must be a string".to_string())),
+    }?;
+
+    Ok(Value::Array(
+        pattern
+            .split(&target)
+            .map(|elt| Value::String(elt.to_string()))
+            .collect(),
+    ))
+}
