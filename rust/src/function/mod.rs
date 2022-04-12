@@ -2,6 +2,7 @@ use pest::iterators::Pair;
 
 use crate::{Error, Result, Rule, Value};
 
+mod apply;
 mod count;
 mod entries;
 mod flatten;
@@ -24,7 +25,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     };
 
     match function {
-        "apply" => Err(Error::unimplemented(format!("function {}", function))),
+        "apply" => apply::apply(function_iter, data, context),
         "count" => count::count(function_iter, data, context),
         "entries" => entries::entries(function_iter, data, context),
         "filter" | "filterkeys" | "filtervalues" => {
