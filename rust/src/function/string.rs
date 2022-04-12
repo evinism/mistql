@@ -8,7 +8,11 @@ pub fn string(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>
         _ => return Err(Error::eval("string requires one argument".to_string())),
     };
 
-    Ok(Value::String(arg.to_string()))
+    if let Value::Regex(_, _) = arg {
+        Err(Error::eval("can't cast regex to string".to_string()))
+    } else {
+        Ok(Value::String(arg.to_string()))
+    }
 }
 
 #[cfg(test)]
