@@ -24,10 +24,18 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
     };
 
     match function {
+        "apply" => Err(Error::unimplemented(format!("function {}", function))),
         "count" => count::count(function_iter, data, context),
         "entries" => entries::entries(function_iter, data, context),
+        "filter" | "filterkeys" | "filtervalues" => {
+            Err(Error::unimplemented(format!("function {}", function)))
+        }
+        "find" => Err(Error::unimplemented(format!("function {}", function))),
         "flatten" => flatten::flatten(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
+        "fromentries" => Err(Error::unimplemented(format!("function {}", function))),
+        "groupby" => Err(Error::unimplemented(format!("function {}", function))),
+        "if" => Err(Error::unimplemented(format!("function {}", function))),
         "index" => index::index(function_iter, data, context),
         "keys" => keys::keys(function_iter, data, context),
         "log" => log::log(function_iter, data, context),
@@ -35,10 +43,17 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "mapkeys" => map::mapkeys(function_iter, data, context),
         "mapvalues" => map::mapvalues(function_iter, data, context),
         "match" => regex::match_fn(function_iter, data, context),
+        "reduce" => Err(Error::unimplemented(format!("function {}", function))),
         "regex" => regex::regex(function_iter, data, context),
+        "replace" => Err(Error::unimplemented(format!("function {}", function))),
+        "reverse" => Err(Error::unimplemented(format!("function {}", function))),
+        "sequence" => Err(Error::unimplemented(format!("function {}", function))),
+        "sort" | "sortby" => Err(Error::unimplemented(format!("function {}", function))),
         "split" => regex::split(function_iter, data, context),
         "string" => string::string(function_iter, data, context),
+        "stringjoin" => Err(Error::unimplemented(format!("function {}", function))),
         "sum" => sum::sum(function_iter, data, context),
+        "summarize" => Err(Error::unimplemented(format!("function {}", function))),
         "values" => values::values(function_iter, data, context),
         _ => Err(Error::unimplemented(format!("function {}", function))),
     }
