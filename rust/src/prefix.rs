@@ -12,7 +12,11 @@ pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
         Rule::not_op => PrefixOperator::Not,
         _ => unreachable!("unrecognized prefix operator"),
     };
-    let operand = expr::eval(prefix_iter.next().unwrap(), data, None)?;
+    let operand_pair = prefix_iter.next().unwrap();
+    let operand = match operand_pair.as_rule() {
+        Rule::ident => Value::String(operand_pair.as_str().to_string()),
+        _ => expr::eval(operand_pair, data, None)?,
+    };
 
     match operator {
         PrefixOperator::Not => {

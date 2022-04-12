@@ -34,3 +34,32 @@ pub fn index(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>)
         }
     }
 }
+
+pub fn dot_index(
+    raw_idx: &str,
+    mut arg_itr: Pairs<Rule>,
+    data: &Value,
+    context_opt: Option<Value>,
+) -> Result<Value> {
+    let idx = Value::String(raw_idx.to_string());
+    dbg!(idx.clone());
+    match (context_opt, arg_itr.next(), arg_itr.next()) {
+        (Some(target), None, None) => item_index(&idx, &target),
+        (None, Some(target), None) => item_index(&idx, &expr::eval(target, data, None)?),
+        (None, None, None) => item_index(&idx, data),
+        _ => return Err(Error::eval("dot index requires two arguments".to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_index_as_function() {
+        let query = "hello".to_string();
+        let data = "{\"hello\": \"world\"}".to_string();
+
+        let result = crate::query(query, data).unwrap();
+        assert_eq!(result, serde_json::Value::String("world".to_string()))
+    }
+}
