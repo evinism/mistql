@@ -42,7 +42,6 @@ pub fn dot_index(
     context_opt: Option<Value>,
 ) -> Result<Value> {
     let idx = Value::String(raw_idx.to_string());
-    dbg!(idx.clone());
     match (context_opt, arg_itr.next(), arg_itr.next()) {
         (Some(target), None, None) => item_index(&idx, &target),
         (None, Some(target), None) => item_index(&idx, &expr::eval(target, data, None)?),
