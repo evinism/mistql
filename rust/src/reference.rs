@@ -1,4 +1,4 @@
-use crate::{expr, index, Error, Result, Rule, Value};
+use crate::{expr, index, Result, Rule, Value};
 use pest::iterators::Pair;
 
 pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
@@ -9,13 +9,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
                 current_data =
                     index::item_index(&Value::String(subpair.as_str().to_string()), &current_data)?
             }
-            Rule::compound_reference => current_data = expr::eval(subpair, &current_data, None)?,
-            _ => {
-                return Err(Error::unimplemented(format!(
-                    "possible missing match {:?} in reference::eval",
-                    subpair.as_rule()
-                )))
-            }
+            _ => current_data = expr::eval(subpair, &current_data, None)?,
         }
     }
 
