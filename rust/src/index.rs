@@ -696,23 +696,6 @@ mod tests {
     }
 
     // #[test]
-    // fn parses_deep_selector() {
-    //     parses_to! {
-    //         parser: MistQLParser,
-    //         input: "one.two.three.four",
-    //         rule: Rule::query,
-    //         tokens: [
-    //             compound_reference(0,18, [
-    //                 ident(0,3),
-    //                 ident(4,7),
-    //                 ident(8,13),
-    //                 ident(14,18)
-    //             ])
-    //         ]
-    //     }
-    // }
-
-    // #[test]
     // fn parses_selector_with_lhs_expr() {
     //     parses_to! {
     //         parser: MistQLParser,

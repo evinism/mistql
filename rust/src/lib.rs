@@ -11,6 +11,7 @@ mod index;
 mod infix;
 mod object;
 mod prefix;
+mod reference;
 mod terminal;
 mod value;
 
