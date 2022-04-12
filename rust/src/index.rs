@@ -552,7 +552,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn indexed_value_behaves_like_index_function() {
         let result = crate::query(
             "(@[-1:]) == (index (-1) null @)".to_string(),

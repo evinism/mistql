@@ -105,7 +105,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn parses_prefix_operator_on_expression() {
         let query = "!!(regex \"hi\")";
 
