@@ -13,19 +13,11 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
                 Ok(data.clone())
             }
         }
-        Rule::ident => {
-            // in a piped expression, a bare ident is a function
-            if context.is_some() {
-                function::eval(pair, &data, context)
-            } else {
-                Ok(Value::String(pair.as_str().to_string()))
-            }
-        }
+        Rule::ident | Rule::function => function::eval(pair, &data, context),
         Rule::bool | Rule::number | Rule::string | Rule::null => terminal::eval(pair),
         Rule::array => array::eval(pair, &data),
         Rule::object => object::eval(pair, &data),
         Rule::infix_expr => infix::eval(pair, &data),
-        Rule::function => function::eval(pair, &data, context),
         Rule::prefixed_value => prefix::eval(pair, &data),
         Rule::piped_expr => eval_piped(pair, &data),
         Rule::indexed_value => index::eval(pair, &data),

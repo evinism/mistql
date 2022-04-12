@@ -55,7 +55,8 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "sum" => sum::sum(function_iter, data, context),
         "summarize" => Err(Error::unimplemented(format!("function {}", function))),
         "values" => values::values(function_iter, data, context),
-        _ => Err(Error::unimplemented(format!("function {}", function))),
+        // if we can't find a function, treat it as a dot index
+        _ => index::dot_index(&function, function_iter, data, context),
     }
 }
 

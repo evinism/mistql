@@ -3004,6 +3004,18 @@
           "describe": "#dotaccessor",
           "cases": [
             {
+              "it": "correctly selects values",
+              "assertions": [
+                {
+                  "query": "hello",
+                  "data": {
+                    "hello": "world"
+                  },
+                  "expected": "world"
+                }
+              ]
+            },
+            {
               "it": "correctly selects deep values",
               "assertions": [
                 {
