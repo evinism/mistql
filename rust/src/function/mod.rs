@@ -7,6 +7,7 @@ mod count;
 mod entries;
 mod flatten;
 mod float;
+mod if_fn;
 mod index;
 mod keys;
 mod log;
@@ -36,7 +37,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "float" => float::float(function_iter, data, context),
         "fromentries" => Err(Error::unimplemented(format!("function {}", function))),
         "groupby" => Err(Error::unimplemented(format!("function {}", function))),
-        "if" => Err(Error::unimplemented(format!("function {}", function))),
+        "if" => if_fn::if_fn(function_iter, data, context),
         "index" => index::index(function_iter, data, context),
         "keys" => keys::keys(function_iter, data, context),
         "log" => log::log(function_iter, data, context),
