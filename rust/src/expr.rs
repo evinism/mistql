@@ -54,24 +54,20 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn parses_piped_expression() {
-        let query = "[1,2,3] | count @";
+        let query = "[1,2,3] | count";
         parses_to! {
             parser: MistQLParser,
             input: query,
             rule: Rule::query,
             tokens: [
-                piped_expr(0,17, [
+                piped_expr(0,15, [
                     array(0,7, [
                         number(1,2),
                         number(3,4),
                         number(5,6)
                     ]),
-                    function(10,17, [
-                        ident(10,15),
-                        at(16,17)
-                    ])
+                    ident(10,15)
                 ])
             ]
         }
