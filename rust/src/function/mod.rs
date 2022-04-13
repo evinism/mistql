@@ -6,6 +6,7 @@ mod apply;
 mod count;
 mod entries;
 mod filter;
+mod find;
 mod flatten;
 mod float;
 mod if_fn;
@@ -33,7 +34,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "filter" => filter::filter(function_iter, data, context),
         "filterkeys" => filter::filterkeys(function_iter, data, context),
         "filtervalues" => filter::filtervalues(function_iter, data, context),
-        "find" => Err(Error::unimplemented(format!("function {}", function))),
+        "find" => find::find(function_iter, data, context),
         "flatten" => flatten::flatten(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
         "fromentries" => Err(Error::unimplemented(format!("function {}", function))),
