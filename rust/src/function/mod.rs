@@ -5,6 +5,7 @@ use crate::{Error, Result, Rule, Value};
 mod apply;
 mod count;
 mod entries;
+mod filter;
 mod flatten;
 mod float;
 mod if_fn;
@@ -29,9 +30,9 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "apply" => apply::apply(function_iter, data, context),
         "count" => count::count(function_iter, data, context),
         "entries" => entries::entries(function_iter, data, context),
-        "filter" | "filterkeys" | "filtervalues" => {
-            Err(Error::unimplemented(format!("function {}", function)))
-        }
+        "filter" => filter::filter(function_iter, data, context),
+        "filterkeys" => filter::filterkeys(function_iter, data, context),
+        "filtervalues" => filter::filtervalues(function_iter, data, context),
         "find" => Err(Error::unimplemented(format!("function {}", function))),
         "flatten" => flatten::flatten(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
