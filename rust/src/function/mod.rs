@@ -9,6 +9,7 @@ mod filter;
 mod find;
 mod flatten;
 mod float;
+mod fromentries;
 mod if_fn;
 mod index;
 mod keys;
@@ -37,7 +38,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "find" => find::find(function_iter, data, context),
         "flatten" => flatten::flatten(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
-        "fromentries" => Err(Error::unimplemented(format!("function {}", function))),
+        "fromentries" => fromentries::fromentries(function_iter, data, context),
         "groupby" => Err(Error::unimplemented(format!("function {}", function))),
         "if" => if_fn::if_fn(function_iter, data, context),
         "index" => index::index(function_iter, data, context),
