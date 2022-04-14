@@ -21,6 +21,7 @@ pub mod regex;
 mod reverse;
 mod string;
 mod sum;
+mod summarize;
 mod values;
 
 pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
@@ -61,7 +62,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "string" => string::string(function_iter, data, context),
         "stringjoin" => Err(Error::unimplemented(format!("function {}", function))),
         "sum" => sum::sum(function_iter, data, context),
-        "summarize" => Err(Error::unimplemented(format!("function {}", function))),
+        "summarize" => summarize::summarize(function_iter, data, context),
         "values" => values::values(function_iter, data, context),
         // if we can't find a function, treat it as a dot index
         _ => index::dot_index(&function, function_iter, data, context),

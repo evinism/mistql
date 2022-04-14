@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 mod display;
 mod json;
+mod ord;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
