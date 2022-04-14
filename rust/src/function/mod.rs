@@ -16,6 +16,7 @@ mod index;
 mod keys;
 mod log;
 mod map;
+mod reduce;
 pub mod regex;
 mod string;
 mod sum;
@@ -49,7 +50,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "mapkeys" => map::mapkeys(function_iter, data, context),
         "mapvalues" => map::mapvalues(function_iter, data, context),
         "match" => regex::match_fn(function_iter, data, context),
-        "reduce" => Err(Error::unimplemented(format!("function {}", function))),
+        "reduce" => reduce::reduce(function_iter, data, context),
         "regex" => regex::regex(function_iter, data, context),
         "replace" => Err(Error::unimplemented(format!("function {}", function))),
         "reverse" => Err(Error::unimplemented(format!("function {}", function))),
