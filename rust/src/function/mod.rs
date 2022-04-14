@@ -10,6 +10,7 @@ mod find;
 mod flatten;
 mod float;
 mod fromentries;
+mod groupby;
 mod if_fn;
 mod index;
 mod keys;
@@ -39,7 +40,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "flatten" => flatten::flatten(function_iter, data, context),
         "float" => float::float(function_iter, data, context),
         "fromentries" => fromentries::fromentries(function_iter, data, context),
-        "groupby" => Err(Error::unimplemented(format!("function {}", function))),
+        "groupby" => groupby::groupby(function_iter, data, context),
         "if" => if_fn::if_fn(function_iter, data, context),
         "index" => index::index(function_iter, data, context),
         "keys" => keys::keys(function_iter, data, context),
