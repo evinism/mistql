@@ -18,6 +18,7 @@ mod log;
 mod map;
 mod reduce;
 pub mod regex;
+mod reverse;
 mod string;
 mod sum;
 mod values;
@@ -53,7 +54,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "reduce" => reduce::reduce(function_iter, data, context),
         "regex" => regex::regex(function_iter, data, context),
         "replace" => Err(Error::unimplemented(format!("function {}", function))),
-        "reverse" => Err(Error::unimplemented(format!("function {}", function))),
+        "reverse" => reverse::reverse(function_iter, data, context),
         "sequence" => Err(Error::unimplemented(format!("function {}", function))),
         "sort" | "sortby" => Err(Error::unimplemented(format!("function {}", function))),
         "split" => regex::split(function_iter, data, context),
