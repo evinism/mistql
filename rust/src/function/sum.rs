@@ -1,5 +1,5 @@
 use crate::infix::arithmetic::add;
-use crate::{expr, Error, Result, Rule, Value};
+use crate::{expr, Error, Number, Result, Rule, Value};
 use pest::iterators::Pairs;
 
 pub fn sum(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
@@ -12,7 +12,7 @@ pub fn sum(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -
     match arg {
         Value::Array(arr) => arr
             .iter()
-            .try_fold(Value::Int(0), |acc, x| add(acc, x.clone())),
+            .try_fold(Value::Number(Number::Int(0)), |acc, x| add(acc, x.clone())),
         _ => Err(Error::eval(format!(
             "argument to sum must be an array (got {:?}",
             arg

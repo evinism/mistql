@@ -1,4 +1,4 @@
-use super::Value;
+use super::{Number, Value};
 use std::collections::BTreeMap;
 
 impl From<serde_json::Value> for Value {
@@ -8,9 +8,9 @@ impl From<serde_json::Value> for Value {
             serde_json::Value::Bool(b) => Value::Boolean(b),
             serde_json::Value::Number(n) => {
                 if let Some(i) = n.as_i64() {
-                    Value::Int(i)
+                    Value::Number(Number::Int(i))
                 } else if let Some(f) = n.as_f64() {
-                    Value::Float(f)
+                    Value::Number(Number::Float(f))
                 } else {
                     Value::Null
                 }
@@ -31,8 +31,8 @@ impl From<Value> for serde_json::Value {
         match val {
             Value::Null => serde_json::Value::Null,
             Value::Boolean(b) => serde_json::Value::Bool(b),
-            Value::Int(i) => serde_json::Value::from(i),
-            Value::Float(f) => serde_json::Value::from(f),
+            Value::Number(Number::Int(i)) => serde_json::Value::from(i),
+            Value::Number(Number::Float(f)) => serde_json::Value::from(f),
             Value::String(s) => serde_json::Value::String(s),
             Value::Array(a) => {
                 serde_json::Value::Array(a.iter().map(|elt| elt.clone().into()).collect())

@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::{expr, Result, Rule, Value};
+use crate::{expr, Number, Result, Rule, Value};
 
 enum PrefixOperator {
     Not,
@@ -30,8 +30,8 @@ pub fn truthiness(val: &Value) -> bool {
     match val {
         Value::Null => false,
         Value::Boolean(bool) => bool.clone(),
-        Value::Int(i) => *i != 0,
-        Value::Float(f) => *f != 0.0,
+        Value::Number(Number::Int(i)) => *i != 0,
+        Value::Number(Number::Float(f)) => *f != 0.0,
         Value::String(s) | Value::Ident(s) => s.len() != 0,
         Value::Array(arr) => arr.len() != 0,
         Value::Object(obj) => obj.len() != 0,
@@ -42,7 +42,7 @@ pub fn truthiness(val: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::truthiness;
-    use crate::{MistQLParser, Rule, Value};
+    use crate::{MistQLParser, Number, Rule, Value};
 
     #[test]
     fn parses_prefix_operators() {
@@ -168,12 +168,12 @@ mod tests {
 
     #[test]
     fn truthiness_zero_is_false() {
-        assert_eq!(truthiness(&Value::Int(0)), false);
-        assert_eq!(truthiness(&Value::Float(0.0)), false);
-        assert_eq!(truthiness(&Value::Int(42)), true);
-        assert_eq!(truthiness(&Value::Float(37.0)), true);
-        assert_eq!(truthiness(&Value::Int(-1)), true);
-        assert_eq!(truthiness(&Value::Float(-3.45)), true);
+        assert_eq!(truthiness(&Value::Number(Number::Int(0))), false);
+        assert_eq!(truthiness(&Value::Number(Number::Float(0.0))), false);
+        assert_eq!(truthiness(&Value::Number(Number::Int(42))), true);
+        assert_eq!(truthiness(&Value::Number(Number::Float(37.0))), true);
+        assert_eq!(truthiness(&Value::Number(Number::Int(-1))), true);
+        assert_eq!(truthiness(&Value::Number(Number::Float(-3.45))), true);
     }
 
     #[test]
@@ -187,9 +187,9 @@ mod tests {
         assert_eq!(truthiness(&Value::Array(vec![])), false);
         assert_eq!(
             truthiness(&Value::Array(vec![
-                Value::Int(1),
-                Value::Int(2),
-                Value::Int(3)
+                Value::Number(Number::Int(1)),
+                Value::Number(Number::Int(2)),
+                Value::Number(Number::Int(3))
             ])),
             true
         );
@@ -203,7 +203,7 @@ mod tests {
         );
 
         let mut map = std::collections::BTreeMap::new();
-        map.insert("a".to_string(), Value::Int(1));
+        map.insert("a".to_string(), Value::Number(Number::Int(1)));
         assert_eq!(truthiness(&Value::Object(map)), true);
     }
 }

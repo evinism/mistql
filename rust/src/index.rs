@@ -1,4 +1,4 @@
-use crate::{expr, terminal, Error, Result, Rule, Value};
+use crate::{expr, terminal, Error, Number, Result, Rule, Value};
 use pest::iterators::Pair;
 
 pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
@@ -56,7 +56,7 @@ pub fn range_index(low: &Value, high: &Value, target: &Value) -> Result<Value> {
 
 fn index_null(idx: &Value) -> Result<Value> {
     match idx {
-        Value::Int(_) | Value::Float(_) | Value::String(_) => Ok(Value::Null),
+        Value::Number(_) | Value::String(_) => Ok(Value::Null),
         _ => Err(Error::query(
             "index must be a string or a number".to_string(),
         )),
@@ -64,7 +64,7 @@ fn index_null(idx: &Value) -> Result<Value> {
 }
 
 fn index_string(val: &str, idx_raw: &Value) -> Result<Value> {
-    if let Value::Int(idx) = idx_raw {
+    if let Value::Number(Number::Int(idx)) = idx_raw {
         if *idx >= 0 {
             match val.chars().nth(*idx as usize) {
                 Some(c) => Ok(Value::String(c.to_string())),
@@ -82,7 +82,7 @@ fn index_string(val: &str, idx_raw: &Value) -> Result<Value> {
 }
 
 fn index_array(val: &Vec<Value>, idx_raw: &Value) -> Result<Value> {
-    if let Value::Int(idx) = idx_raw {
+    if let Value::Number(Number::Int(idx)) = idx_raw {
         if *idx >= 0 {
             match val.iter().nth(*idx as usize) {
                 Some(elt) => Ok(elt.clone()),
@@ -101,7 +101,7 @@ fn index_array(val: &Vec<Value>, idx_raw: &Value) -> Result<Value> {
 
 fn normalize_range(raw_low: &Value, raw_high: &Value, length: i64) -> Result<(usize, usize)> {
     match (raw_low, raw_high) {
-        (Value::Int(low_num), Value::Int(high_num)) => {
+        (Value::Number(Number::Int(low_num)), Value::Number(Number::Int(high_num))) => {
             let low = if *low_num < 0 {
                 length + low_num
             } else {
@@ -122,7 +122,7 @@ fn normalize_range(raw_low: &Value, raw_high: &Value, length: i64) -> Result<(us
                 Ok((low as usize, high as usize))
             }
         }
-        (Value::Null, Value::Int(high_num)) => {
+        (Value::Null, Value::Number(Number::Int(high_num))) => {
             let high = if *high_num < 0 {
                 length + high_num
             } else {
@@ -137,7 +137,7 @@ fn normalize_range(raw_low: &Value, raw_high: &Value, length: i64) -> Result<(us
                 Ok((0, high as usize))
             }
         }
-        (Value::Int(low_num), Value::Null) => {
+        (Value::Number(Number::Int(low_num)), Value::Null) => {
             let low = if *low_num < 0 {
                 length + low_num
             } else {
@@ -200,18 +200,22 @@ fn index_object(val: &std::collections::BTreeMap<String, Value>, idx_raw: &Value
 #[cfg(test)]
 mod tests {
     use super::{item_index, range_index};
-    use crate::{MistQLParser, Rule, Value};
+    use crate::{MistQLParser, Number, Rule, Value};
 
     #[test]
     fn cant_index_bool_or_number() {
-        assert!(item_index(&Value::Int(1), &Value::Int(1)).is_err());
-        assert!(item_index(&Value::Boolean(true), &Value::Int(1)).is_err());
+        assert!(item_index(
+            &Value::Number(Number::Int(1)),
+            &Value::Number(Number::Int(1))
+        )
+        .is_err());
+        assert!(item_index(&Value::Boolean(true), &Value::Number(Number::Int(1))).is_err());
     }
 
     #[test]
     fn indexes_on_null() {
         assert_eq!(
-            item_index(&Value::Int(0), &Value::Null).unwrap(),
+            item_index(&Value::Number(Number::Int(0)), &Value::Null).unwrap(),
             Value::Null
         );
 
@@ -225,11 +229,15 @@ mod tests {
 
     #[test]
     fn index_must_be_an_int() {
-        assert!(item_index(&Value::Float(4.5), &Value::String("abc".to_string())).is_err());
+        assert!(item_index(
+            &Value::Number(Number::Float(4.5)),
+            &Value::String("abc".to_string())
+        )
+        .is_err());
 
         assert!(range_index(
-            &Value::Int(4),
-            &Value::Float(7.5),
+            &Value::Number(Number::Int(4)),
+            &Value::Number(Number::Float(7.5)),
             &Value::String("abc".to_string())
         )
         .is_err())
@@ -238,17 +246,29 @@ mod tests {
     #[test]
     fn indexes_on_postive_ints_on_strings() {
         assert_eq!(
-            item_index(&Value::Int(0), &Value::String("abc".to_string())).unwrap(),
+            item_index(
+                &Value::Number(Number::Int(0)),
+                &Value::String("abc".to_string())
+            )
+            .unwrap(),
             Value::String("a".to_string())
         );
 
         assert_eq!(
-            item_index(&Value::Int(1), &Value::String("abc".to_string())).unwrap(),
+            item_index(
+                &Value::Number(Number::Int(1)),
+                &Value::String("abc".to_string())
+            )
+            .unwrap(),
             Value::String("b".to_string())
         );
 
         assert_eq!(
-            item_index(&Value::Int(4), &Value::String("abc".to_string())).unwrap(),
+            item_index(
+                &Value::Number(Number::Int(4)),
+                &Value::String("abc".to_string())
+            )
+            .unwrap(),
             Value::Null
         );
     }
@@ -256,17 +276,29 @@ mod tests {
     #[test]
     fn indexes_on_negative_ints_on_strings() {
         assert_eq!(
-            item_index(&Value::Int(-1), &Value::String("abc".to_string())).unwrap(),
+            item_index(
+                &Value::Number(Number::Int(-1)),
+                &Value::String("abc".to_string())
+            )
+            .unwrap(),
             Value::String("c".to_string())
         );
 
         assert_eq!(
-            item_index(&Value::Int(-2), &Value::String("abc".to_string())).unwrap(),
+            item_index(
+                &Value::Number(Number::Int(-2)),
+                &Value::String("abc".to_string())
+            )
+            .unwrap(),
             Value::String("b".to_string())
         );
 
         assert_eq!(
-            item_index(&Value::Int(-4), &Value::String("abc".to_string())).unwrap(),
+            item_index(
+                &Value::Number(Number::Int(-4)),
+                &Value::String("abc".to_string())
+            )
+            .unwrap(),
             Value::Null
         );
     }
@@ -275,8 +307,8 @@ mod tests {
     fn range_indexes_on_strings() {
         assert_eq!(
             range_index(
-                &Value::Int(0),
-                &Value::Int(2),
+                &Value::Number(Number::Int(0)),
+                &Value::Number(Number::Int(2)),
                 &Value::String("abcdef".to_string()),
             )
             .unwrap(),
@@ -285,8 +317,8 @@ mod tests {
 
         assert_eq!(
             range_index(
-                &Value::Int(2),
-                &Value::Int(4),
+                &Value::Number(Number::Int(2)),
+                &Value::Number(Number::Int(4)),
                 &Value::String("abcdef".to_string()),
             )
             .unwrap(),
@@ -295,8 +327,8 @@ mod tests {
 
         assert_eq!(
             range_index(
-                &Value::Int(4),
-                &Value::Int(7),
+                &Value::Number(Number::Int(4)),
+                &Value::Number(Number::Int(7)),
                 &Value::String("abcdef".to_string()),
             )
             .unwrap(),
@@ -305,8 +337,8 @@ mod tests {
 
         assert_eq!(
             range_index(
-                &Value::Int(7),
-                &Value::Int(12),
+                &Value::Number(Number::Int(7)),
+                &Value::Number(Number::Int(12)),
                 &Value::String("abcdef".to_string()),
             )
             .unwrap(),
@@ -315,8 +347,8 @@ mod tests {
 
         assert_eq!(
             range_index(
-                &Value::Int(2),
-                &Value::Int(-2),
+                &Value::Number(Number::Int(2)),
+                &Value::Number(Number::Int(-2)),
                 &Value::String("abcdef".to_string()),
             )
             .unwrap(),
@@ -325,23 +357,23 @@ mod tests {
 
         // can't specify a range where the low is greater than the high
         assert!(range_index(
-            &Value::Int(4),
-            &Value::Int(2),
+            &Value::Number(Number::Int(4)),
+            &Value::Number(Number::Int(2)),
             &Value::String("abcdef".to_string()),
         )
         .is_err());
 
         // can't specify negative ranges greater than the length of the string
         assert!(range_index(
-            &Value::Int(4),
-            &Value::Int(-10),
+            &Value::Number(Number::Int(4)),
+            &Value::Number(Number::Int(-10)),
             &Value::String("abcdef".to_string()),
         )
         .is_err());
 
         assert!(range_index(
-            &Value::Int(-10),
-            &Value::Int(4),
+            &Value::Number(Number::Int(-10)),
+            &Value::Number(Number::Int(4)),
             &Value::String("abcdef".to_string()),
         )
         .is_err());
@@ -351,7 +383,7 @@ mod tests {
     fn range_indexes_with_nulls_on_strings() {
         assert_eq!(
             range_index(
-                &Value::Int(2),
+                &Value::Number(Number::Int(2)),
                 &Value::Null,
                 &Value::String("abcdef".to_string()),
             )
@@ -361,7 +393,7 @@ mod tests {
 
         assert_eq!(
             range_index(
-                &Value::Int(-2),
+                &Value::Number(Number::Int(-2)),
                 &Value::Null,
                 &Value::String("abcdef".to_string()),
             )
@@ -371,7 +403,7 @@ mod tests {
 
         assert_eq!(
             range_index(
-                &Value::Int(7),
+                &Value::Number(Number::Int(7)),
                 &Value::Null,
                 &Value::String("abcdef".to_string()),
             )
@@ -382,7 +414,7 @@ mod tests {
         assert_eq!(
             range_index(
                 &Value::Null,
-                &Value::Int(4),
+                &Value::Number(Number::Int(4)),
                 &Value::String("abcdef".to_string()),
             )
             .unwrap(),
@@ -392,7 +424,7 @@ mod tests {
         assert_eq!(
             range_index(
                 &Value::Null,
-                &Value::Int(-2),
+                &Value::Number(Number::Int(-2)),
                 &Value::String("abcdef".to_string()),
             )
             .unwrap(),
@@ -409,118 +441,199 @@ mod tests {
 
     #[test]
     fn indexes_on_postive_ints_on_arrays() {
-        let array = Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]);
-        assert_eq!(item_index(&Value::Int(0), &array).unwrap(), Value::Int(1),);
+        let array = Value::Array(vec![
+            Value::Number(Number::Int(1)),
+            Value::Number(Number::Int(2)),
+            Value::Number(Number::Int(3)),
+        ]);
+        assert_eq!(
+            item_index(&Value::Number(Number::Int(0)), &array).unwrap(),
+            Value::Number(Number::Int(1)),
+        );
 
-        assert_eq!(item_index(&Value::Int(1), &array).unwrap(), Value::Int(2));
+        assert_eq!(
+            item_index(&Value::Number(Number::Int(1)), &array).unwrap(),
+            Value::Number(Number::Int(2))
+        );
 
-        assert_eq!(item_index(&Value::Int(4), &array).unwrap(), Value::Null);
+        assert_eq!(
+            item_index(&Value::Number(Number::Int(4)), &array).unwrap(),
+            Value::Null
+        );
     }
 
     #[test]
     fn indexes_on_negative_ints_on_arrays() {
-        let array = Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]);
+        let array = Value::Array(vec![
+            Value::Number(Number::Int(1)),
+            Value::Number(Number::Int(2)),
+            Value::Number(Number::Int(3)),
+        ]);
 
-        assert_eq!(item_index(&Value::Int(-1), &array).unwrap(), Value::Int(3));
+        assert_eq!(
+            item_index(&Value::Number(Number::Int(-1)), &array).unwrap(),
+            Value::Number(Number::Int(3))
+        );
 
-        assert_eq!(item_index(&Value::Int(-2), &array).unwrap(), Value::Int(2));
+        assert_eq!(
+            item_index(&Value::Number(Number::Int(-2)), &array).unwrap(),
+            Value::Number(Number::Int(2))
+        );
 
-        assert_eq!(item_index(&Value::Int(-4), &array).unwrap(), Value::Null);
+        assert_eq!(
+            item_index(&Value::Number(Number::Int(-4)), &array).unwrap(),
+            Value::Null
+        );
     }
 
     #[test]
     fn range_indexes_on_arrays() {
         let array = Value::Array(vec![
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4),
-            Value::Int(5),
-            Value::Int(6),
+            Value::Number(Number::Int(1)),
+            Value::Number(Number::Int(2)),
+            Value::Number(Number::Int(3)),
+            Value::Number(Number::Int(4)),
+            Value::Number(Number::Int(5)),
+            Value::Number(Number::Int(6)),
         ]);
 
         assert_eq!(
-            range_index(&Value::Int(0), &Value::Int(2), &array).unwrap(),
-            Value::Array(vec![Value::Int(1), Value::Int(2),])
+            range_index(
+                &Value::Number(Number::Int(0)),
+                &Value::Number(Number::Int(2)),
+                &array
+            )
+            .unwrap(),
+            Value::Array(vec![
+                Value::Number(Number::Int(1)),
+                Value::Number(Number::Int(2)),
+            ])
         );
 
         assert_eq!(
-            range_index(&Value::Int(2), &Value::Int(4), &array).unwrap(),
-            Value::Array(vec![Value::Int(3), Value::Int(4),])
+            range_index(
+                &Value::Number(Number::Int(2)),
+                &Value::Number(Number::Int(4)),
+                &array
+            )
+            .unwrap(),
+            Value::Array(vec![
+                Value::Number(Number::Int(3)),
+                Value::Number(Number::Int(4)),
+            ])
         );
 
         assert_eq!(
-            range_index(&Value::Int(4), &Value::Int(7), &array).unwrap(),
-            Value::Array(vec![Value::Int(5), Value::Int(6),])
+            range_index(
+                &Value::Number(Number::Int(4)),
+                &Value::Number(Number::Int(7)),
+                &array
+            )
+            .unwrap(),
+            Value::Array(vec![
+                Value::Number(Number::Int(5)),
+                Value::Number(Number::Int(6)),
+            ])
         );
 
         assert_eq!(
-            range_index(&Value::Int(7), &Value::Int(12), &array).unwrap(),
+            range_index(
+                &Value::Number(Number::Int(7)),
+                &Value::Number(Number::Int(12)),
+                &array
+            )
+            .unwrap(),
             Value::Null
         );
 
         assert_eq!(
-            range_index(&Value::Int(2), &Value::Int(-2), &array).unwrap(),
-            Value::Array(vec![Value::Int(3), Value::Int(4),])
+            range_index(
+                &Value::Number(Number::Int(2)),
+                &Value::Number(Number::Int(-2)),
+                &array
+            )
+            .unwrap(),
+            Value::Array(vec![
+                Value::Number(Number::Int(3)),
+                Value::Number(Number::Int(4)),
+            ])
         );
 
         // can't specify a range where the low is greater than the high
-        assert!(range_index(&Value::Int(4), &Value::Int(2), &array).is_err());
+        assert!(range_index(
+            &Value::Number(Number::Int(4)),
+            &Value::Number(Number::Int(2)),
+            &array
+        )
+        .is_err());
 
         // can't specify negative ranges greater than the length of the string
-        assert!(range_index(&Value::Int(4), &Value::Int(-10), &array).is_err());
+        assert!(range_index(
+            &Value::Number(Number::Int(4)),
+            &Value::Number(Number::Int(-10)),
+            &array
+        )
+        .is_err());
 
-        assert!(range_index(&Value::Int(-10), &Value::Int(4), &array).is_err());
+        assert!(range_index(
+            &Value::Number(Number::Int(-10)),
+            &Value::Number(Number::Int(4)),
+            &array
+        )
+        .is_err());
     }
 
     #[test]
     fn range_indexes_with_nulls_on_arrays() {
         let array = Value::Array(vec![
-            Value::Int(1),
-            Value::Int(2),
-            Value::Int(3),
-            Value::Int(4),
-            Value::Int(5),
-            Value::Int(6),
+            Value::Number(Number::Int(1)),
+            Value::Number(Number::Int(2)),
+            Value::Number(Number::Int(3)),
+            Value::Number(Number::Int(4)),
+            Value::Number(Number::Int(5)),
+            Value::Number(Number::Int(6)),
         ]);
 
         assert_eq!(
-            range_index(&Value::Int(2), &Value::Null, &array).unwrap(),
+            range_index(&Value::Number(Number::Int(2)), &Value::Null, &array).unwrap(),
             Value::Array(vec![
-                Value::Int(3),
-                Value::Int(4),
-                Value::Int(5),
-                Value::Int(6),
+                Value::Number(Number::Int(3)),
+                Value::Number(Number::Int(4)),
+                Value::Number(Number::Int(5)),
+                Value::Number(Number::Int(6)),
             ])
         );
 
         assert_eq!(
-            range_index(&Value::Int(-2), &Value::Null, &array).unwrap(),
-            Value::Array(vec![Value::Int(5), Value::Int(6)])
+            range_index(&Value::Number(Number::Int(-2)), &Value::Null, &array).unwrap(),
+            Value::Array(vec![
+                Value::Number(Number::Int(5)),
+                Value::Number(Number::Int(6))
+            ])
         );
 
         assert_eq!(
-            range_index(&Value::Int(7), &Value::Null, &array).unwrap(),
+            range_index(&Value::Number(Number::Int(7)), &Value::Null, &array).unwrap(),
             Value::Null
         );
 
         assert_eq!(
-            range_index(&Value::Null, &Value::Int(4), &array).unwrap(),
+            range_index(&Value::Null, &Value::Number(Number::Int(4)), &array).unwrap(),
             Value::Array(vec![
-                Value::Int(1),
-                Value::Int(2),
-                Value::Int(3),
-                Value::Int(4),
+                Value::Number(Number::Int(1)),
+                Value::Number(Number::Int(2)),
+                Value::Number(Number::Int(3)),
+                Value::Number(Number::Int(4)),
             ])
         );
 
         assert_eq!(
-            range_index(&Value::Null, &Value::Int(-2), &array).unwrap(),
+            range_index(&Value::Null, &Value::Number(Number::Int(-2)), &array).unwrap(),
             Value::Array(vec![
-                Value::Int(1),
-                Value::Int(2),
-                Value::Int(3),
-                Value::Int(4),
+                Value::Number(Number::Int(1)),
+                Value::Number(Number::Int(2)),
+                Value::Number(Number::Int(3)),
+                Value::Number(Number::Int(4)),
             ])
         );
 
@@ -530,19 +643,19 @@ mod tests {
     #[test]
     fn indexes_strings_on_objects() {
         let mut map = std::collections::BTreeMap::new();
-        map.insert("a".to_string(), Value::Int(1));
-        map.insert("b".to_string(), Value::Int(2));
-        map.insert("c".to_string(), Value::Int(3));
+        map.insert("a".to_string(), Value::Number(Number::Int(1)));
+        map.insert("b".to_string(), Value::Number(Number::Int(2)));
+        map.insert("c".to_string(), Value::Number(Number::Int(3)));
         let val = Value::Object(map);
 
         assert_eq!(
             item_index(&Value::String("a".to_string()), &val).unwrap(),
-            Value::Int(1)
+            Value::Number(Number::Int(1))
         );
 
         assert_eq!(
             item_index(&Value::String("b".to_string()), &val).unwrap(),
-            Value::Int(2)
+            Value::Number(Number::Int(2))
         );
 
         assert_eq!(

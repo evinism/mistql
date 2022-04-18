@@ -16,7 +16,7 @@ mod terminal;
 mod value;
 
 pub use error::{Error, Result};
-pub use value::Value;
+pub use value::{Number, Value};
 
 use pest::Parser;
 use pest_derive::Parser;
