@@ -10,11 +10,9 @@ pub fn eval(pair: Pair<Rule>) -> Result<Value> {
             "false" => Ok(Value::Boolean(false)),
             _ => unreachable!("boolean terminal"),
         },
-        Rule::number => match (pair.as_str().parse::<i64>(), pair.as_str().parse::<f64>()) {
-            (Ok(i), _) => Ok(Value::Int(i)),
-            (_, Ok(f)) => Ok(Value::Float(f)),
-            (Err(_), Err(err)) => Err(Error::query(format!("unparseable number: {:?}", err))),
-        },
+        Rule::number => Ok(Value::Number(crate::value::Number::try_from(
+            pair.as_str(),
+        )?)),
         Rule::string => Ok(Value::String(
             pair.into_inner().next().unwrap().as_str().to_string(),
         )),

@@ -1,4 +1,4 @@
-use crate::{expr, Error, Result, Rule, Value};
+use crate::{expr, Error, Number, Result, Rule, Value};
 use pest::iterators::Pairs;
 
 pub fn count(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
@@ -9,7 +9,7 @@ pub fn count(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>)
     };
 
     match arg {
-        Value::Array(arr) => Ok(Value::Int(arr.len() as i64)),
+        Value::Array(arr) => Ok(Value::Number(Number::Int(arr.len() as i64))),
         _ => Err(Error::eval(format!(
             "argument to count must be an array (got {:?}",
             arg

@@ -2,14 +2,15 @@ use std::collections::BTreeMap;
 
 mod display;
 mod json;
-mod ord;
+mod number;
+
+pub use number::Number;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Null,
     Boolean(bool),
-    Int(i64),
-    Float(f64),
+    Number(Number),
     String(String),
     Array(Vec<Value>),
     Object(BTreeMap<String, Value>),

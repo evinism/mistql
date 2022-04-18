@@ -90,7 +90,7 @@ pub fn mapvalues(
 
 #[cfg(test)]
 mod tests {
-    use crate::{query_value, MistQLParser, Rule, Value};
+    use crate::{query_value, MistQLParser, Number, Rule, Value};
 
     #[test]
     fn map_parses() {
@@ -210,9 +210,9 @@ mod tests {
 
         let result = crate::query(query.to_string(), "null".to_string()).unwrap();
         let mut map = std::collections::BTreeMap::new();
-        map.insert("a".to_string(), Value::Int(2));
-        map.insert("b".to_string(), Value::Int(3));
-        map.insert("c".to_string(), Value::Int(4));
+        map.insert("a".to_string(), Value::Number(Number::Int(2)));
+        map.insert("b".to_string(), Value::Number(Number::Int(3)));
+        map.insert("c".to_string(), Value::Number(Number::Int(4)));
         let expected: serde_json::Value = Value::Object(map).into();
         assert_eq!(result, expected)
     }
@@ -273,9 +273,9 @@ mod tests {
 
         let result = crate::query(query.to_string(), "null".to_string()).unwrap();
         let mut map = std::collections::BTreeMap::new();
-        map.insert("a".to_string(), Value::Int(1));
-        map.insert("b".to_string(), Value::Int(2));
-        map.insert("c".to_string(), Value::Int(3));
+        map.insert("a".to_string(), Value::Number(Number::Int(1)));
+        map.insert("b".to_string(), Value::Number(Number::Int(2)));
+        map.insert("c".to_string(), Value::Number(Number::Int(3)));
         let expected: serde_json::Value = Value::Object(map).into();
         assert_eq!(result, expected)
     }

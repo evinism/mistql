@@ -1,4 +1,4 @@
-use crate::{expr, Error, Result, Rule, Value};
+use crate::{expr, Error, Number, Result, Rule, Value};
 use pest::iterators::Pairs;
 
 pub fn float(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
@@ -9,15 +9,15 @@ pub fn float(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>)
     };
 
     match arg {
-        Value::Float(_) => Ok(arg.clone()),
-        Value::Int(num) => Ok(Value::Float(num as f64)),
+        Value::Number(Number::Float(_)) => Ok(arg.clone()),
+        Value::Number(Number::Int(num)) => Ok(Value::Number(Number::Float(num as f64))),
         Value::String(string) => match string.trim().parse::<f64>() {
-            Ok(val) => Ok(Value::Float(val)),
+            Ok(val) => Ok(Value::Number(Number::Float(val))),
             Err(err) => Err(Error::eval(err.to_string())),
         },
-        Value::Boolean(true) => Ok(Value::Float(1.0)),
-        Value::Boolean(false) => Ok(Value::Float(0.0)),
-        Value::Null => Ok(Value::Float(0.0)),
+        Value::Boolean(true) => Ok(Value::Number(Number::Float(1.0))),
+        Value::Boolean(false) => Ok(Value::Number(Number::Float(0.0))),
+        Value::Null => Ok(Value::Number(Number::Float(0.0))),
         _ => Err(Error::eval(format!(
             "argument {} does not cast to float",
             arg

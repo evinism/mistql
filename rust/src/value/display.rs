@@ -1,4 +1,4 @@
-use crate::Value;
+use crate::{Number, Value};
 use std::fmt;
 
 impl fmt::Display for Value {
@@ -10,8 +10,8 @@ impl fmt::Display for Value {
             Value::Null => write!(f, "null"),
             Value::Boolean(true) => write!(f, "true"),
             Value::Boolean(false) => write!(f, "false"),
-            Value::Float(num) => write!(f, "{}", from_number(*num)),
-            Value::Int(num) => write!(f, "{}", from_number(*num as f64)),
+            Value::Number(Number::Float(num)) => write!(f, "{}", from_number(*num)),
+            Value::Number(Number::Int(num)) => write!(f, "{}", from_number(*num as f64)),
             Value::String(s) => write!(f, "{}", s),
             Value::Ident(s) => write!(f, "{}", s),
             Value::Array(a) => {
@@ -66,10 +66,10 @@ fn from_number(num: f64) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::Value;
+    use crate::{Number, Value};
     #[test]
     fn casts_int_to_string() {
-        let result = Value::Int(1).to_string();
+        let result = Value::Number(Number::Int(1)).to_string();
         assert_eq!(result, "1")
     }
 
@@ -86,17 +86,26 @@ mod tests {
             (3e21, "3e+21"),
         ] {
             let (input, output) = example;
-            assert_eq!(Value::Float(input).to_string(), output);
+            assert_eq!(Value::Number(Number::Float(input)).to_string(), output);
         }
     }
 
     #[test]
     fn casts_array_to_string() {
-        let result = Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)]).to_string();
+        let result = Value::Array(vec![
+            Value::Number(Number::Int(1)),
+            Value::Number(Number::Int(2)),
+            Value::Number(Number::Int(3)),
+        ])
+        .to_string();
         assert_eq!(result, "[1,2,3]");
 
-        let result =
-            Value::Array(vec![Value::Int(1), Value::Boolean(false), Value::Null]).to_string();
+        let result = Value::Array(vec![
+            Value::Number(Number::Int(1)),
+            Value::Boolean(false),
+            Value::Null,
+        ])
+        .to_string();
         assert_eq!(result, "[1,false,null]");
     }
 }
