@@ -1538,6 +1538,16 @@
               ]
             },
             {
+              "it": "Throws on divide by zero",
+              "assertions": [
+                {
+                  "query": "1 / 0",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
               "it": "can modulo numbers",
               "assertions": [
                 {
