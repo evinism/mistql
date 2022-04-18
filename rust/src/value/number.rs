@@ -1,6 +1,7 @@
 use crate::{Error, Result};
+use std::cmp::Ordering;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Number {
     Int(i64),
     Float(f64),
@@ -17,6 +18,18 @@ impl TryFrom<&str> for Number {
         }
     }
 }
+
+impl PartialEq for Number {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Number::Int(l), Number::Int(r)) => l == r,
+            (Number::Float(l), Number::Float(r)) => l == r,
+            (Number::Int(l), Number::Float(r)) => (*l as f64) == *r,
+            (Number::Float(l), Number::Int(r)) => *l == (*r as f64),
+        }
+    }
+}
+impl Eq for Number {}
 
 #[cfg(test)]
 mod tests {
