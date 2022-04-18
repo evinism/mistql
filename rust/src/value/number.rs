@@ -31,6 +31,35 @@ impl PartialEq for Number {
 }
 impl Eq for Number {}
 
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Number::Int(l), Number::Int(r)) => l.partial_cmp(&r),
+            (Number::Float(l), Number::Float(r)) => l.partial_cmp(&r),
+            (Number::Int(l), Number::Float(r)) => (*l as f64).partial_cmp(&r),
+            (Number::Float(l), Number::Int(r)) => l.partial_cmp(&(*r as f64)),
+        }
+    }
+}
+
+impl Ord for Number {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Number::Int(l), Number::Int(r)) => l.cmp(&r),
+            (Number::Float(l), Number::Float(r)) if l.is_finite() && r.is_finite() => {
+                l.partial_cmp(&r).unwrap()
+            }
+            (Number::Int(l), Number::Float(r)) if r.is_finite() => {
+                (*l as f64).partial_cmp(&r).unwrap()
+            }
+            (Number::Float(l), Number::Int(r)) if l.is_finite() => {
+                l.partial_cmp(&(*r as f64)).unwrap()
+            }
+            _ => unreachable!(), // need to forbid NaN from existing elsewhere
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Number;
