@@ -1,3 +1,4 @@
+from math import isfinite, isnan
 from enum import Enum
 from typing import Any, Callable, Dict, Union, Set
 import json
@@ -62,6 +63,8 @@ class RuntimeValue:
         elif isinstance(value, int):
             return RuntimeValue(RuntimeValueType.Number, float(value))
         elif isinstance(value, float):
+            if isnan(value) or not isfinite(value):
+                return RuntimeValue(RuntimeValueType.Null)
             return RuntimeValue(RuntimeValueType.Number, value)
         elif isinstance(value, str):
             return RuntimeValue(RuntimeValueType.String, value)
