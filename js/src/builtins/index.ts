@@ -1,3 +1,4 @@
+import { RuntimeError } from "../errors";
 import { compare, truthy } from "../runtimeValues";
 import { BuiltinFunction } from "../types";
 import { arity, validateType } from "../util";
@@ -87,6 +88,13 @@ const matchBinaryOp: BuiltinFunction = arity(2, (args, stack, exec) =>
   match(args.slice().reverse(), stack, exec)
 );
 
+const divide = numericBinaryOperator((a, b) => {
+  if (b === 0) {
+    throw new RuntimeError("Division by zero");
+  }
+  return (a / b);
+});
+
 export default {
   apply,
   count,
@@ -128,7 +136,7 @@ export default {
   "+": plus,
   "-": numericBinaryOperator((a, b) => a - b),
   "*": numericBinaryOperator((a, b) => a * b),
-  "/": numericBinaryOperator((a, b) => a / b),
+  "/": divide,
   "%": numericBinaryOperator((a, b) => a % b),
   "||": or,
   "&&": and,
