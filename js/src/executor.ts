@@ -14,10 +14,17 @@ import {
 
 
 export const inputGardenWall = (data: unknown) => {
-  if (["number", "boolean", "string"].indexOf(typeof data) > -1) {
+  if (typeof data === "number" || data instanceof Number) {
+    let number = data instanceof Number ? data.valueOf() : data;
+    if (Number.isNaN(number) || !Number.isFinite(number)) {
+      return null;
+    }
+    return number;
+  }
+  if (["boolean", "string"].indexOf(typeof data) > -1) {
     return data;
   }
-  if (data instanceof Number || data instanceof Boolean || data instanceof String) {
+  if (data instanceof Boolean || data instanceof String) {
     return data.valueOf();
   }
   if (data instanceof Date) {

@@ -57,6 +57,24 @@ describe("executor", () => {
       assert.deepStrictEqual(inputGardenWall(new Boolean(true)), true);
     });
 
+    it("coerces NaN to null internally", () => {
+      assert.deepStrictEqual(inputGardenWall(NaN), null);
+    });
+
+    it("coerces infinity to null internally", () => {
+      assert.deepStrictEqual(inputGardenWall(Infinity), null);
+      assert.deepStrictEqual(inputGardenWall(-Infinity), null);
+    });
+
+    it("coerces object-number NaN to null internally", () => {
+      assert.deepStrictEqual(inputGardenWall(new Number(NaN)), null);
+    });
+
+    it("coerces object-number infinity to null internally", () => {
+      assert.deepStrictEqual(inputGardenWall(new Number(Infinity)), null);
+      assert.deepStrictEqual(inputGardenWall(new Number(-Infinity)), null);
+    });
+
     it("coerces own properties", () => {
       function foo() { }
       foo.hi = "doc";
