@@ -4,7 +4,7 @@ from typing import Any, List, Tuple
 import pytest
 from mistql import query
 
-with open("shared/testdata.json") as f:
+with open("shared/testdata.json", "rb") as f:
     testdata = json.load(f)
 
 
