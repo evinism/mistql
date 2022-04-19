@@ -5,8 +5,15 @@ from mistql.cli import main
 nice_string = '{"hello": "there"}'
 
 
-naughty_string = '{"hello": true,"unicode": ",。・:*:・゜’( ☻ ω ☻ )。・:*:・゜’",' + \
-                 '"emojis":"👾 🙇 💁 🙅 🙆 🙋 🙎 🙍"}'
+naughty_strings = [
+    '{"key": ",。・:*:・゜’( ☻ ω ☻ )。・:*:・゜’"}',
+    '{"key": "👾 🙇 💁 🙅 🙆 🙋 🙎 🙍"}',
+    '{"key": "👨‍👩‍👦 👨‍👩‍👧‍👦 👨‍👨‍👦 👩‍👩‍👧 👨‍👦 👨‍👧‍👦 👩‍👦 👩‍👧‍👦"}',
+    '{"key": "̡͓̞ͅI̗̘̦͝n͇͇͙v̮̫ok̲̫̙͈i̖͙̭̹̠̞n̡̻̮̣̺g̲͈͙̭͙̬͎ ̰t͔̦h̞̲e̢̤ ͍̬̲͖f̴̘͕̣è͖ẹ̥̩l͖͔͚i͓͚̦͠n͖͍̗͓̳̮g͍ ̨o͚̪͡f̘̣̬ ̖̘͖̟͙̮c҉͔̫͖͓͇͖ͅh̵̤̣͚͔á̗̼͕ͅo̼̣̥s̱͈̺̖̦̻͢.̛̖̞̠̫̰"}'  # noqa: E501
+]
+
+
+all_strings = [nice_string] + naughty_strings
 
 
 def enc_helper(encoding, string):
@@ -21,13 +28,18 @@ def enc_helper(encoding, string):
 
 
 def test_encoding_utf8():
-    enc_helper("utf-8", nice_string)
-    # enc_helper("utf-8", naughty_string)
+    for string in all_strings:
+        enc_helper("utf-8", string)
 
 
 def test_encoding_utf16():
-    enc_helper("utf-16", nice_string)
-    # enc_helper("utf-16", naughty_string)
+    for string in all_strings:
+        enc_helper("utf-16", string)
+
+
+def test_encoding_utf32():
+    for string in all_strings:
+        enc_helper("utf-32", string)
 
 
 def test_encoding_ascii():

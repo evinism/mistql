@@ -49,8 +49,14 @@ def main(supplied_args=None):
     data = json.loads(raw_data)
     out = query(args.query, data)
     if args.output:
-        with open(args.output, "w") as f:
-            json.dump(out, f, indent=2 if args.pretty else None)
+        # TODO: Allow alternate output encodings other than utf-8
+        out_bytes = json.dumps(
+            out,
+            indent=2 if args.pretty else None,
+            ensure_ascii=False
+        ).encode("utf-8")
+        with open(args.output, "wb") as f:
+            f.write(out_bytes)
     else:
         print(json.dumps(out, indent=2 if args.pretty else None))
 
