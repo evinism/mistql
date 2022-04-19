@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from typing import Union
 import argparse
 from mistql import __version__
 from mistql import query
@@ -37,15 +38,14 @@ def main(supplied_args=None):
         args = parser.parse_args()
     else:
         args = parser.parse_args(supplied_args)
-    raw_data: str
-
-    if args.file:
-        with open(args.file) as f:
-            raw_data = f.read()
-    elif args.data:
+    raw_data: Union[str, bytes]
+    if args.data:
         raw_data = args.data
+    elif args.file:
+        with open(args.file, 'rb') as f:
+            raw_data = f.read()
     else:
-        raw_data = sys.stdin.read()
+        raw_data = sys.stdin.buffer.read()
     data = json.loads(raw_data)
     out = query(args.query, data)
     if args.output:
@@ -56,20 +56,4 @@ def main(supplied_args=None):
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    raw_data: str
-
-    if args.file:
-        with open(args.file) as f:
-            raw_data = f.read()
-    elif args.data:
-        raw_data = args.data
-    else:
-        raw_data = sys.stdin.read()
-    data = json.loads(raw_data)
-    out = query(args.query, data)
-    if args.output:
-        with open(args.output, "w") as f:
-            json.dump(out, f, indent=2 if args.pretty else None)
-    else:
-        print(json.dumps(out, indent=2 if args.pretty else None))
+    main()
