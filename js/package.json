@@ -1,6 +1,6 @@
 {
   "name": "mistql",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "JS implementation of miniature query language",
   "main": "dist/umd/index.js",
   "module": "dist/esm/index.js",
