@@ -9,16 +9,16 @@ MistQL has 8 core datatypes, many of which correspond to their JSON counterparts
 External types are types that can be either provided or returned by a MistQL query. All other
 types are considered internal and cannot be provided to or returned from MistQL. 
 
-| Type     | Primitive | External | Comment                       |
-| -------- | --------- | -------- | ----------------------------- |
-| string   | ✔         | ✔        |                               |
-| number   | ✔         | ✔        | Double-precision float        |
-| boolean  | ✔         | ✔        |                               |
-| null     | ✔         | ✔        |                               |
-| object   |           | ✔        | Stringly typed keys           |
-| array    |           | ✔        | Can be nonhomogenous          |
-| function |           |          | Arity not part of type system |
-| regex    |           |          |                               |
+| Type     | Primitive | External | Comment                          |
+| -------- | --------- | -------- | -------------------------------- |
+| string   | ✔         | ✔        |                                  |
+| number   | ✔         | ✔        | Doubles, without NaN or infinity |
+| boolean  | ✔         | ✔        |                                  |
+| null     | ✔         | ✔        |                                  |
+| object   |           | ✔        | Stringly typed keys              |
+| array    |           | ✔        | Can be nonhomogenous             |
+| function |           |          | Arity not part of type system    |
+| regex    |           |          |                                  |
 
 ## Type Equality
 
