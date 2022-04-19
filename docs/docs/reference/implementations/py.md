@@ -47,6 +47,8 @@ itself.
 | `None` | `null` | |
 | `list` | `array` | |
 | `tuple` | `array` | |
-| `Date` | `date.toISOString()` | |
+| `datetime.date` | `date.isoformat()` | |
+| `datetime.time` | `time.isoformat()` | |
+| `datetime.datetime` | `datetime.isoformat()` | |
 | Anything else | Error | |
 

@@ -1,8 +1,9 @@
-from math import isfinite, isnan
-from enum import Enum
-from typing import Any, Callable, Dict, Union, Set
 import json
 import re
+from datetime import date, datetime, time
+from enum import Enum
+from math import isfinite, isnan
+from typing import Any, Callable, Dict, Set, Union
 
 from mistql.exceptions import MistQLTypeError
 
@@ -78,6 +79,10 @@ class RuntimeValue:
                 RuntimeValueType.Object,
                 {key: RuntimeValue.of(value[key]) for key in value},
             )
+        elif (isinstance(value, date) or
+                isinstance(value, datetime) or
+                isinstance(value, time)):
+            return RuntimeValue(RuntimeValueType.String, value.isoformat())
         else:
             raise ValueError(
                 "Cannot convert external type to MistQL type: " + str(type(value))
