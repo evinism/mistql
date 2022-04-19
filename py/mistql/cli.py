@@ -58,7 +58,7 @@ def main(supplied_args=None):
         with open(args.output, "wb") as f:
             f.write(out_bytes)
     else:
-        print(json.dumps(out, indent=2 if args.pretty else None))
+        print(json.dumps(out, indent=2 if args.pretty else None, ensure_ascii=False))
 
 
 if __name__ == "__main__":
