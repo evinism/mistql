@@ -516,14 +516,18 @@
                   "data": {
                     "toggle": true
                   },
-                  "expected": ["one"]
+                  "expected": [
+                    "one"
+                  ]
                 },
                 {
                   "query": "(if toggle keys values) {one: \"two\"}",
                   "data": {
                     "toggle": false
                   },
-                  "expected": ["two"]
+                  "expected": [
+                    "two"
+                  ]
                 }
               ]
             }
@@ -2521,6 +2525,41 @@
                     true,
                     true
                   ]
+                }
+              ]
+            },
+            {
+              "it": "fails to sort nonhomogenous arrays",
+              "assertions": [
+                {
+                  "query": "[1, \"a\", true, false] | sort",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[{}, 2, [], 4, 5] | sort",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "fails to sort arrays of objects",
+              "assertions": [
+                {
+                  "query": "[{}, {}, {}] | sort",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "fails to sort arrays of arrays",
+              "assertions": [
+                {
+                  "query": "[[2], [1], [3]] | sort",
+                  "data": {},
+                  "throws": true
                 }
               ]
             }
