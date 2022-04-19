@@ -37,15 +37,16 @@ If this correspondence doesn't work for you for some reason, please open an issu
 describe the situation carefully. This correspondence is easier to change than the language
 itself.
 
-| Value | MistQL Value |
-|---|---|
-| `number` | `double` |
-| `boolean` | `boolean` |
-| `string` | `string` |
-| `dict` | `object` |
-| `None` | `null` |
-| `list` | `array` |
-| `tuple` | `array` |
-| `Date` | `date.toISOString()` |
-| Anything else | Error |
+| Value | MistQL Value | Notes |
+|---|---|---|
+| `int` | `number` | Infinity and NaN casted to `null` |
+| `float` | `number` | |
+| `boolean` | `boolean` | |
+| `string` | `string` | |
+| `dict` | `object` | |
+| `None` | `null` | |
+| `list` | `array` | |
+| `tuple` | `array` | |
+| `Date` | `date.toISOString()` | |
+| Anything else | Error | |
 

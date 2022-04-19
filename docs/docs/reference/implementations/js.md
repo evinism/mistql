@@ -32,20 +32,20 @@ If this correspondence doesn't work for you for some reason, please open an issu
 describe the situation carefully. This correspondence is easier to change than the language
 itself.
 
-| Value | MistQL Value |
-|---|---|
-| `number` | `double` |
-| `boolean` | `boolean` |
-| `string` | `string` |
-| `object` | `object` |
-| `null` | `null` |
-| `array` | `array` |
-| `undefined` | `null` |
-| `function` | `object` with enumerated properties |
-| `Number` object | `double` |
-| `Boolean` object | `boolean` |
-| `String` object | `string` |
-| `Date` | `date.toISOString()` |
-| `Symbol` | `symbol.toString()` |
-| Anything else | `object` with enumerated properties |
+| Value | MistQL Value | Notes |
+|---|---|---|
+| `number` | `number` | Infinity and NaN casted to `null` |
+| `boolean` | `boolean` | |
+| `string` | `string` | |
+| `object` | `object` | |
+| `null` | `null` | |
+| `array` | `array` | |
+| `undefined` | `null` | |
+| `function` | `object` with enumerated properties | |
+| `Number` object | `number` | |
+| `Boolean` object | `boolean` | |
+| `String` object | `string` | |
+| `Date` | `date.toISOString()` | |
+| `Symbol` | `symbol.toString()` | |
+| Anything else | `object` with enumerated properties | |
 
