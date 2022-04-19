@@ -10,12 +10,14 @@ naughty_string = '{"hello": true,"unicode": ",。・:*:・゜’( ☻ ω ☻ )�
 
 
 def enc_helper(encoding, string):
-    input_file = tempfile.NamedTemporaryFile()
+    input_file = tempfile.NamedTemporaryFile(delete=False)
     input_file.write(string.encode(encoding))
-    input_file.flush()
-    output_file = tempfile.NamedTemporaryFile()
+    input_file.close()
+    output_file = tempfile.NamedTemporaryFile(delete=False)
+    output_file.close()
     main(["@", "--file", input_file.name, "--output", output_file.name])
-    assert output_file.read().decode("utf-8") == string
+    with open(output_file.name, "rb") as f:
+        assert f.read().decode("utf-8") == string
 
 
 def test_encoding_utf8():
