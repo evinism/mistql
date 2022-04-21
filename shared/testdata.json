@@ -2562,6 +2562,26 @@
                   "throws": true
                 }
               ]
+            },
+            {
+              "it": "fails to sort single-element arrays of non-sortable types",
+              "assertions": [
+                {
+                  "query": "[{}] | sort",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[[]] | sort",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[regex \"x\"] | sort",
+                  "data": {},
+                  "throws": true
+                }
+              ]
             }
           ]
         },
@@ -2600,6 +2620,26 @@
                     2,
                     3
                   ]
+                }
+              ]
+            },
+            {
+              "it": "fails to sort unsortable keys",
+              "assertions": [
+                {
+                  "query": "[{a: []}, {a: 1}, {a: 2}] | sortby a",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[{a: 3}, {a: regex \"hello\"}, {a: 2}] | sortby a",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[{a: {}}] | sortby a",
+                  "data": {},
+                  "throws": true
                 }
               ]
             }
