@@ -1,19 +1,13 @@
-from typing import List, Dict, Callable, Tuple, Union
-from mistql.runtime_value import RuntimeValue, RuntimeValueType, assert_type
-from mistql.expression import BaseExpression
-from mistql.stack import Stack
-from mistql.expression import RefExpression
-from mistql.stack import add_runtime_value_to_stack
 import re
-from functools import cmp_to_key
 import statistics
+from functools import cmp_to_key
+from typing import Callable, Dict, List, Tuple, Union
 
-from mistql.exceptions import (
-    MistQLRuntimeError,
-    MistQLTypeError,
-    OpenAnIssueIfYouGetThisError,
-)
-
+from mistql.exceptions import (MistQLRuntimeError, MistQLTypeError,
+                               OpenAnIssueIfYouGetThisError)
+from mistql.expression import BaseExpression, RefExpression
+from mistql.runtime_value import RuntimeValue, RuntimeValueType, assert_type
+from mistql.stack import Stack, add_runtime_value_to_stack
 
 Args = List[BaseExpression]
 Exec = Callable[[BaseExpression, Stack], RuntimeValue]
@@ -372,6 +366,9 @@ def regex(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("sort", 1)
 def sort(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     arg = assert_type(exec(arguments[0], stack), RVT.Array)
+    for entry in arg.value:
+        if not entry.comparable():
+            raise MistQLRuntimeError("sort: Cannot sort non-comparable values")
     return RuntimeValue.of(
         list(sorted(arg.value, key=cmp_to_key(RuntimeValue.compare)))
     )
@@ -384,6 +381,8 @@ def sortby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     with_key: WithKey = []
     for item in target.value:
         key = exec(arguments[0], add_runtime_value_to_stack(item, stack))
+        if not key.comparable():
+            raise MistQLRuntimeError("sort: Cannot sort non-comparable values")
         with_key.append((key, item))
 
     def cmp(a: Tuple[RuntimeValue, RuntimeValue], b: Tuple[RuntimeValue, RuntimeValue]):

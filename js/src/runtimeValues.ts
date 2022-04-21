@@ -74,6 +74,15 @@ export const getType = (a: RuntimeValue): RuntimeValueType => {
   }
 };
 
+export const comparable = (a: RuntimeValue) => {
+  const type = getType(a);
+  if (type === "string" || type === "number" || type === "boolean" || type === "null") {
+    return true;
+  } else {
+    return false;
+  }
+};
+
 export const compare = (a: RuntimeValue, b: RuntimeValue): number => {
   const varType = getType(a);
   if (varType !== getType(b)) {

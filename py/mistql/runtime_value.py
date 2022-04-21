@@ -156,6 +156,17 @@ class RuntimeValue:
         else:
             raise ValueError("Cannot compare MistQL values of type " + str(a.type))
 
+    def comparable(self) -> bool:
+        """
+        Check if the value is comparable
+        """
+        return self.type in (
+            RuntimeValueType.Boolean,
+            RuntimeValueType.Number,
+            RuntimeValueType.String,
+            RuntimeValueType.Null,
+        )
+
     def __lt__(self, __o: object):
         if not isinstance(__o, RuntimeValue):
             raise ValueError("Cannot compare MistQL value to non-MistQL value")
