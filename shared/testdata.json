@@ -392,6 +392,31 @@
                   "expected": true
                 }
               ]
+            },
+            {
+              "it": "fails to output non-external types",
+              "assertions": [
+                {
+                  "query": "map",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "{a: count}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "[[[[[groupby]]]]]",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "[regex \"x\"]",
+                  "data": null,
+                  "throws": true
+                }
+              ]
             }
           ]
         },
