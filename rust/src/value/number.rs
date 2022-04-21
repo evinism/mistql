@@ -1,5 +1,6 @@
 use crate::{Error, Result};
 use std::cmp::Ordering;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Clone, Debug)]
 pub enum Number {
@@ -56,6 +57,58 @@ impl Ord for Number {
                 l.partial_cmp(&(*r as f64)).unwrap()
             }
             _ => unreachable!(), // need to forbid NaN from existing elsewhere
+        }
+    }
+}
+
+impl Add for Number {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        match (self, other) {
+            (Number::Int(l), Number::Int(r)) => (Number::Int(l + r)),
+            (Number::Int(l), Number::Float(r)) => (Number::Float(l as f64 + r)),
+            (Number::Float(l), Number::Int(r)) => (Number::Float(l + r as f64)),
+            (Number::Float(l), Number::Float(r)) => (Number::Float(l + r)),
+        }
+    }
+}
+
+impl Sub for Number {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        match (self, other) {
+            (Number::Int(l), Number::Int(r)) => (Number::Int(l - r)),
+            (Number::Int(l), Number::Float(r)) => (Number::Float(l as f64 - r)),
+            (Number::Float(l), Number::Int(r)) => (Number::Float(l - r as f64)),
+            (Number::Float(l), Number::Float(r)) => (Number::Float(l - r)),
+        }
+    }
+}
+
+impl Mul for Number {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self::Output {
+        match (self, other) {
+            (Number::Int(l), Number::Int(r)) => (Number::Int(l * r)),
+            (Number::Int(l), Number::Float(r)) => (Number::Float(l as f64 * r)),
+            (Number::Float(l), Number::Int(r)) => (Number::Float(l * r as f64)),
+            (Number::Float(l), Number::Float(r)) => (Number::Float(l * r)),
+        }
+    }
+}
+
+impl Div for Number {
+    type Output = Self;
+
+    fn div(self, other: Self) -> Self::Output {
+        match (self, other) {
+            (Number::Int(l), Number::Int(r)) => (Number::Int(l / r)),
+            (Number::Int(l), Number::Float(r)) => (Number::Float(l as f64 / r)),
+            (Number::Float(l), Number::Int(r)) => (Number::Float(l / r as f64)),
+            (Number::Float(l), Number::Float(r)) => (Number::Float(l / r)),
         }
     }
 }
