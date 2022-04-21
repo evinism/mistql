@@ -19,6 +19,7 @@ mod map;
 mod reduce;
 pub mod regex;
 mod reverse;
+mod sort;
 mod string;
 mod sum;
 mod summarize;
@@ -57,7 +58,8 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "replace" => Err(Error::unimplemented(format!("function {}", function))),
         "reverse" => reverse::reverse(function_iter, data, context),
         "sequence" => Err(Error::unimplemented(format!("function {}", function))),
-        "sort" | "sortby" => Err(Error::unimplemented(format!("function {}", function))),
+        "sort" => sort::sort(function_iter, data, context),
+        "sortby" => sort::sortby(function_iter, data, context),
         "split" => regex::split(function_iter, data, context),
         "string" => string::string(function_iter, data, context),
         "stringjoin" => Err(Error::unimplemented(format!("function {}", function))),
