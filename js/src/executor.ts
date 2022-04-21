@@ -51,9 +51,22 @@ export const inputGardenWall = (data: unknown) => {
 export const outputGardenWall = (data: unknown) => {
   const outputType = getType(data)
   if (outputType === "function" || outputType === "regex") {
-    throw new RuntimeError(`Return value of query is "${outputType}", aborting!`);
+    throw new RuntimeError(
+      `Return value of query is "${outputType}", aborting!`
+    );
+  } else if (outputType === "array") {
+    return (data as any[]).map((datum) => outputGardenWall(datum));
+  } else if (outputType === "object") {
+    const output: { [str: string]: any } = {};
+    for (let i in data as any) {
+      if (data.hasOwnProperty(i)) {
+        output[i] = outputGardenWall(data[i]);
+      }
+    }
+    return output;
+  } else {
+    return data;
   }
-  return inputGardenWall(data);
 };
 
 export const execute = (node: ASTExpression, variables: unknown) => {
