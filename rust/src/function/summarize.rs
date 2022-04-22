@@ -32,7 +32,7 @@ pub fn summarize(
             let mut result = BTreeMap::new();
             result.insert("max".to_string(), max(&nums));
             result.insert("min".to_string(), min(&nums));
-            result.insert("mean".to_string(), Value::Number(mean.clone()));
+            result.insert("mean".to_string(), Value::Number(mean));
             result.insert("median".to_string(), median(&nums));
             result.insert("variance".to_string(), variance.clone());
             result.insert("stddev".to_string(), sqrt(variance)?);
@@ -47,27 +47,27 @@ pub fn summarize(
 
 fn max(arr: &Vec<Number>) -> Value {
     // safe unwrap - we know the vec has at least one element
-    Value::Number(arr.last().unwrap().clone())
+    Value::Number(*arr.last().unwrap())
 }
 
 fn min(arr: &Vec<Number>) -> Value {
     // safe unwrap - we know the vec has at least one element
-    Value::Number(arr.first().unwrap().clone())
+    Value::Number(*arr.first().unwrap())
 }
 
 fn mean(arr: &Vec<Number>) -> Number {
-    let sum = arr.iter().fold(Number::Int(0), |acc, x| acc + x.clone());
+    let sum = arr.iter().fold(Number::Int(0), |acc, x| acc + *x);
     sum / Number::Int(arr.len() as i64)
 }
 
 fn median(arr: &Vec<Number>) -> Value {
     let res = match arr.len() {
         even if even % 2 == 0 => {
-            let low = arr[even / 2].clone();
-            let high = arr[(even / 2) + 1].clone();
+            let low = arr[even / 2];
+            let high = arr[(even / 2) + 1];
             (low + high) / Number::Int(2)
         }
-        odd => arr[odd / 2].clone(),
+        odd => arr[odd / 2],
     };
     Value::Number(res)
 }
@@ -76,8 +76,8 @@ fn variance(arr: &Vec<Number>, mean: &Number) -> Value {
     let sum_of_diffs = arr
         .iter()
         .map(|val| {
-            let diff = mean.clone() - val.clone();
-            diff.clone() * diff
+            let diff = *mean - *val;
+            diff * diff
         })
         .fold(Number::Float(0.0), |acc, x| acc + x);
     Value::Number(sum_of_diffs / Number::Int(arr.len() as i64 - 1))

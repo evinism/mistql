@@ -11,8 +11,8 @@ pub fn sum(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -
 
     match arg {
         Value::Array(arr) => arr
-            .iter()
-            .try_fold(Value::Number(Number::Int(0)), |acc, x| add(acc, x.clone())),
+            .into_iter()
+            .try_fold(Value::Number(Number::Int(0)), |acc, x| add(acc, x)),
         _ => Err(Error::eval(format!(
             "argument to sum must be an array (got {:?}",
             arg
