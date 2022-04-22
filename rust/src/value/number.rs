@@ -2,7 +2,7 @@ use crate::{Error, Result};
 use std::cmp::Ordering;
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Number {
     Int(i64),
     Float(f64),
