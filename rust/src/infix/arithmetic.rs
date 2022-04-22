@@ -25,7 +25,10 @@ pub fn multiply(left: Value, right: Value) -> Result<Value> {
 
 pub fn divide(left: Value, right: Value) -> Result<Value> {
     match (left, right) {
-        (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l / r)),
+        (Value::Number(l), Value::Number(r)) if r != Number::Int(0) => Ok(Value::Number(l / r)),
+        (Value::Number(_), Value::Number(_)) => {
+            Err(Error::eval("can't divide by zero".to_string()))
+        }
         _ => Err(Error::eval("can't divide non-numbers".to_string())),
     }
 }
