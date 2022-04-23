@@ -55,7 +55,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "match" => regex::match_fn(function_iter, data, context),
         "reduce" => reduce::reduce(function_iter, data, context),
         "regex" => regex::regex(function_iter, data, context),
-        "replace" => Err(Error::unimplemented(format!("function {}", function))),
+        "replace" => regex::replace(function_iter, data, context),
         "reverse" => reverse::reverse(function_iter, data, context),
         "sequence" => Err(Error::unimplemented(format!("function {}", function))),
         "sort" => sort::sort(function_iter, data, context),

@@ -106,3 +106,59 @@ pub fn split(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>)
             .collect(),
     ))
 }
+
+pub fn replace(
+    mut arg_itr: Pairs<Rule>,
+    data: &Value,
+    context_opt: Option<Value>,
+) -> Result<Value> {
+    let (pattern_val, target_val, replacement_val) = match (
+        context_opt,
+        arg_itr.next(),
+        arg_itr.next(),
+        arg_itr.next(),
+        arg_itr.next(),
+    ) {
+        (Some(target), Some(pattern), Some(replacement), None, None) => (
+            expr::eval(pattern, data, None)?,
+            target,
+            expr::eval(replacement, data, None)?,
+        ),
+        (None, Some(pattern), Some(target), Some(replacement), None) => (
+            expr::eval(pattern, data, None)?,
+            expr::eval(target, data, None)?,
+            expr::eval(replacement, data, None)?,
+        ),
+        _ => {
+            return Err(Error::eval(
+                "replace requires a regex and a target".to_string(),
+            ))
+        }
+    };
+
+    let pattern = match pattern_val {
+        Value::Regex(s, _) | Value::String(s) => match Regex::new(&s) {
+            Ok(pat) => Ok(pat),
+            Err(err) => Err(Error::regex(err)),
+        },
+        _ => Err(Error::eval(
+            "split pattern must be a regex or a string".to_string(),
+        )),
+    }?;
+
+    let target = match target_val {
+        Value::String(s) => Ok(s),
+        _ => Err(Error::eval("split target must be a string".to_string())),
+    }?;
+
+    let replacement = match replacement_val {
+        Value::String(s) => Ok(s),
+        _ => Err(Error::eval(
+            "replace replacement must be a string".to_string(),
+        )),
+    }?;
+
+    Ok(Value::String(
+        pattern.replace(&target, replacement).to_string(),
+    ))
+}
