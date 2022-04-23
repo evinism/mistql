@@ -1,4 +1,6 @@
 use pest::iterators::Pair;
+use regex::Regex;
+use snailquote::unescape;
 
 use crate::{Error, Result, Rule, Value};
 
@@ -13,11 +15,16 @@ pub fn eval(pair: Pair<Rule>) -> Result<Value> {
         Rule::number => Ok(Value::Number(crate::value::Number::try_from(
             pair.as_str(),
         )?)),
-        Rule::string => Ok(Value::String(
-            pair.into_inner().next().unwrap().as_str().to_string(),
-        )),
+        Rule::string => Ok(Value::String(unescape_string(pair)?)),
         _ => Err(Error::unimplemented(format!("terminal {:?}", pair))),
     }
+}
+
+fn unescape_string(pair: Pair<Rule>) -> Result<String> {
+    let re = Regex::new(r"\\u([[:xdigit:]]{2,4})").unwrap();
+    let str = re.replace_all(pair.as_str(), r"\u{$1}");
+
+    Ok(String::from(unescape(&str)?))
 }
 
 #[cfg(test)]
@@ -240,9 +247,10 @@ mod tests {
 
     #[test]
     fn parse_escaped_escapes() {
+        let query = "\"\\\"\"";
         parses_to! {
             parser: MistQLParser,
-            input: "\"\\\"\"",
+            input: query,
             rule: Rule::query,
             tokens: [
                 string(0,4, [
@@ -250,13 +258,17 @@ mod tests {
                 ])
             ]
         }
+
+        let result = crate::query(query.to_string(), "null".to_string()).unwrap();
+        assert_eq!(result, serde_json::Value::String("\"".to_string()))
     }
 
     #[test]
     fn parse_unicodes() {
+        let query = "\"\\u0022\\\\\\\"\"";
         parses_to! {
             parser: MistQLParser,
-            input: "\"\\u0022\\\\\\\"\"",
+            input: query,
             rule: Rule::query,
             tokens: [
                 string(0,12, [
@@ -264,13 +276,17 @@ mod tests {
                 ])
             ]
         }
+
+        let result = crate::query(query.to_string(), "null".to_string()).unwrap();
+        assert_eq!(result, serde_json::Value::String("\"\\\"".to_string()))
     }
 
     #[test]
     fn parse_all_the_escapes() {
+        let query = "\"\\u0022\\\\\\\"\\b\\r\\n\"";
         parses_to! {
             parser: MistQLParser,
-            input: "\"\\u0022\\\\\\\"\\b\\r\\n\"",
+            input: query,
             rule: Rule::query,
             tokens: [
                 string(0,18, [
@@ -282,9 +298,10 @@ mod tests {
 
     #[test]
     fn parse_double_escapes() {
+        let query = "\"\\\\s\"";
         parses_to! {
             parser: MistQLParser,
-            input: "\"\\\\s\"",
+            input: query,
             rule: Rule::query,
             tokens: [
                 string(0,5, [
@@ -292,5 +309,8 @@ mod tests {
                 ])
             ]
         }
+
+        let result = crate::query(query.to_string(), "null".to_string()).unwrap();
+        assert_eq!(result, serde_json::Value::String("\\s".to_string()))
     }
 }

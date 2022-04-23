@@ -1,3 +1,4 @@
+use snailquote::UnescapeError;
 use std::error::Error as StdError;
 use std::fmt;
 
@@ -34,6 +35,15 @@ impl fmt::Display for Error {
             ErrorKind::Query(msg) => write!(f, "Query error: {}", msg),
             ErrorKind::Eval(msg) => write!(f, "Eval error: {}", msg),
             ErrorKind::Unimplemented(msg) => write!(f, "Unimplemented: {}", msg),
+        }
+    }
+}
+
+impl From<UnescapeError> for Error {
+    fn from(err: UnescapeError) -> Self {
+        Self {
+            kind: ErrorKind::JSON,
+            source: Some(Box::new(err)),
         }
     }
 }
