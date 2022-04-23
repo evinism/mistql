@@ -52,7 +52,11 @@ pub fn match_fn(
 
 pub fn match_op(left: Value, right: Value) -> Result<Value> {
     let pattern = match right {
-        Value::Regex(_, _) | Value::String(_) => match Regex::new(&right.to_string()) {
+        Value::String(s) | Value::Regex(s, None) => match Regex::new(&s) {
+            Ok(pat) => Ok(pat),
+            Err(err) => Err(Error::regex(err)),
+        },
+        Value::Regex(pat, Some(flags)) => match Regex::new(&format!("(?{}){}", flags, pat)) {
             Ok(pat) => Ok(pat),
             Err(err) => Err(Error::regex(err)),
         },
@@ -136,9 +140,13 @@ pub fn replace(
         }
     };
 
-    let pattern = match pattern_val {
-        Value::Regex(s, _) | Value::String(s) => match Regex::new(&s) {
-            Ok(pat) => Ok(pat),
+    let (pattern, flags) = match pattern_val {
+        Value::Regex(s, None) | Value::String(s) => match Regex::new(&s) {
+            Ok(pat) => Ok((pat, "".to_string())),
+            Err(err) => Err(Error::regex(err)),
+        },
+        Value::Regex(s, Some(f)) => match Regex::new(&s) {
+            Ok(pat) => Ok((pat, f)),
             Err(err) => Err(Error::regex(err)),
         },
         _ => Err(Error::eval(
@@ -158,7 +166,13 @@ pub fn replace(
         )),
     }?;
 
-    Ok(Value::String(
-        pattern.replace(&target, replacement).to_string(),
-    ))
+    if flags.contains("g") {
+        Ok(Value::String(
+            pattern.replace_all(&target, replacement).to_string(),
+        ))
+    } else {
+        Ok(Value::String(
+            pattern.replace(&target, replacement).to_string(),
+        ))
+    }
 }
