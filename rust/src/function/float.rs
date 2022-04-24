@@ -19,7 +19,7 @@ pub fn float(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>)
         Value::Boolean(false) => Ok(Value::Number(Number::Float(0.0))),
         Value::Null => Ok(Value::Number(Number::Float(0.0))),
         _ => Err(Error::eval(format!(
-            "argument {} does not cast to float",
+            "argument {:?} does not cast to float",
             arg
         ))),
     }

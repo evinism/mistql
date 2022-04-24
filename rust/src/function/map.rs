@@ -213,7 +213,7 @@ mod tests {
         map.insert("a".to_string(), Value::Number(Number::Int(2)));
         map.insert("b".to_string(), Value::Number(Number::Int(3)));
         map.insert("c".to_string(), Value::Number(Number::Int(4)));
-        let expected: serde_json::Value = Value::Object(map).into();
+        let expected: serde_json::Value = Value::Object(map).try_into().unwrap();
         assert_eq!(result, expected)
     }
 
@@ -276,7 +276,7 @@ mod tests {
         map.insert("a".to_string(), Value::Number(Number::Int(1)));
         map.insert("b".to_string(), Value::Number(Number::Int(2)));
         map.insert("c".to_string(), Value::Number(Number::Int(3)));
-        let expected: serde_json::Value = Value::Object(map).into();
+        let expected: serde_json::Value = Value::Object(map).try_into().unwrap();
         assert_eq!(result, expected)
     }
 
