@@ -1,4 +1,5 @@
 use super::{Number, Value};
+use crate::{Error, Result};
 use std::collections::BTreeMap;
 
 impl From<serde_json::Value> for Value {
@@ -26,25 +27,31 @@ impl From<serde_json::Value> for Value {
     }
 }
 
-impl From<Value> for serde_json::Value {
-    fn from(val: Value) -> Self {
+impl TryFrom<Value> for serde_json::Value {
+    type Error = Error;
+
+    fn try_from(val: Value) -> Result<Self> {
         match val {
-            Value::Null => serde_json::Value::Null,
-            Value::Boolean(b) => serde_json::Value::Bool(b),
-            Value::Number(Number::Int(i)) => serde_json::Value::from(i),
-            Value::Number(Number::Float(f)) => serde_json::Value::from(f),
-            Value::String(s) => serde_json::Value::String(s),
-            Value::Array(a) => {
-                serde_json::Value::Array(a.iter().map(|elt| elt.clone().into()).collect())
-            }
-            Value::Object(o) => serde_json::Value::Object(serde_json::Map::from_iter(
-                o.iter().map(|(k, v)| (k.clone(), v.clone().into())),
+            Value::Null => Ok(serde_json::Value::Null),
+            Value::Boolean(b) => Ok(serde_json::Value::Bool(b)),
+            Value::Number(Number::Int(i)) => Ok(serde_json::Value::from(i)),
+            Value::Number(Number::Float(f)) => Ok(serde_json::Value::from(f)),
+            Value::String(s) => Ok(serde_json::Value::String(s)),
+            Value::Array(a) => Ok(serde_json::Value::Array(
+                a.iter()
+                    .map(|elt| elt.clone().try_into())
+                    .collect::<Result<Vec<serde_json::Value>>>()?,
             )),
-            Value::Ident(s) => serde_json::Value::String(s),
-            Value::Regex(exp, Some(flags)) => {
-                serde_json::Value::String(format!("regex {} {}", exp, flags))
+            Value::Object(o) => {
+                let mut fields: serde_json::Map<std::string::String, serde_json::Value> =
+                    serde_json::Map::new();
+                for (k, v) in o.iter() {
+                    fields.insert(k.clone(), v.clone().try_into()?);
+                }
+                Ok(serde_json::Value::Object(fields))
             }
-            Value::Regex(exp, None) => serde_json::Value::String(format!("regex {}", exp)),
+            Value::Ident(s) => Ok(serde_json::Value::String(s)),
+            Value::Regex(_, _) => Err(Error::eval("can't convert regex to JSON".to_string())),
         }
     }
 }

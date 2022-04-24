@@ -29,7 +29,7 @@ pub fn query_value(query_str: String, data: serde_json::Value) -> Result<serde_j
     match MistQLParser::parse(Rule::query, &query_str) {
         Err(err) => Err(Error::query(err.to_string())),
         Ok(mut pair) => match expr::eval(pair.next().unwrap(), &data.into(), None) {
-            Ok(val) => Ok(val.into()),
+            Ok(val) => Ok(val.try_into()?),
             Err(e) => Err(e),
         },
     }
