@@ -21,6 +21,7 @@ pub mod regex;
 mod reverse;
 mod sort;
 mod string;
+mod stringjoin;
 mod sum;
 mod summarize;
 mod values;
@@ -62,7 +63,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "sortby" => sort::sortby(function_iter, data, context),
         "split" => regex::split(function_iter, data, context),
         "string" => string::string(function_iter, data, context),
-        "stringjoin" => Err(Error::unimplemented(format!("function {}", function))),
+        "stringjoin" => stringjoin::stringjoin(function_iter, data, context),
         "sum" => sum::sum(function_iter, data, context),
         "summarize" => summarize::summarize(function_iter, data, context),
         "values" => values::values(function_iter, data, context),
