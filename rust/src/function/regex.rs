@@ -83,7 +83,7 @@ pub fn split(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>)
             ),
             _ => {
                 return Err(Error::eval(
-                    "aplit requires a regex and a target".to_string(),
+                    "split requires a regex and a target".to_string(),
                 ))
             }
         };
