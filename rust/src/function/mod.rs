@@ -114,9 +114,10 @@ mod tests {
 
     #[test]
     fn functions_are_first_class_citizens() {
+        let query = "(if toggle keys values) {one: \"two\"}";
         parses_to! {
             parser: MistQLParser,
-            input: "(if toggle keys values) {one: \"two\"}",
+            input: query,
             rule: Rule::query,
             tokens: [
                 function(0,36, [
@@ -137,6 +138,16 @@ mod tests {
                 ])
             ]
         }
+
+        assert_eq!(
+            crate::query_value(query.to_string(), serde_json::Value::Bool(true)).unwrap(),
+            serde_json::Value::Array(vec!["one".into()])
+        );
+
+        assert_eq!(
+            crate::query_value(query.to_string(), serde_json::Value::Bool(false)).unwrap(),
+            serde_json::Value::Array(vec!["two".into()])
+        );
     }
 
     #[test]
