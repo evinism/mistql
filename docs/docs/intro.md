@@ -53,4 +53,4 @@ If file is not provided, `mq` defaults to `stdin`. An example usage might be the
 ```sh
 $ echo "[]" | mq "count @"
 > 0
-````
+```
