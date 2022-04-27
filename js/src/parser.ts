@@ -8,6 +8,12 @@ import { OpenAnIssueIfThisOccursError, ParseError, UnpositionableParseError } fr
 import { lex } from "./lexer";
 import { ASTApplicationExpression, ASTExpression, LexToken } from "./types";
 
+/*
+ * To all who dare enter:
+ * The parser below is a maelstrom of spaghetti, but is very small.
+ * Please refactor it if you can, but keep bundle size down to a minimum.
+ */
+
 const amalgamationTechniques: {
   [key: string]: (start: ASTExpression[]) => ASTExpression;
 } = {
@@ -15,10 +21,26 @@ const amalgamationTechniques: {
     type: "application",
     function: asts[0],
     arguments: asts.slice(1),
+    _shouldntWrapInPipedExpressions: true,
   }),
   "|": (asts) => ({
     type: "pipeline",
-    stages: asts,
+    stages: [].concat(
+      asts.slice(0, 1),
+      asts.slice(1).map((expr) => {
+        if (
+          expr.type === "application" &&
+          expr._shouldntWrapInPipedExpressions
+        ) {
+          return expr;
+        }
+        return {
+          type: "application",
+          function: expr,
+          arguments: [],
+        };
+      })
+    ),
   }),
 };
 
@@ -28,8 +50,8 @@ type ParseResult = {
 };
 
 type ParseContext = {
-  rawQuery: string
-}
+  rawQuery: string;
+};
 
 type Parser = (tokens: LexToken[], ctx: ParseContext) => ParseResult;
 type ParameterizedParser = (
@@ -44,11 +66,11 @@ const tmatch = (token: string, value: unknown, root: LexToken) => {
 
 const buildTMatchThrower =
   (ErrorConstructor: any) =>
-    (token: string, value: unknown, root: LexToken) => {
-      if (!tmatch(token, value, root)) {
-        throw new ErrorConstructor("Expected " + value + ", got " + root.value);
-      }
-    };
+  (token: string, value: unknown, root: LexToken) => {
+    if (!tmatch(token, value, root)) {
+      throw new ErrorConstructor("Expected " + value + ", got " + root.value);
+    }
+  };
 
 const tmatchOrThrow = buildTMatchThrower(ParseError);
 const tmatchOrThrowBad = buildTMatchThrower(OpenAnIssueIfThisOccursError);
@@ -72,12 +94,19 @@ const consumeParenthetical: Parser = (tokens: LexToken[], ctx) => {
   const { result, remaining } = consumeExpression(current, ctx);
   current = remaining;
   if (!current[0]) {
-    throw new ParseError("Unexpected EOF", ctx.rawQuery.length - 1, ctx.rawQuery);
+    throw new ParseError(
+      "Unexpected EOF",
+      ctx.rawQuery.length - 1,
+      ctx.rawQuery
+    );
   }
   tmatchOrThrow("special", ")", current[0]);
   current = current.slice(1);
   return {
-    result,
+    result: {
+      type: "parenthetical",
+      expression: result,
+    },
     remaining: current,
   };
 };

@@ -87,6 +87,8 @@ const executeInner: ExecutionFunction = (
   stack: Closure[]
 ): RuntimeValue => {
   switch (statement.type) {
+    case "parenthetical":
+      return executeInner(statement.expression, stack);
     case "literal":
       return executeLiteral(statement, stack);
     case "reference":
@@ -96,22 +98,15 @@ const executeInner: ExecutionFunction = (
     case "pipeline":
       let last: RuntimeValue = executeInner(statement.stages[0], stack);
       for (let i = 1; i < statement.stages.length; i++) {
-        const stage = statement.stages[i];
+        // We know in a non-typesafe manner that all but the first stage are functions
+        const stage = statement.stages[i] as ASTApplicationExpression;
         let app: ASTApplicationExpression;
         const atRef: ASTExpression = { type: "reference", ref: "@" };
-        if (stage.type === "application") {
-          app = {
-            type: "application",
-            function: stage.function,
-            arguments: stage.arguments.concat(atRef),
-          };
-        } else {
-          app = {
-            type: "application",
-            function: stage,
-            arguments: [atRef],
-          };
-        }
+        app = {
+          type: "application",
+          function: stage.function,
+          arguments: stage.arguments.concat(atRef),
+        };
         last = executeApplication(app, pushRuntimeValueToStack(last, stack));
       }
       return last;
