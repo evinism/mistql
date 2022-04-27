@@ -1,21 +1,8 @@
-use crate::{expr, Error, Result, Rule, Value};
-use pest::iterators::Pairs;
+use super::args::ArgParser;
+use crate::{Error, Result, Value};
 
-pub fn stringjoin(
-    mut arg_itr: Pairs<Rule>,
-    data: &Value,
-    context_opt: Option<Value>,
-) -> Result<Value> {
-    let (join_val, target_val) = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next())
-    {
-        (Some(ctx), Some(arg1), None, None) => (expr::eval(arg1, data, None)?, ctx),
-        (None, Some(arg1), Some(arg2), None) => {
-            (expr::eval(arg1, data, None)?, expr::eval(arg2, data, None)?)
-        }
-        _ => return Err(Error::eval("stringjoin requires arguments".to_string())),
-    };
-
-    match (join_val, target_val) {
+pub fn stringjoin(arg_parser: ArgParser) -> Result<Value> {
+    match arg_parser.two_args()? {
         (Value::String(join), Value::Array(target)) => {
             let joined = match target.first() {
                 None => Ok(String::new()),

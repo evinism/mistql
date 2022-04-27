@@ -8,6 +8,7 @@ pub enum ErrorKind {
     Regex,
     Query(String),
     Eval(String),
+    Arity(String, usize, usize),
     Unimplemented(String),
 }
 
@@ -34,6 +35,11 @@ impl fmt::Display for Error {
             ErrorKind::Regex => write!(f, "Regex error: {:?}", self.source),
             ErrorKind::Query(msg) => write!(f, "Query error: {}", msg),
             ErrorKind::Eval(msg) => write!(f, "Eval error: {}", msg),
+            ErrorKind::Arity(func, expected, got) => write!(
+                f,
+                "Function {} expected {} args, got {}",
+                func, expected, got
+            ),
             ErrorKind::Unimplemented(msg) => write!(f, "Unimplemented: {}", msg),
         }
     }
@@ -73,6 +79,13 @@ impl Error {
     pub fn eval(msg: String) -> Self {
         Self {
             kind: ErrorKind::Eval(msg),
+            source: None,
+        }
+    }
+
+    pub fn arity(func: String, expected: usize, got: usize) -> Self {
+        Self {
+            kind: ErrorKind::Arity(func, expected, got),
             source: None,
         }
     }

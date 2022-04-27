@@ -1,12 +1,8 @@
-use crate::{expr, Error, Number, Result, Rule, Value};
-use pest::iterators::Pairs;
+use super::args::ArgParser;
+use crate::{Error, Number, Result, Value};
 
-pub fn float(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
-    let arg = match (context_opt, arg_itr.next(), arg_itr.next()) {
-        (Some(val), None, None) => val,
-        (None, Some(val), None) => expr::eval(val, data, None)?,
-        _ => return Err(Error::eval("float requires one argument".to_string())),
-    };
+pub fn float(arg_parser: ArgParser) -> Result<Value> {
+    let arg = arg_parser.one_arg()?;
 
     match arg {
         Value::Number(Number::Float(_)) => Ok(arg.clone()),

@@ -1,26 +1,10 @@
-use crate::{expr, Error, Result, Rule, Value};
-use pest::iterators::Pairs;
+use super::args::ArgParser;
+use crate::{Result, Value};
 
-pub fn log(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
-    match (context_opt, arg_itr.next(), arg_itr.next()) {
-        (context, Some(arg), None) => match expr::eval(arg, data, context) {
-            Ok(result) => {
-                dbg!(result.clone());
-                Ok(result)
-            }
-            Err(err) => Err(err),
-        },
-        (Some(context), None, None) => {
-            dbg!(context.clone());
-            Ok(context)
-        }
-        (None, None, _) => Err(Error::eval(
-            "log requires one argument (got zero)".to_string(),
-        )),
-        (_, _, Some(_)) => Err(Error::eval(
-            "log requires one argument (got >1)".to_string(),
-        )),
-    }
+pub fn log(arg_parser: ArgParser) -> Result<Value> {
+    let arg = arg_parser.one_arg()?;
+    dbg!(&arg);
+    Ok(arg)
 }
 
 #[cfg(test)]
@@ -44,7 +28,7 @@ mod tests {
     #[test]
     fn log_uses_explicit_at() {
         assert_eq!(
-            query_value("123 | log @".to_string(), serde_json::Value::Null).unwrap(),
+            query_value("log @".to_string(), serde_json::Value::from(123)).unwrap(),
             serde_json::Value::from(123)
         );
     }

@@ -1,19 +1,11 @@
+use super::args::ArgParser;
 use crate::prefix::truthiness;
-use crate::{expr, Error, Result, Rule, Value};
-use pest::iterators::Pairs;
+use crate::{expr, Error, Result, Value};
 
-pub fn find(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
-    let args = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "find requires one function and one target".to_string(),
-            ))
-        }
-    };
+pub fn find(arg_parser: ArgParser) -> Result<Value> {
+    let args = arg_parser.one_func_one_arg()?;
     match args {
-        (Value::Array(val), func) => {
+        (func, Value::Array(val)) => {
             for elt in val.into_iter() {
                 let predicate = expr::eval(func.clone(), &elt, None)?;
                 if truthiness(&predicate) {
