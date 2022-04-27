@@ -471,6 +471,16 @@
               ]
             },
             {
+              "it": "allows single-argument functions in piped expressions via the $ key",
+              "assertions": [
+                {
+                  "query": "[null, null, null, null, null, null] | $.count",
+                  "data": null,
+                  "expected": 6
+                }
+              ]
+            },
+            {
               "it": "gives us a method for un-overwriting things in the data param",
               "assertions": [
                 {
