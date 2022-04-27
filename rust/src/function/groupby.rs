@@ -1,23 +1,11 @@
-use crate::{expr, Error, Result, Rule, Value};
-use pest::iterators::Pairs;
+use super::args::ArgParser;
+use crate::{expr, Error, Result, Value};
 use std::collections::BTreeMap;
 
-pub fn groupby(
-    mut arg_itr: Pairs<Rule>,
-    data: &Value,
-    context_opt: Option<Value>,
-) -> Result<Value> {
-    let args = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "groupby requires one function and one target".to_string(),
-            ))
-        }
-    };
+pub fn groupby(arg_parser: ArgParser) -> Result<Value> {
+    let args = arg_parser.one_func_one_arg()?;
     match args {
-        (Value::Array(entries), func) => {
+        (func, Value::Array(entries)) => {
             let mut result: BTreeMap<String, Value> = BTreeMap::new();
             for entry in entries.into_iter() {
                 let key = expr::eval(func.clone(), &entry, None)?.to_string();

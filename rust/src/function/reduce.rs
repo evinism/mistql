@@ -1,29 +1,8 @@
-use crate::{expr, Value};
-use crate::{Error, Result, Rule};
-use pest::iterators::Pairs;
+use super::args::ArgParser;
+use crate::{expr, Error, Result, Value};
 
-pub fn reduce(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
-    let args = match (
-        context_opt,
-        arg_itr.next(),
-        arg_itr.next(),
-        arg_itr.next(),
-        arg_itr.next(),
-    ) {
-        (Some(target), Some(func), Some(init), None, None) => {
-            (func, expr::eval(init, data, None)?, target)
-        }
-        (None, Some(func), Some(init), Some(target), None) => (
-            func,
-            expr::eval(init, data, None)?,
-            expr::eval(target, data, None)?,
-        ),
-        _ => {
-            return Err(Error::eval(
-                "reduce requires one function and one target".to_string(),
-            ))
-        }
-    };
+pub fn reduce(arg_parser: ArgParser) -> Result<Value> {
+    let args = arg_parser.one_func_two_args()?;
     match args {
         (func, init, Value::Array(val)) => {
             let itr = val.into_iter();

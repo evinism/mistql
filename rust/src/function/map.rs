@@ -1,47 +1,24 @@
-use crate::{expr, Value};
-use crate::{Error, Result, Rule};
-use pest::iterators::Pairs;
+use super::args::ArgParser;
+use crate::{expr, Error, Result, Value};
 use std::collections::BTreeMap;
 
-pub fn map(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
-    let args = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "map requires one function and one target".to_string(),
-            ))
-        }
-    };
-    match args {
-        (Value::Array(val), func) => Ok(Value::Array(
+pub fn map(arg_parser: ArgParser) -> Result<Value> {
+    match arg_parser.one_func_one_arg()? {
+        (func, Value::Array(val)) => Ok(Value::Array(
             val.iter()
                 .map(|elt| expr::eval(func.clone(), elt, None))
                 .collect::<Result<Vec<Value>>>()?,
         )),
-        (val, _) => Err(Error::eval(format!(
+        (_, val) => Err(Error::eval(format!(
             "argument to map must be an array (got {:?}",
             val
         ))),
     }
 }
 
-pub fn mapkeys(
-    mut arg_itr: Pairs<Rule>,
-    data: &Value,
-    context_opt: Option<Value>,
-) -> Result<Value> {
-    let args = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "mapkeys requires one function and one target".to_string(),
-            ))
-        }
-    };
-    match args {
-        (Value::Object(val), func) => {
+pub fn mapkeys(arg_parser: ArgParser) -> Result<Value> {
+    match arg_parser.one_func_one_arg()? {
+        (func, Value::Object(val)) => {
             // it's rather alarming how much cleaner mutation is than iterator chains when dealing
             // with results inside of Maps
             let mut mapped: BTreeMap<String, Value> = BTreeMap::new();
@@ -58,22 +35,9 @@ pub fn mapkeys(
     }
 }
 
-pub fn mapvalues(
-    mut arg_itr: Pairs<Rule>,
-    data: &Value,
-    context_opt: Option<Value>,
-) -> Result<Value> {
-    let args = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "mapvalues requires one function and one target".to_string(),
-            ))
-        }
-    };
-    match args {
-        (Value::Object(val), func) => {
+pub fn mapvalues(arg_parser: ArgParser) -> Result<Value> {
+    match arg_parser.one_func_one_arg()? {
+        (func, Value::Object(val)) => {
             let mut mapped: BTreeMap<String, Value> = BTreeMap::new();
             for (k, v) in val.iter() {
                 let map_v = expr::eval(func.clone(), &v, None)?;

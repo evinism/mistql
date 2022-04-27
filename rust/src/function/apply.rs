@@ -1,16 +1,8 @@
-use crate::{expr, Error, Result, Rule, Value};
-use pest::iterators::Pairs;
+use crate::{expr, Result, Value};
+use super::args::ArgParser;
 
-pub fn apply(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
-    let (target, func) = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "map requires one function and one target".to_string(),
-            ))
-        }
-    };
+pub fn apply(arg_parser: ArgParser) -> Result<Value> {
+    let (func, target) = arg_parser.one_func_one_arg()?;
     expr::eval(func.clone(), &target, None)
 }
 

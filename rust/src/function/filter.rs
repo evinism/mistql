@@ -1,21 +1,13 @@
+use super::args::ArgParser;
 use crate::prefix::truthiness;
 use crate::{expr, Value};
-use crate::{Error, Result, Rule};
-use pest::iterators::Pairs;
+use crate::{Error, Result};
 use std::collections::BTreeMap;
 
-pub fn filter(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>) -> Result<Value> {
-    let args = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "filter requires one function and one target".to_string(),
-            ))
-        }
-    };
+pub fn filter(arg_parser: ArgParser) -> Result<Value> {
+    let args = arg_parser.one_func_one_arg()?;
     match args {
-        (Value::Array(val), func) => {
+        (func, Value::Array(val)) => {
             let mut filtered = vec![];
             for elt in val {
                 let predicate = expr::eval(func.clone(), &elt, None)?;
@@ -32,22 +24,10 @@ pub fn filter(mut arg_itr: Pairs<Rule>, data: &Value, context_opt: Option<Value>
     }
 }
 
-pub fn filterkeys(
-    mut arg_itr: Pairs<Rule>,
-    data: &Value,
-    context_opt: Option<Value>,
-) -> Result<Value> {
-    let args = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "filterkeys requires one function and one target".to_string(),
-            ))
-        }
-    };
+pub fn filterkeys(arg_parser: ArgParser) -> Result<Value> {
+    let args = arg_parser.one_func_one_arg()?;
     match args {
-        (Value::Object(val), func) => {
+        (func, Value::Object(val)) => {
             let mut mapped: BTreeMap<String, Value> = BTreeMap::new();
             for (k, v) in val.iter() {
                 let predicate = expr::eval(func.clone(), &Value::String(k.clone()), None)?;
@@ -64,22 +44,10 @@ pub fn filterkeys(
     }
 }
 
-pub fn filtervalues(
-    mut arg_itr: Pairs<Rule>,
-    data: &Value,
-    context_opt: Option<Value>,
-) -> Result<Value> {
-    let args = match (context_opt, arg_itr.next(), arg_itr.next(), arg_itr.next()) {
-        (Some(target), Some(func), None, None) => (target, func),
-        (None, Some(func), Some(target), None) => (expr::eval(target, data, None)?, func),
-        _ => {
-            return Err(Error::eval(
-                "filterkeys requires one function and one target".to_string(),
-            ))
-        }
-    };
+pub fn filtervalues(arg_parser: ArgParser) -> Result<Value> {
+    let args = arg_parser.one_func_one_arg()?;
     match args {
-        (Value::Object(val), func) => {
+        (func, Value::Object(val)) => {
             let mut mapped: BTreeMap<String, Value> = BTreeMap::new();
             for (k, v) in val.iter() {
                 let predicate = expr::eval(func.clone(), v, None)?;
