@@ -46,13 +46,23 @@ export type ASTApplicationExpression = {
   type: "application";
   function: ASTExpression;
   arguments: ASTExpression[];
+
+  // The below is a nasty hack, but it's useful for distinguishing for
+  // whether we need to wrap the function in piped expressions
+  _shouldntWrapInPipedExpressions?: boolean;
+};
+
+export type ASTParentheticalExpression = {
+  type: "parenthetical";
+  expression: ASTExpression;
 };
 
 export type ASTExpression =
   | ASTApplicationExpression
   | ASTReferenceExpression
   | ASTPipelineExpression
-  | ASTLiteralExpression;
+  | ASTLiteralExpression
+  | ASTParentheticalExpression;
 
 /* Runtime types */
 export type RuntimeValue =

@@ -558,6 +558,21 @@
                   "throws": true
                 }
               ]
+            },
+            {
+              "it": "treats the whole of the rhs of a pipe as a function if passed with parens",
+              "assertions": [
+                {
+                  "query": "[0, 0] | (if true count null)",
+                  "data": null,
+                  "expected": 2
+                },
+                {
+                  "query": "[0, 0] | if true count null",
+                  "data": null,
+                  "throws": true
+                }
+              ]
             }
           ]
         },
