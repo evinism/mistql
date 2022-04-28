@@ -36,6 +36,8 @@ def execute_pipe(stages: List[BaseExpression], stack: Stack) -> RuntimeValue:
 
     for stage_ast in remaining:
         new_stack = add_runtime_value_to_stack(data, stack)
+        if not isinstance(stage_ast, FnExpression):
+            raise OpenAnIssueIfYouGetThisError("Pipe stage is not a function!!")
         args: List[BaseExpression] = stage_ast.args.copy()
         args.append(ValueExpression(data))
         stage = FnExpression(stage_ast.fn, args)
