@@ -2,7 +2,7 @@ use super::args::ArgParser;
 use crate::{Error, Result, Value};
 
 pub fn string(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
 
     if let Value::Regex(_, _) = arg {
         Err(Error::eval("can't cast regex to string".to_string()))

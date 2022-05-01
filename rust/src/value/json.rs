@@ -50,7 +50,7 @@ impl TryFrom<Value> for serde_json::Value {
                 }
                 Ok(serde_json::Value::Object(fields))
             }
-            Value::Ident(s) => Ok(serde_json::Value::String(s)),
+            Value::Ident(_) => Err(Error::eval("can't convert ident to JSON".to_string())),
             Value::Regex(_, _) => Err(Error::eval("can't convert regex to JSON".to_string())),
         }
     }

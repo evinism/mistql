@@ -5,9 +5,10 @@ piped_expr = { simple_expr ~ ( "|" ~ simple_expr )+ }
 simple_expr = _{ function | prefixed_value | indexed_value | infix_expr | simple_value }
 
 simple_value = _{ literal | reference | ( "(" ~ expr ~ ")" ) }
-function = { fn_ident ~ fn_arg+ }
+function = { fn_ident ~ fn_args }
+fn_args = { fn_arg+ }
 fn_arg = _{ infix_expr | prefixed_value | indexed_value | simple_value }
-fn_ident = _{
+fn_ident = {
     ident |
     ( dollar ~ "." ~ ident ) |
     ( "(" ~ simple_expr ~ ")" )

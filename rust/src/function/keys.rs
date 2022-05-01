@@ -2,7 +2,7 @@ use super::args::ArgParser;
 use crate::{Error, Result, Value};
 
 pub fn keys(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
     match arg {
         Value::Object(val) => Ok(Value::Array(
             val.keys()
@@ -38,15 +38,19 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,17, [
-                    ident(0,4),
-                    object(5,17, [
-                        keyval(6,10, [
-                            ident(6,7),
-                            number(9,10)
-                        ]),
-                        keyval(12,16, [
-                            ident(12,13),
-                            number(15,16)
+                    fn_ident(0,4, [
+                        ident(0,4)
+                    ]),
+                    fn_args(5,17, [
+                        object(5,17, [
+                            keyval(6,10, [
+                                ident(6,7),
+                                number(9,10)
+                            ]),
+                            keyval(12,16, [
+                                ident(12,13),
+                                number(15,16)
+                            ])
                         ])
                     ])
                 ])

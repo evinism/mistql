@@ -5,8 +5,8 @@ use crate::{Error, Result};
 use std::collections::BTreeMap;
 
 pub fn filter(arg_parser: ArgParser) -> Result<Value> {
-    let args = arg_parser.one_func_one_arg()?;
-    match args {
+    let (func_arg, target_arg) = arg_parser.two_args()?;
+    match (func_arg.to_pair()?, target_arg.to_value(arg_parser.data)?) {
         (func, Value::Array(val)) => {
             let mut filtered = vec![];
             for elt in val {
@@ -25,8 +25,8 @@ pub fn filter(arg_parser: ArgParser) -> Result<Value> {
 }
 
 pub fn filterkeys(arg_parser: ArgParser) -> Result<Value> {
-    let args = arg_parser.one_func_one_arg()?;
-    match args {
+    let (func_arg, target_arg) = arg_parser.two_args()?;
+    match (func_arg.to_pair()?, target_arg.to_value(arg_parser.data)?) {
         (func, Value::Object(val)) => {
             let mut mapped: BTreeMap<String, Value> = BTreeMap::new();
             for (k, v) in val.iter() {
@@ -45,8 +45,8 @@ pub fn filterkeys(arg_parser: ArgParser) -> Result<Value> {
 }
 
 pub fn filtervalues(arg_parser: ArgParser) -> Result<Value> {
-    let args = arg_parser.one_func_one_arg()?;
-    match args {
+    let (func_arg, target_arg) = arg_parser.two_args()?;
+    match (func_arg.to_pair()?, target_arg.to_value(arg_parser.data)?) {
         (func, Value::Object(val)) => {
             let mut mapped: BTreeMap<String, Value> = BTreeMap::new();
             for (k, v) in val.iter() {

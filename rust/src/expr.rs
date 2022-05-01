@@ -13,7 +13,8 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
                 Ok(data.clone())
             }
         }
-        Rule::ident | Rule::function => function::eval(pair, &data, context),
+        Rule::ident => function::ident_eval(pair, &data, context),
+        Rule::function => function::eval(pair, &data, context),
         Rule::bool | Rule::number | Rule::string | Rule::null => terminal::eval(pair),
         Rule::array => array::eval(pair, &data),
         Rule::object => object::eval(pair, &data),

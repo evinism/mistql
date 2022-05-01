@@ -1,9 +1,9 @@
-use crate::{expr, Result, Value};
 use super::args::ArgParser;
+use crate::{expr, Result, Value};
 
 pub fn apply(arg_parser: ArgParser) -> Result<Value> {
-    let (func, target) = arg_parser.one_func_one_arg()?;
-    expr::eval(func.clone(), &target, None)
+    let (func, target) = arg_parser.two_args()?;
+    expr::eval(func.to_pair()?, &target.to_value(arg_parser.data)?, None)
 }
 
 #[cfg(test)]

@@ -2,7 +2,7 @@ use super::args::ArgParser;
 use crate::{Error, Result, Value};
 
 pub fn reverse(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
 
     match arg {
         Value::Array(arr) => Ok(Value::Array(arr.into_iter().rev().collect())),

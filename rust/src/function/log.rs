@@ -2,7 +2,7 @@ use super::args::ArgParser;
 use crate::{Result, Value};
 
 pub fn log(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
     dbg!(&arg);
     Ok(arg)
 }

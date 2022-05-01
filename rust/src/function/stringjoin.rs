@@ -2,7 +2,11 @@ use super::args::ArgParser;
 use crate::{Error, Result, Value};
 
 pub fn stringjoin(arg_parser: ArgParser) -> Result<Value> {
-    match arg_parser.two_args()? {
+    let (join_arg, target_arg) = arg_parser.two_args()?;
+    match (
+        join_arg.to_value(arg_parser.data)?,
+        target_arg.to_value(arg_parser.data)?,
+    ) {
         (Value::String(join), Value::Array(target)) => {
             let joined = match target.first() {
                 None => Ok(String::new()),

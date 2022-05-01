@@ -1,8 +1,8 @@
-use crate::{Error, Result, Value};
 use super::args::ArgParser;
+use crate::{Error, Result, Value};
 
 pub fn entries(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
     match arg {
         Value::Object(val) => Ok(Value::Array(
             val.iter()
@@ -38,15 +38,19 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,20, [
-                    ident(0,7),
-                    object(8,20, [
-                        keyval(9,13, [
-                            ident(9,10),
-                            number(12,13)
-                        ]),
-                        keyval(15,19, [
-                            ident(15,16),
-                            number(18,19)
+                    fn_ident(0,7, [
+                        ident(0,7)
+                    ]),
+                    fn_args(8,20, [
+                        object(8,20, [
+                            keyval(9,13, [
+                                ident(9,10),
+                                number(12,13)
+                            ]),
+                            keyval(15,19, [
+                                ident(15,16),
+                                number(18,19)
+                            ])
                         ])
                     ])
                 ])

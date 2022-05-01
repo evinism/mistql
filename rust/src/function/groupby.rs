@@ -3,8 +3,9 @@ use crate::{expr, Error, Result, Value};
 use std::collections::BTreeMap;
 
 pub fn groupby(arg_parser: ArgParser) -> Result<Value> {
-    let args = arg_parser.one_func_one_arg()?;
-    match args {
+    let (func_arg, target_arg) = arg_parser.two_args()?;
+
+    match (func_arg.to_pair()?, target_arg.to_value(arg_parser.data)?) {
         (func, Value::Array(entries)) => {
             let mut result: BTreeMap<String, Value> = BTreeMap::new();
             for entry in entries.into_iter() {

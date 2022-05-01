@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use crate::{Result, Rule, Value};
+use crate::{Error, Result, Rule, Value};
 use args::ArgParser;
 
 mod apply;
@@ -29,10 +29,9 @@ mod summarize;
 mod values;
 
 pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
-    dbg!(pair.as_str());
-    let arg_parser = ArgParser::new(pair, data, context)?;
+    let arg_parser = ArgParser::from_pair(pair, data, context)?;
 
-    match arg_parser.function.clone().as_str() {
+    match arg_parser.clone().function.as_str() {
         "apply" => apply::apply(arg_parser),
         "count" => count::count(arg_parser),
         "entries" => entries::entries(arg_parser),
@@ -65,8 +64,34 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         "sum" => sum::sum(arg_parser),
         "summarize" => summarize::summarize(arg_parser),
         "values" => values::values(arg_parser),
-        // // if we can't find a function, treat it as a dot index
+        // if we can't find a function, treat it as a dot index
         function => index::dot_index(function, arg_parser),
+    }
+}
+
+pub fn ident_eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
+    let arg_parser = ArgParser::from_ident(&pair, data, context)?;
+
+    match pair.as_str() {
+        // only single-argument functions work in this manner
+        "count" => count::count(arg_parser),
+        "entries" => entries::entries(arg_parser),
+        "keys" => keys::keys(arg_parser),
+        "log" => log::log(arg_parser),
+        "values" => values::values(arg_parser),
+        reference => index::dot_index(reference, arg_parser),
+    }
+}
+
+pub fn fn_ident_eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
+    let arg_parser = ArgParser::from_pair(pair, data, context)?;
+
+    match arg_parser.clone().function.as_str() {
+        "if" => if_fn::if_fn_ident(arg_parser),
+        function => Err(Error::unimplemented(format!(
+            "unsupported fn_ident function {:?}",
+            function
+        ))),
     }
 }
 
@@ -82,11 +107,15 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,13, [
-                    ident(0,5),
-                    array(6,13, [
-                        number(7,8),
-                        number(9,10),
-                        number(11,12)
+                    fn_ident(0,5, [
+                        ident(0,5)
+                    ]),
+                    fn_args(6,13, [
+                        array(6,13, [
+                            number(7,8),
+                            number(9,10),
+                            number(11,12)
+                        ])
                     ])
                 ])
             ]
@@ -101,17 +130,20 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,12, [
-                    ident(0,2),
-                    bool(3,8),
-                    number(9,10),
-                    number(11,12)
+                    fn_ident(0,2, [
+                        ident(0,2)
+                    ]),
+                    fn_args(3,12, [
+                        bool(3,8),
+                        number(9,10),
+                        number(11,12)
+                    ])
                 ])
             ]
         }
     }
 
     #[test]
-    #[ignore]
     fn functions_are_first_class_citizens() {
         let query = "(if toggle keys values) {one: \"two\"}";
         parses_to! {
@@ -120,17 +152,25 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,36, [
-                    function(1,22, [
-                        ident(1,3),
-                        ident(4,10),
-                        ident(11,15),
-                        ident(16,22)
+                    fn_ident(0,23, [
+                        function(1,22, [
+                            fn_ident(1,3, [
+                                ident(1,3)
+                            ]),
+                            fn_args(4,22, [
+                                ident(4,10),
+                                ident(11,15),
+                                ident(16,22)
+                            ])
+                        ]),
                     ]),
-                    object(24,36, [
-                        keyval(25,35, [
-                            ident(25,28),
-                            string(30,35, [
-                                inner(31,34)
+                    fn_args(24,36, [
+                        object(24,36, [
+                            keyval(25,35, [
+                                ident(25,28),
+                                string(30,35, [
+                                    inner(31,34)
+                                ])
                             ])
                         ])
                     ])
@@ -157,20 +197,24 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,22, [
-                    ident(0,6),
-                    infix_expr(7,19, [
-                        indexed_value(7,11, [
-                            at(7,8),
-                            number(9,10)
-                        ]),
-                        plus_op(12,13),
-                        indexed_value(14,18, [
-                            at(14,15),
-                            number(16,17)
-                        ])
+                    fn_ident(0,6, [
+                        ident(0,6)
                     ]),
-                    number(19,20),
-                    at(21,22)
+                    fn_args(7,22, [
+                        infix_expr(7,19, [
+                            indexed_value(7,11, [
+                                at(7,8),
+                                number(9,10)
+                            ]),
+                            plus_op(12,13),
+                            indexed_value(14,18, [
+                                at(14,15),
+                                number(16,17)
+                            ])
+                        ]),
+                        number(19,20),
+                        at(21,22)
+                    ])
                 ])
             ]
         }

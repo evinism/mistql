@@ -3,7 +3,7 @@ use crate::{Error, Result, Value};
 use std::collections::BTreeMap;
 
 pub fn fromentries(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
     match arg {
         Value::Array(entries) => {
             let mut result = BTreeMap::new();

@@ -4,7 +4,7 @@ use crate::{Error, Number, Result, Value};
 use std::collections::BTreeMap;
 
 pub fn summarize(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
 
     match arg {
         Value::Array(arr) if arr.len() > 0 => {
