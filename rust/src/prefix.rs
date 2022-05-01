@@ -118,9 +118,13 @@ mod tests {
                     prefixed_value(1,14, [
                         not_op(1,2),
                         function(3,13, [
-                            ident(3,8),
-                            string(9,13, [
-                                inner(10,12)
+                            fn_ident(3,8, [
+                                ident(3,8)
+                            ]),
+                            fn_args(9,13, [
+                                string(9,13, [
+                                    inner(10,12)
+                                ])
                             ])
                         ])
                     ])

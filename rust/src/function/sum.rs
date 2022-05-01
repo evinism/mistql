@@ -3,7 +3,7 @@ use crate::infix::arithmetic::add;
 use crate::{Error, Number, Result, Value};
 
 pub fn sum(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
 
     match arg {
         Value::Array(arr) => arr

@@ -3,7 +3,7 @@ use crate::{expr, Error, Result, Rule, Value};
 use pest::iterators::Pair;
 
 pub fn sort(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
 
     match arg {
         Value::Array(arr) if arr.len() == 0 => Ok(Value::Array(vec![])),
@@ -16,13 +16,13 @@ pub fn sort(arg_parser: ArgParser) -> Result<Value> {
 }
 
 pub fn sortby(arg_parser: ArgParser) -> Result<Value> {
-    let args = arg_parser.one_func_one_arg()?;
-    match args {
+    let (func, target) = arg_parser.two_args()?;
+    match (func.to_pair()?, target.to_value(arg_parser.data)?) {
         (_, Value::Array(arr)) if arr.len() == 0 => Ok(Value::Array(vec![])),
         (func, Value::Array(arr)) => sorted_by_array(&arr, func),
         _ => Err(Error::eval(format!(
             "second argument to sortby must be an array (got {:?}",
-            args
+            target
         ))),
     }
 }

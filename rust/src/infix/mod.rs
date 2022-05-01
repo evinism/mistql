@@ -114,16 +114,20 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,19, [
-                    ident(0,3),
-                    infix_expr(4,10, [
-                        at(4,5),
-                        plus_op(6,7),
-                        number(8,9)
+                    fn_ident(0,3, [
+                        ident(0,3)
                     ]),
-                    array(10,19, [
-                        number(11,12),
-                        number(14,15),
-                        number(17,18)
+                    fn_args(4,19, [
+                        infix_expr(4,10, [
+                            at(4,5),
+                            plus_op(6,7),
+                            number(8,9)
+                        ]),
+                        array(10,19, [
+                            number(11,12),
+                            number(14,15),
+                            number(17,18)
+                        ])
                     ])
                 ])
             ]

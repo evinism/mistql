@@ -3,7 +3,8 @@ use crate::{expr, Error, Result, Value};
 use std::collections::BTreeMap;
 
 pub fn map(arg_parser: ArgParser) -> Result<Value> {
-    match arg_parser.one_func_one_arg()? {
+    let (func_arg, target_arg) = arg_parser.two_args()?;
+    match (func_arg.to_pair()?, target_arg.to_value(arg_parser.data)?) {
         (func, Value::Array(val)) => Ok(Value::Array(
             val.iter()
                 .map(|elt| expr::eval(func.clone(), elt, None))
@@ -17,7 +18,8 @@ pub fn map(arg_parser: ArgParser) -> Result<Value> {
 }
 
 pub fn mapkeys(arg_parser: ArgParser) -> Result<Value> {
-    match arg_parser.one_func_one_arg()? {
+    let (func_arg, target_arg) = arg_parser.two_args()?;
+    match (func_arg.to_pair()?, target_arg.to_value(arg_parser.data)?) {
         (func, Value::Object(val)) => {
             // it's rather alarming how much cleaner mutation is than iterator chains when dealing
             // with results inside of Maps
@@ -36,7 +38,8 @@ pub fn mapkeys(arg_parser: ArgParser) -> Result<Value> {
 }
 
 pub fn mapvalues(arg_parser: ArgParser) -> Result<Value> {
-    match arg_parser.one_func_one_arg()? {
+    let (func_arg, target_arg) = arg_parser.two_args()?;
+    match (func_arg.to_pair()?, target_arg.to_value(arg_parser.data)?) {
         (func, Value::Object(val)) => {
             let mut mapped: BTreeMap<String, Value> = BTreeMap::new();
             for (k, v) in val.iter() {
@@ -65,16 +68,20 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,19, [
-                    ident(0,3),
-                    infix_expr(4,10, [
-                        at(4,5),
-                        plus_op(6,7),
-                        number(8,9)
+                    fn_ident(0,3, [
+                        ident(0,3)
                     ]),
-                    array(10,19, [
-                        number(11,12),
-                        number(14,15),
-                        number(17,18)
+                    fn_args(4,19, [
+                        infix_expr(4,10, [
+                            at(4,5),
+                            plus_op(6,7),
+                            number(8,9)
+                        ]),
+                        array(10,19, [
+                            number(11,12),
+                            number(14,15),
+                            number(17,18)
+                        ])
                     ])
                 ])
             ]
@@ -100,15 +107,23 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,24,[
-                    ident(0,3),
-                    function(5,13,[
-                        ident(5,11),
-                        at(12,13)
+                    fn_ident(0,3, [
+                        ident(0,3)
                     ]),
-                    array(15,24, [
-                        number(16,17),
-                        number(19,20),
-                        number(22,23)
+                    fn_args(4,24, [
+                        function(5,13,[
+                            fn_ident(5,11, [
+                                ident(5,11)
+                            ]),
+                            fn_args(12,13, [
+                                at(12,13)
+                            ])
+                        ]),
+                        array(15,24, [
+                            number(16,17),
+                            number(19,20),
+                            number(22,23)
+                        ])
                     ])
                 ])
             ]
@@ -147,26 +162,29 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,34,[
-                    ident(0,9),
-                    infix_expr(10,16,[
-                        at(10,11),
-                        plus_op(12,13),
-                        number(14,15)
+                    fn_ident(0,9, [
+                        ident(0,9)
                     ]),
-                    object(16,34,[
-                        keyval(17,21,[
-                            ident(17,18),
-                            number(20,21)
+                    fn_args(10,34, [
+                        infix_expr(10,16,[
+                            at(10,11),
+                            plus_op(12,13),
+                            number(14,15)
                         ]),
-                        keyval(23,27,[
-                            ident(23,24),
-                            number(26,27)
-                        ]),
-                        keyval(29,33,[
-                            ident(29,30),
-                            number(32,33)
+                        object(16,34,[
+                            keyval(17,21,[
+                                ident(17,18),
+                                number(20,21)
+                            ]),
+                            keyval(23,27,[
+                                ident(23,24),
+                                number(26,27)
+                            ]),
+                            keyval(29,33,[
+                                ident(29,30),
+                                number(32,33)
+                            ])
                         ])
-
                     ])
                 ])
             ]
@@ -211,25 +229,33 @@ mod tests {
             rule: Rule::query,
             tokens: [
                 function(0,37,[
-                    ident(0,7),
-                    function(9,17,[
-                        ident(9,15),
-                        at(16,17)
+                    fn_ident(0,7, [
+                        ident(0,7)
                     ]),
-                    object(19,37,[
-                        keyval(20,24,[
-                            ident(20,21),
-                            number(23,24)
+                    fn_args(8,37, [
+                        function(9,17,[
+                            fn_ident(9,15, [
+                                ident(9,15)
+                            ]),
+                            fn_args(16,17, [
+                                at(16,17)
+                            ])
                         ]),
-                        keyval(26,30,[
-                            ident(26,27),
-                            number(29,30)
-                        ]),
-                        keyval(32,36,[
-                            ident(32,33),
-                            number(35,36)
-                        ])
+                        object(19,37,[
+                            keyval(20,24,[
+                                ident(20,21),
+                                number(23,24)
+                            ]),
+                            keyval(26,30,[
+                                ident(26,27),
+                                number(29,30)
+                            ]),
+                            keyval(32,36,[
+                                ident(32,33),
+                                number(35,36)
+                            ])
 
+                        ])
                     ])
                 ])
             ]

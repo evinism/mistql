@@ -2,7 +2,7 @@ use super::args::ArgParser;
 use crate::{Error, Number, Result, Value};
 
 pub fn float(arg_parser: ArgParser) -> Result<Value> {
-    let arg = arg_parser.one_arg()?;
+    let arg = arg_parser.one_arg()?.to_value(arg_parser.data)?;
 
     match arg {
         Value::Number(Number::Float(_)) => Ok(arg.clone()),

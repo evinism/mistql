@@ -213,7 +213,7 @@ mod tests {
             input: "[",
             rule: Rule::query,
             positives: vec![
-                Rule::piped_expr, Rule::function, Rule::indexed_value, Rule::not_op,
+                Rule::piped_expr, Rule::fn_ident, Rule::indexed_value, Rule::not_op,
                 Rule::infix_expr, Rule::compound_reference, Rule::object, Rule::array,
                 Rule::ident, Rule::string, Rule::number, Rule::bool, Rule::null, Rule::at,
                 Rule::dollar
