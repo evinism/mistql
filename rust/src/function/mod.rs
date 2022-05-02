@@ -1,7 +1,7 @@
-use pest::iterators::Pair;
-
 use crate::{Error, Result, Rule, Value};
 use args::ArgParser;
+use pest::iterators::Pair;
+use std::convert::TryFrom;
 
 mod apply;
 mod args;
@@ -28,58 +28,159 @@ mod sum;
 mod summarize;
 mod values;
 
+#[derive(Debug)]
+enum Function {
+    Apply,
+    Count,
+    Entries,
+    Filter,
+    FilterKeys,
+    FilterValues,
+    Find,
+    Flatten,
+    Float,
+    FromEntries,
+    GroupBy,
+    If,
+    Index,
+    Keys,
+    Log,
+    Map,
+    MapKeys,
+    MapValues,
+    Match,
+    Reduce,
+    Regex,
+    Replace,
+    Reverse,
+    Sequence,
+    Sort,
+    SortBy,
+    Split,
+    String,
+    StringJoin,
+    Sum,
+    Summarize,
+    Values,
+}
+
+impl TryFrom<&str> for Function {
+    type Error = Error;
+
+    fn try_from(name: &str) -> Result<Function> {
+        match name {
+            "apply" => Ok(Function::Apply),
+            "count" => Ok(Function::Count),
+            "entries" => Ok(Function::Entries),
+            "filter" => Ok(Function::Filter),
+            "filterkeys" => Ok(Function::FilterKeys),
+            "filtervalues" => Ok(Function::FilterValues),
+            "find" => Ok(Function::Find),
+            "flatten" => Ok(Function::Flatten),
+            "float" => Ok(Function::Float),
+            "fromentries" => Ok(Function::FromEntries),
+            "groupby" => Ok(Function::GroupBy),
+            "if" => Ok(Function::If),
+            "index" => Ok(Function::Index),
+            "keys" => Ok(Function::Keys),
+            "log" => Ok(Function::Log),
+            "map" => Ok(Function::Map),
+            "mapkeys" => Ok(Function::MapKeys),
+            "mapvalues" => Ok(Function::MapValues),
+            "match" => Ok(Function::Match),
+            "reduce" => Ok(Function::Reduce),
+            "regex" => Ok(Function::Regex),
+            "replace" => Ok(Function::Replace),
+            "reverse" => Ok(Function::Reverse),
+            "sequence" => Ok(Function::Sequence),
+            "sort" => Ok(Function::Sort),
+            "sortby" => Ok(Function::SortBy),
+            "split" => Ok(Function::Split),
+            "string" => Ok(Function::String),
+            "stringjoin" => Ok(Function::StringJoin),
+            "sum" => Ok(Function::Sum),
+            "summarize" => Ok(Function::Summarize),
+            "values" => Ok(Function::Values),
+            function => Err(Error::eval(format!("unknown function {}", function))),
+        }
+    }
+}
+
+impl TryFrom<String> for Function {
+    type Error = Error;
+
+    fn try_from(name: String) -> Result<Function> {
+        Function::try_from(name.as_str())
+    }
+}
+
 pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
     let arg_parser = ArgParser::from_pair(pair, data, context)?;
 
-    match arg_parser.clone().function.as_str() {
-        "apply" => apply::apply(arg_parser),
-        "count" => count::count(arg_parser),
-        "entries" => entries::entries(arg_parser),
-        "filter" => filter::filter(arg_parser),
-        "filterkeys" => filter::filterkeys(arg_parser),
-        "filtervalues" => filter::filtervalues(arg_parser),
-        "find" => find::find(arg_parser),
-        "flatten" => flatten::flatten(arg_parser),
-        "float" => float::float(arg_parser),
-        "fromentries" => fromentries::fromentries(arg_parser),
-        "groupby" => groupby::groupby(arg_parser),
-        "if" => if_fn::if_fn(arg_parser),
-        "index" => index::index(arg_parser),
-        "keys" => keys::keys(arg_parser),
-        "log" => log::log(arg_parser),
-        "map" => map::map(arg_parser),
-        "mapkeys" => map::mapkeys(arg_parser),
-        "mapvalues" => map::mapvalues(arg_parser),
-        "match" => regex::match_fn(arg_parser),
-        "reduce" => reduce::reduce(arg_parser),
-        "regex" => regex::regex(arg_parser),
-        "replace" => regex::replace(arg_parser),
-        "reverse" => reverse::reverse(arg_parser),
-        // "sequence" => Err(Error::unimplemented(format!("function {}", function))),
-        "sort" => sort::sort(arg_parser),
-        "sortby" => sort::sortby(arg_parser),
-        "split" => regex::split(arg_parser),
-        "string" => string::string(arg_parser),
-        "stringjoin" => stringjoin::stringjoin(arg_parser),
-        "sum" => sum::sum(arg_parser),
-        "summarize" => summarize::summarize(arg_parser),
-        "values" => values::values(arg_parser),
+    match arg_parser.clone().function.try_into() {
+        Ok(Function::Apply) => apply::apply(arg_parser),
+        Ok(Function::Count) => count::count(arg_parser),
+        Ok(Function::Entries) => entries::entries(arg_parser),
+        Ok(Function::Filter) => filter::filter(arg_parser),
+        Ok(Function::FilterKeys) => filter::filterkeys(arg_parser),
+        Ok(Function::FilterValues) => filter::filtervalues(arg_parser),
+        Ok(Function::Find) => find::find(arg_parser),
+        Ok(Function::Flatten) => flatten::flatten(arg_parser),
+        Ok(Function::Float) => float::float(arg_parser),
+        Ok(Function::FromEntries) => fromentries::fromentries(arg_parser),
+        Ok(Function::GroupBy) => groupby::groupby(arg_parser),
+        Ok(Function::If) => if_fn::if_fn(arg_parser),
+        Ok(Function::Index) => index::index(arg_parser),
+        Ok(Function::Keys) => keys::keys(arg_parser),
+        Ok(Function::Log) => log::log(arg_parser),
+        Ok(Function::Map) => map::map(arg_parser),
+        Ok(Function::MapKeys) => map::mapkeys(arg_parser),
+        Ok(Function::MapValues) => map::mapvalues(arg_parser),
+        Ok(Function::Match) => regex::match_fn(arg_parser),
+        Ok(Function::Reduce) => reduce::reduce(arg_parser),
+        Ok(Function::Regex) => regex::regex(arg_parser),
+        Ok(Function::Replace) => regex::replace(arg_parser),
+        Ok(Function::Reverse) => reverse::reverse(arg_parser),
+        Ok(Function::Sequence) => Err(Error::unimplemented("function sequence".to_string())),
+        Ok(Function::Sort) => sort::sort(arg_parser),
+        Ok(Function::SortBy) => sort::sortby(arg_parser),
+        Ok(Function::Split) => regex::split(arg_parser),
+        Ok(Function::String) => string::string(arg_parser),
+        Ok(Function::StringJoin) => stringjoin::stringjoin(arg_parser),
+        Ok(Function::Sum) => sum::sum(arg_parser),
+        Ok(Function::Summarize) => summarize::summarize(arg_parser),
+        Ok(Function::Values) => values::values(arg_parser),
         // if we can't find a function, treat it as a dot index
-        function => index::dot_index(function, arg_parser),
+        // Err(_) => index::dot_index(arg_parser.clone().function.as_str(), arg_parser),
+        Err(err) => Err(err),
     }
 }
 
 pub fn ident_eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Value> {
     let arg_parser = ArgParser::from_ident(&pair, data, context)?;
 
-    match pair.as_str() {
+    match pair.as_str().try_into() {
         // only single-argument functions work in this manner
-        "count" => count::count(arg_parser),
-        "entries" => entries::entries(arg_parser),
-        "keys" => keys::keys(arg_parser),
-        "log" => log::log(arg_parser),
-        "values" => values::values(arg_parser),
-        reference => index::dot_index(reference, arg_parser),
+        Ok(Function::Count) => count::count(arg_parser),
+        Ok(Function::Entries) => entries::entries(arg_parser),
+        Ok(Function::Flatten) => flatten::flatten(arg_parser),
+        Ok(Function::Float) => float::float(arg_parser),
+        Ok(Function::FromEntries) => fromentries::fromentries(arg_parser),
+        Ok(Function::Keys) => keys::keys(arg_parser),
+        Ok(Function::Log) => log::log(arg_parser),
+        Ok(Function::Regex) => regex::regex(arg_parser),
+        Ok(Function::Reverse) => reverse::reverse(arg_parser),
+        Ok(Function::Sort) => sort::sort(arg_parser),
+        Ok(Function::String) => string::string(arg_parser),
+        Ok(Function::Sum) => sum::sum(arg_parser),
+        Ok(Function::Summarize) => summarize::summarize(arg_parser),
+        Ok(Function::Values) => values::values(arg_parser),
+        // the only error here is unknown function, so treat it as a reference
+        Err(_) => index::dot_index(pair.as_str(), arg_parser),
+        Ok(function) => Err(Error::eval(format!(
+            "can't treat {:?} as a bare identifier",
+            function
+        ))),
     }
 }
 
