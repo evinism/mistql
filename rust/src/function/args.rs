@@ -63,6 +63,13 @@ impl<'a> ArgParser<'a> {
                     )))
                 }
             },
+            Rule::overwrite => function_pair
+                .into_inner()
+                .skip(1) // skip the $
+                .next() // this must be an ident
+                .unwrap()
+                .as_str()
+                .to_string(),
             _ => {
                 return Err(Error::unimplemented(format!(
                     "fn_ident rule {:?}",
