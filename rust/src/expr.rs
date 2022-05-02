@@ -31,8 +31,10 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
 }
 
 fn eval_piped(pair: Pair<Rule>, data: &Value) -> Result<Value> {
-    pair.into_inner()
-        .try_fold(data.clone(), |ctx, expr| eval(expr, data, Some(ctx)))
+    let mut pipe_itr = pair.into_inner();
+    // piped expr must have two or more exprs
+    let init = eval(pipe_itr.next().unwrap(), data, None)?;
+    pipe_itr.try_fold(init, |ctx, expr| eval(expr, data, Some(ctx)))
 }
 
 #[cfg(test)]
