@@ -8,9 +8,10 @@ simple_value = _{ literal | reference | ( "(" ~ expr ~ ")" ) }
 function = { fn_ident ~ fn_args }
 fn_args = { fn_arg+ }
 fn_arg = _{ infix_expr | prefixed_value | indexed_value | simple_value }
+overwrite = { dollar ~ "." ~ ident }
 fn_ident = {
     ident |
-    ( dollar ~ "." ~ ident ) |
+    overwrite |
     ( "(" ~ simple_expr ~ ")" )
 }
 
