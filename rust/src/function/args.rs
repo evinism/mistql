@@ -140,4 +140,12 @@ impl<'a> ArgParser<'a> {
             Err(Error::arity(self.function.to_string(), 3, self.args.len()))
         }
     }
+
+    pub fn at_least_n_args(&self, n: usize) -> Result<Vec<Arg>> {
+        if self.args.len() >= n {
+            Ok(self.args.clone())
+        } else {
+            Err(Error::arity(self.function.to_string(), 3, self.args.len()))
+        }
+    }
 }

@@ -17,7 +17,7 @@ impl fmt::Display for Value {
                     f,
                     "[{}]",
                     a.iter()
-                        .map(|elt| elt.to_string())
+                        .map(|elt| to_quoted_string(elt))
                         .collect::<Vec<String>>()
                         .join(",")
                 )
@@ -27,7 +27,7 @@ impl fmt::Display for Value {
                     f,
                     "{{{}}}",
                     o.iter()
-                        .map(|(k, v)| format!("\"{}\":{}", k.to_string(), v.to_string()))
+                        .map(|(k, v)| format!("\"{}\":{}", k.to_string(), to_quoted_string(v)))
                         .collect::<Vec<String>>()
                         .join(",")
                 )
@@ -53,6 +53,13 @@ fn from_number(num: f64) -> String {
         .unwrap();
 
     lexical::to_string_with_options::<f64, FORMAT>(num, &options)
+}
+
+fn to_quoted_string(value: &Value) -> String {
+    match value {
+        Value::String(s) => format!("\"{}\"", s),
+        _ => value.to_string(),
+    }
 }
 
 #[cfg(test)]
