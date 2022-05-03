@@ -21,6 +21,7 @@ mod map;
 mod reduce;
 pub mod regex;
 mod reverse;
+mod sequence;
 mod sort;
 mod string;
 mod stringjoin;
@@ -141,7 +142,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         Ok(Function::Regex) => regex::regex(arg_parser),
         Ok(Function::Replace) => regex::replace(arg_parser),
         Ok(Function::Reverse) => reverse::reverse(arg_parser),
-        Ok(Function::Sequence) => Err(Error::unimplemented("function sequence".to_string())),
+        Ok(Function::Sequence) => sequence::sequence(arg_parser),
         Ok(Function::Sort) => sort::sort(arg_parser),
         Ok(Function::SortBy) => sort::sortby(arg_parser),
         Ok(Function::Split) => regex::split(arg_parser),

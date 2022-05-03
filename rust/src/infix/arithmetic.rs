@@ -34,10 +34,13 @@ pub fn divide(left: Value, right: Value) -> Result<Value> {
 }
 
 pub fn modulo(left: Value, right: Value) -> Result<Value> {
-    if let (Value::Number(Number::Int(l)), Value::Number(Number::Int(r))) = (left, right) {
+    if let (Value::Number(Number::Int(l)), Value::Number(Number::Int(r))) = (&left, &right) {
         Ok(Value::Number(Number::Int(l % r)))
     } else {
-        Err(Error::eval("can't modulo non-integers".to_string()))
+        Err(Error::eval(format!(
+            "can't modulo non-integers {:?} and {:?}",
+            left, right
+        )))
     }
 }
 
