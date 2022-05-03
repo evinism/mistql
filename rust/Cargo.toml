@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+itertools = "0.10"
 lazy_static = "1.4"
 lexical = { version = "6.0", features = ["format"] }
 pest = "2.0"
