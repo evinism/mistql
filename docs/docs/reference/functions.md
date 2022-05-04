@@ -754,3 +754,28 @@ Result:
 ```
 ["bloop", [4, 5, 6]]
 ```
+
+### `withindices`
+
+| Arity | Parameter 1 Type | Return Type          |
+| ----- | ---------------- | -------------------- |
+| 1     | `array<T>`       | `array<[number, T]>` |
+
+Maps an array to a list of tuple-like arrays with the index as the first member of said tuple, and the original value as the second member.
+
+Query:
+
+```
+["a", "b", "c", "d"] | values
+```
+
+Result:
+
+```
+[
+  [0, "a"],
+  [1, "b"],
+  [2, "c"], 
+  [3, "d"]
+]
+```
