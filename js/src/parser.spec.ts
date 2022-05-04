@@ -19,6 +19,22 @@ const ref = (ref: string, internal?: true): ASTExpression => {
   return res;
 };
 
+const par = (exp: ASTExpression): ASTExpression => ({
+  type: "parenthetical",
+  expression: exp,
+});
+
+const pipe = (stages: ASTExpression[]): ASTExpression => ({
+  type: "pipeline",
+  stages,
+});
+
+const app = (fn: ASTExpression, args: ASTExpression[] = []): ASTExpression => ({
+  type: "application",
+  function: fn,
+  arguments: args,
+});
+
 describe("parser", () => {
   describe("#parse", () => {
     describe("overall", () => {
@@ -132,44 +148,35 @@ describe("parser", () => {
 
     describe("pipes", () => {
       it("parses a simple pipe", () => {
-        assert.deepStrictEqual(parseOrThrow("hello|there"), {
-          type: "pipeline",
-          stages: [
-            { type: "reference", ref: "hello" },
-            { type: "reference", ref: "there" },
-          ],
-        });
+        assert.deepStrictEqual(
+          parseOrThrow("hello |there"),
+          pipe([ref("hello"), app(ref("there"))])
+        );
       });
 
       it("parses a pipe with whitespace", () => {
-        assert.deepStrictEqual(parseOrThrow("hello | there"), {
-          type: "pipeline",
-          stages: [
-            { type: "reference", ref: "hello" },
-            { type: "reference", ref: "there" },
-          ],
-        });
+        assert.deepStrictEqual(
+          parseOrThrow("hello | there"),
+          pipe([ref("hello"), app(ref("there"))])
+        );
       });
 
       it("parses a pipe with a number of stages", () => {
-        assert.deepStrictEqual(parseOrThrow("hello | there | hi | whatup"), {
-          type: "pipeline",
-          stages: [
-            { type: "reference", ref: "hello" },
-            { type: "reference", ref: "there" },
-            { type: "reference", ref: "hi" },
-            { type: "reference", ref: "whatup" },
-          ],
-        });
+        assert.deepStrictEqual(
+          parseOrThrow("hello | there | hi | whatup"),
+          pipe([
+            ref("hello"),
+            app(ref("there")),
+            app(ref("hi")),
+            app(ref("whatup")),
+          ])
+        );
       });
     });
 
     describe("parentheticals", () => {
       it("handles a basic parenthetical statement", () => {
-        assert.deepStrictEqual(parseOrThrow("(hello)"), {
-          type: "reference",
-          ref: "hello",
-        });
+        assert.deepStrictEqual(parseOrThrow("(hello)"), par(ref("hello")));
       });
 
       it("errors when parsing an empty parenthetical", () => {
@@ -179,42 +186,30 @@ describe("parser", () => {
       it("interops with pipes", () => {
         assert.deepStrictEqual(
           parseOrThrow("hello | (there) | hi | (whatup)"),
-          {
-            type: "pipeline",
-            stages: [
-              { type: "reference", ref: "hello" },
-              { type: "reference", ref: "there" },
-              { type: "reference", ref: "hi" },
-              { type: "reference", ref: "whatup" },
-            ],
-          }
+          pipe([
+            ref("hello"),
+            app(par(ref("there"))),
+            app(ref("hi")),
+            app(par(ref("whatup"))),
+          ])
         );
       });
 
       it("handles a heavily nested parenthetical", () => {
-        assert.deepStrictEqual(parseOrThrow("((((hello))))"), {
-          type: "reference",
-          ref: "hello",
-        });
+        assert.deepStrictEqual(
+          parseOrThrow("((((hello))))"),
+          par(par(par(par(ref("hello")))))
+        );
       });
 
       it("allows nested pipe expressions", () => {
         assert.deepStrictEqual(
           parseOrThrow("hello | (there | hi) | (whatup)"),
-          {
-            type: "pipeline",
-            stages: [
-              { type: "reference", ref: "hello" },
-              {
-                type: "pipeline",
-                stages: [
-                  { type: "reference", ref: "there" },
-                  { type: "reference", ref: "hi" },
-                ],
-              },
-              { type: "reference", ref: "whatup" },
-            ],
-          }
+          pipe([
+            ref("hello"),
+            app(par(pipe([ref("there"), app(ref("hi"))]))),
+            app(par(ref("whatup"))),
+          ])
         );
       });
     });
@@ -222,40 +217,18 @@ describe("parser", () => {
       it("parses a basic function application", () => {
         assert.deepStrictEqual(parseOrThrow("sup nernd hi"), {
           type: "application",
-          function: {
-            type: "reference",
-            ref: "sup",
-          },
-          arguments: [
-            {
-              type: "reference",
-              ref: "nernd",
-            },
-            {
-              type: "reference",
-              ref: "hi",
-            },
-          ],
+          _shouldntWrapInPipedExpressions: true,
+          function: ref("sup"),
+          arguments: [ref("nernd"), ref("hi")],
         });
       });
 
       it("parses function applications with parentheticals", () => {
         assert.deepStrictEqual(parseOrThrow("(sup) (nernd) (hi)"), {
           type: "application",
-          function: {
-            type: "reference",
-            ref: "sup",
-          },
-          arguments: [
-            {
-              type: "reference",
-              ref: "nernd",
-            },
-            {
-              type: "reference",
-              ref: "hi",
-            },
-          ],
+          _shouldntWrapInPipedExpressions: true,
+          function: par(ref("sup")),
+          arguments: [par(ref("nernd")), par(ref("hi"))],
         });
       });
 
@@ -265,6 +238,7 @@ describe("parser", () => {
           stages: [
             {
               type: "application",
+              _shouldntWrapInPipedExpressions: true,
               function: {
                 type: "reference",
                 ref: "sup",
@@ -278,6 +252,7 @@ describe("parser", () => {
             },
             {
               type: "application",
+              _shouldntWrapInPipedExpressions: true,
               function: {
                 type: "reference",
                 ref: "hi",
@@ -376,7 +351,7 @@ describe("parser", () => {
                 internal: true,
               },
               arguments: [
-                {
+                par({
                   type: "application",
                   function: {
                     type: "reference",
@@ -384,7 +359,7 @@ describe("parser", () => {
                     internal: true,
                   },
                   arguments: [
-                    {
+                    par({
                       type: "application",
                       function: {
                         type: "reference",
@@ -401,13 +376,13 @@ describe("parser", () => {
                           ref: "is",
                         },
                       ],
-                    },
+                    }),
                     {
                       type: "reference",
                       ref: "much",
                     },
                   ],
-                },
+                }),
                 {
                   type: "reference",
                   ref: "to",
@@ -487,6 +462,7 @@ describe("parser", () => {
       it("binds tighter than function application", () => {
         const expected = {
           type: "application",
+          _shouldntWrapInPipedExpressions: true,
           function: ref("a"),
           arguments: [
             {
@@ -505,11 +481,12 @@ describe("parser", () => {
           function: ref("index", true),
           arguments: [
             ref("c"),
-            {
+            par({
               type: "application",
+              _shouldntWrapInPipedExpressions: true,
               function: ref("a"),
               arguments: [ref("b")],
-            },
+            }),
           ],
         };
         assert.deepStrictEqual(parseOrThrow("(a b)[c]"), expected);
@@ -666,7 +643,6 @@ describe("parser", () => {
           expected
         );
       });
-
       it("respects left associativity", () => {
         const expected = {
           type: "application",
@@ -701,23 +677,6 @@ describe("parser", () => {
           ],
         };
         assert.deepStrictEqual(parseOrThrow("one - two - three"), expected);
-      });
-      it("respects all these associativity comparisons", () => {
-        const comparisons: [string, string][] = [
-          ["1 - 2 + 3 - 4 + 5", "(((1 - 2) + 3) - 4) + 5"],
-          ["1 / 2 * 3 / 4 * 5", "(((1 / 2) * 3) / 4) * 5"],
-          ["!-1", "!(-1)"],
-          ["-!1", "-(!1)"],
-          ["--!!!-!hah", "-(-(!(!(!-(!hah)))))"],
-          ["one - two - three", "(one - two) - three"],
-          ["one - two * three", "one - (two * three)"],
-          ["a == b * 5", "a == (b * 5)"],
-          ["a / 3 + 2 == b * 5", "((a / 3) + 2) == (b * 5)"],
-          ["a / 3 + 2 == b * 5 d | c", "(((a / 3) + 2) == (b * 5)) d | c"],
-        ];
-        comparisons.forEach(([l, r]) => {
-          assert.deepStrictEqual(parseOrThrow(l), parseOrThrow(r));
-        });
       });
     });
     it("errors with incomplete binary expressions", () => {

@@ -1096,6 +1096,73 @@
               ]
             }
           ]
+        },
+        {
+          "describe": "associativity in weird cases",
+          "cases": [
+            {
+              "it": "handles a shotgun of different associativities",
+              "assertions": [
+                {
+                  "query": "(1 - 2 + 3 - 4 + 5) == ((((1 - 2) + 3) - 4) + 5)",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "(1 / 2 * 3 / 4 * 5) == ((((1 / 2) * 3) / 4) * 5)",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "(!-1) == (!(-1))",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "(one - two - three) == ((one - two) - three)",
+                  "data": {
+                    "one": 1,
+                    "two": 2.5,
+                    "three": 3.9393
+                  },
+                  "expected": true
+                },
+                {
+                  "query": "(one - two * three) == (one - (two * three))",
+                  "data": {
+                    "one": 1,
+                    "two": 2.5,
+                    "three": 3.9393
+                  },
+                  "expected": true
+                },
+                {
+                  "query": "(a == b * 5) == (a == (b * 5))",
+                  "data": {
+                    "a": 100.59,
+                    "b": 30
+                  },
+                  "expected": true
+                },
+                {
+                  "query": "(a / 3 + 2 == b * 5) == (((a / 3) + 2) == (b * 5))",
+                  "data": {
+                    "a": 10.59,
+                    "b": 3.5
+                  },
+                  "expected": true
+                },
+                {
+                  "query": "(a / 3 + 2 == b * 5 | apply @) == ((((a / 3) + 2) == (b * 5)) | apply @)",
+                  "data": {
+                    "a": 10.59,
+                    "b": 3.5
+                  },
+                  "expected": true
+                }
+              ]
+            }
+          ]
         }
       ]
     },
