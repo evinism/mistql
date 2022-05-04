@@ -28,6 +28,7 @@ mod stringjoin;
 mod sum;
 mod summarize;
 mod values;
+mod withindices;
 
 #[derive(Debug)]
 enum Function {
@@ -63,6 +64,7 @@ enum Function {
     Sum,
     Summarize,
     Values,
+    WithIndices,
 }
 
 impl TryFrom<&str> for Function {
@@ -102,6 +104,7 @@ impl TryFrom<&str> for Function {
             "sum" => Ok(Function::Sum),
             "summarize" => Ok(Function::Summarize),
             "values" => Ok(Function::Values),
+            "withindices" => Ok(Function::WithIndices),
             function => Err(Error::eval(format!("unknown function {}", function))),
         }
     }
@@ -151,6 +154,7 @@ pub fn eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Result<Va
         Ok(Function::Sum) => sum::sum(arg_parser),
         Ok(Function::Summarize) => summarize::summarize(arg_parser),
         Ok(Function::Values) => values::values(arg_parser),
+        Ok(Function::WithIndices) => withindices::withindices(arg_parser),
         Err(err) => Err(err),
     }
 }
@@ -174,6 +178,7 @@ pub fn ident_eval(pair: Pair<Rule>, data: &Value, context: Option<Value>) -> Res
         Ok(Function::Sum) => sum::sum(arg_parser),
         Ok(Function::Summarize) => summarize::summarize(arg_parser),
         Ok(Function::Values) => values::values(arg_parser),
+        Ok(Function::WithIndices) => withindices::withindices(arg_parser),
         // the only error here is unknown function, so treat it as a reference
         Err(_) => index::dot_index(pair.as_str(), arg_parser),
         // unsupported functions are also references - if you need to override
