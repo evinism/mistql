@@ -105,7 +105,14 @@ impl Div for Number {
 
     fn div(self, other: Self) -> Self::Output {
         match (self, other) {
-            (Number::Int(l), Number::Int(r)) => (Number::Int(l / r)),
+            (Number::Int(l), Number::Int(r)) => {
+                let res = l as f64 / r as f64;
+                if res.fract() == 0.0 {
+                    Number::Int(res.trunc() as i64)
+                } else {
+                    Number::Float(l as f64 / r as f64)
+                }
+            }
             (Number::Int(l), Number::Float(r)) => (Number::Float(l as f64 / r)),
             (Number::Float(l), Number::Int(r)) => (Number::Float(l / r as f64)),
             (Number::Float(l), Number::Float(r)) => (Number::Float(l / r)),
