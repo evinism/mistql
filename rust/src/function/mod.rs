@@ -31,7 +31,7 @@ mod values;
 mod withindices;
 
 #[derive(Debug)]
-enum Function {
+pub enum Function {
     Apply,
     Count,
     Entries,
@@ -325,5 +325,23 @@ mod tests {
                 ])
             ]
         }
+    }
+    #[test]
+    fn dotaccess_fails_with_unindexible_type() {
+        let query = "regex.foo";
+
+        parses_to! {
+            parser: MistQLParser,
+            input: query,
+            rule: Rule::query,
+            tokens: [
+                compound_reference(0,9, [
+                    ident(0,5),
+                    ident(6,9)
+                ])
+            ]
+        }
+
+        assert!(crate::query_value(query.to_string(), serde_json::Value::Null).is_err());
     }
 }
