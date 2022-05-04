@@ -4,7 +4,6 @@ use std::fmt;
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Value::Regex(_, _) => Err(fmt::Error),
             Value::Null => write!(f, "null"),
             Value::Boolean(true) => write!(f, "true"),
             Value::Boolean(false) => write!(f, "false"),
@@ -12,6 +11,7 @@ impl fmt::Display for Value {
             Value::Number(Number::Int(num)) => write!(f, "{}", from_number(*num as f64)),
             Value::String(s) => write!(f, "{}", s),
             Value::Ident(s) => write!(f, "{}", s),
+            Value::Regex(s, _) => write!(f, "{}", s),
             Value::Array(a) => {
                 write!(
                     f,

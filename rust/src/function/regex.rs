@@ -55,9 +55,10 @@ pub fn match_op(left: Value, right: Value) -> Result<Value> {
 }
 
 pub fn split(arg_parser: ArgParser) -> Result<Value> {
-    let (pattern_val, target_val) = arg_parser.two_args()?;
+    let (pattern_arg, target_arg) = arg_parser.two_args()?;
 
-    let pattern = match pattern_val.to_value(arg_parser.data)? {
+    let pattern_val = pattern_arg.to_value(arg_parser.data)?;
+    let pattern = match &pattern_val {
         Value::Regex(s, _) | Value::String(s) => match Regex::new(&s) {
             Ok(pat) => Ok(pat),
             Err(err) => Err(Error::regex(err)),
@@ -67,7 +68,7 @@ pub fn split(arg_parser: ArgParser) -> Result<Value> {
         )),
     }?;
 
-    let target = match target_val.to_value(arg_parser.data)? {
+    let target = match target_arg.to_value(arg_parser.data)? {
         Value::String(s) => Ok(s),
         _ => Err(Error::eval("split target must be a string".to_string())),
     }?;
@@ -75,6 +76,7 @@ pub fn split(arg_parser: ArgParser) -> Result<Value> {
     Ok(Value::Array(
         pattern
             .split(&target)
+            .filter(|elt| *elt != pattern_val.to_string().as_str())
             .map(|elt| Value::String(elt.to_string()))
             .collect(),
     ))
