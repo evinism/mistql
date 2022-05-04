@@ -40,8 +40,6 @@ pub fn sequence(arg_parser: ArgParser) -> Result<Value> {
         .map(|seq| Value::Array(seq))
         .collect();
 
-    dbg!(&sequences);
-
     Ok(Value::Array(sequences))
 }
 
