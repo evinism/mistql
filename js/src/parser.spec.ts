@@ -29,11 +29,21 @@ const pipe = (stages: ASTExpression[]): ASTExpression => ({
   stages,
 });
 
-const app = (fn: ASTExpression, args: ASTExpression[] = []): ASTExpression => ({
-  type: "application",
-  function: fn,
-  arguments: args,
-});
+const app = (
+  fn: ASTExpression,
+  args: ASTExpression[] = [],
+  _shouldntWrapInPipedExpressions?: true
+): ASTExpression => {
+  const app: ASTExpression = {
+    type: "application",
+    function: fn,
+    arguments: args,
+  };
+  if (_shouldntWrapInPipedExpressions) {
+    app._shouldntWrapInPipedExpressions = true;
+  }
+  return app;
+};
 
 describe("parser", () => {
   describe("#parse", () => {
@@ -95,53 +105,18 @@ describe("parser", () => {
 
     describe("references", () => {
       it("parses bare references", () => {
-        assert.deepStrictEqual(parseOrThrow("somefn"), {
-          type: "reference",
-          ref: "somefn",
-        });
+        assert.deepStrictEqual(parseOrThrow("somefn"), ref("somefn"));
       });
 
       it("parses the root reference", () => {
-        assert.deepStrictEqual(parseOrThrow("@"), {
-          type: "reference",
-          ref: "@",
-        });
+        assert.deepStrictEqual(parseOrThrow("@"), ref("@"));
       });
 
       it("parses a path based on the root reference ", () => {
-        const target = {
-          arguments: [
-            {
-              arguments: [
-                {
-                  ref: "@",
-                  type: "reference",
-                },
-                {
-                  ref: "hello",
-                  type: "reference",
-                },
-              ],
-              function: {
-                ref: ".",
-                type: "reference",
-                internal: true,
-              },
-              type: "application",
-            },
-            {
-              ref: "there",
-              type: "reference",
-            },
-          ],
-          function: {
-            ref: ".",
-            type: "reference",
-            internal: true,
-          },
-          type: "application",
-        };
-
+        const target = app(ref(".", true), [
+          app(ref(".", true), [ref("@"), ref("hello")]),
+          ref("there"),
+        ]);
         assert.deepStrictEqual(parseOrThrow("@.hello.there"), target);
       });
     });
@@ -215,27 +190,23 @@ describe("parser", () => {
     });
     describe("applications", () => {
       it("parses a basic function application", () => {
-        assert.deepStrictEqual(parseOrThrow("sup nernd hi"), {
-          type: "application",
-          _shouldntWrapInPipedExpressions: true,
-          function: ref("sup"),
-          arguments: [ref("nernd"), ref("hi")],
-        });
+        assert.deepStrictEqual(
+          parseOrThrow("sup nernd hi"),
+          app(ref("sup"), [ref("nernd"), ref("hi")], true)
+        );
       });
 
       it("parses function applications with parentheticals", () => {
-        assert.deepStrictEqual(parseOrThrow("(sup) (nernd) (hi)"), {
-          type: "application",
-          _shouldntWrapInPipedExpressions: true,
-          function: par(ref("sup")),
-          arguments: [par(ref("nernd")), par(ref("hi"))],
-        });
+        assert.deepStrictEqual(
+          parseOrThrow("(sup) (nernd) (hi)"),
+          app(par(ref("sup")), [par(ref("nernd")), par(ref("hi"))], true)
+        );
       });
 
       it("doesnt capture over pipes", () => {
-        assert.deepStrictEqual(parseOrThrow("sup nernd | hi there"), {
-          type: "pipeline",
-          stages: [
+        assert.deepStrictEqual(
+          parseOrThrow("sup nernd | hi there"),
+          pipe([
             {
               type: "application",
               _shouldntWrapInPipedExpressions: true,
@@ -264,137 +235,39 @@ describe("parser", () => {
                 },
               ],
             },
-          ],
-        });
+          ])
+        );
       });
     });
 
     describe("dot accesses", () => {
       it("parses a deep series of items", () => {
-        const target = {
-          type: "application",
-          function: {
-            type: "reference",
-            ref: ".",
-            internal: true,
-          },
-          arguments: [
-            {
-              type: "application",
-              function: {
-                type: "reference",
-                ref: ".",
-                internal: true,
-              },
-              arguments: [
-                {
-                  type: "application",
-                  function: {
-                    type: "reference",
-                    ref: ".",
-                    internal: true,
-                  },
-                  arguments: [
-                    {
-                      type: "application",
-                      function: {
-                        type: "reference",
-                        ref: ".",
-                        internal: true,
-                      },
-                      arguments: [
-                        {
-                          type: "reference",
-                          ref: "there",
-                        },
-                        {
-                          type: "reference",
-                          ref: "is",
-                        },
-                      ],
-                    },
-                    {
-                      type: "reference",
-                      ref: "much",
-                    },
-                  ],
-                },
-                {
-                  type: "reference",
-                  ref: "to",
-                },
-              ],
-            },
-            {
-              type: "reference",
-              ref: "learn",
-            },
-          ],
-        };
+        const target = app(ref(".", true), [
+          app(ref(".", true), [
+            app(ref(".", true), [
+              app(ref(".", true), [ref("there"), ref("is")]),
+              ref("much"),
+            ]),
+            ref("to"),
+          ]),
+          ref("learn"),
+        ]);
         assert.deepStrictEqual(parseOrThrow("there.is.much.to.learn"), target);
       });
 
       it("works after a parenthetical", () => {
-        const target = {
-          type: "application",
-          function: {
-            type: "reference",
-            ref: ".",
-            internal: true,
-          },
-          arguments: [
-            {
-              type: "application",
-              function: {
-                type: "reference",
-                ref: ".",
-                internal: true,
-              },
-              arguments: [
-                par({
-                  type: "application",
-                  function: {
-                    type: "reference",
-                    ref: ".",
-                    internal: true,
-                  },
-                  arguments: [
-                    par({
-                      type: "application",
-                      function: {
-                        type: "reference",
-                        ref: ".",
-                        internal: true,
-                      },
-                      arguments: [
-                        {
-                          type: "reference",
-                          ref: "there",
-                        },
-                        {
-                          type: "reference",
-                          ref: "is",
-                        },
-                      ],
-                    }),
-                    {
-                      type: "reference",
-                      ref: "much",
-                    },
-                  ],
-                }),
-                {
-                  type: "reference",
-                  ref: "to",
-                },
-              ],
-            },
-            {
-              type: "reference",
-              ref: "learn",
-            },
-          ],
-        };
+        const target = app(ref(".", true), [
+          app(ref(".", true), [
+            par(
+              app(ref(".", true), [
+                par(app(ref(".", true), [ref("there"), ref("is")])),
+                ref("much"),
+              ])
+            ),
+            ref("to"),
+          ]),
+          ref("learn"),
+        ]);
         assert.deepStrictEqual(
           parseOrThrow("((there.is).much).to.learn"),
           target
@@ -460,58 +333,36 @@ describe("parser", () => {
       });
 
       it("binds tighter than function application", () => {
-        const expected = {
-          type: "application",
-          _shouldntWrapInPipedExpressions: true,
-          function: ref("a"),
-          arguments: [
+        const expected = app(
+          ref("a"),
+          [
             {
               type: "application",
               function: ref("index", true),
               arguments: [ref("c"), ref("b")],
             },
           ],
-        };
+          true
+        );
         assert.deepStrictEqual(parseOrThrow("a b[c]"), expected);
       });
 
       it("works with parens", () => {
-        const expected = {
-          type: "application",
-          function: ref("index", true),
-          arguments: [
-            ref("c"),
-            par({
-              type: "application",
-              _shouldntWrapInPipedExpressions: true,
-              function: ref("a"),
-              arguments: [ref("b")],
-            }),
-          ],
-        };
+        const expected = app(ref("index", true), [
+          ref("c"),
+          par(app(ref("a"), [ref("b")], true)),
+        ]);
         assert.deepStrictEqual(parseOrThrow("(a b)[c]"), expected);
       });
 
       it("binds equivalently tightly to the dot accessor.", () => {
-        const expected = {
-          type: "application",
-          function: ref(".", true),
-          arguments: [
-            {
-              type: "application",
-              function: ref("index", true),
-              arguments: [
-                ref("c"),
-                {
-                  type: "application",
-                  function: ref(".", true),
-                  arguments: [ref("a"), ref("b")],
-                },
-              ],
-            },
-            ref("d"),
-          ],
-        };
+        const expected = app(ref(".", true), [
+          app(ref("index", true), [
+            ref("c"),
+            app(ref(".", true), [ref("a"), ref("b")]),
+          ]),
+          ref("d"),
+        ]);
         assert.deepStrictEqual(parseOrThrow("a.b[c].d"), expected);
       });
     });
