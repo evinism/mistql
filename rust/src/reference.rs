@@ -1,4 +1,5 @@
-use crate::{expr, index, Result, Rule, Value};
+use crate::function::Function;
+use crate::{expr, index, Error, Result, Rule, Value};
 use pest::iterators::Pair;
 
 pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
@@ -6,6 +7,12 @@ pub fn eval(pair: Pair<Rule>, data: &Value) -> Result<Value> {
     for subpair in pair.into_inner() {
         match subpair.as_rule() {
             Rule::ident => {
+                if Function::try_from(subpair.as_str()).is_ok() {
+                    return Err(Error::eval(format!(
+                        "can't index on function {:?}",
+                        subpair
+                    )));
+                }
                 current_data =
                     index::item_index(&Value::String(subpair.as_str().to_string()), &current_data)?
             }
