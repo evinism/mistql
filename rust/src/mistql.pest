@@ -15,7 +15,7 @@ fn_ident = {
     ( "(" ~ simple_expr ~ ")" )
 }
 
-indexed_value = { simple_value ~ "[" ~ (
+indexed_value = ${ simple_value ~ "[" ~ (
     range | low_range | high_range | number
 ) ~ "]" }
 range = { number ~ ":" ~ number }
@@ -58,14 +58,14 @@ compound_reference = {
     ("." ~ reference)+ }
 literal = _{ object | array | string | number | bool | null }
 
-object = {
+object = !{
     "{" ~ "}" |
     "{" ~ keyval ~ ("," ~ keyval)* ~ "}"
 }
 keyval = { key ~ ":" ~ expr }
 key = _{ string | ident }
 
-array = {
+array = !{
     "[" ~ "]" |
     "[" ~ expr ~ ("," ~ expr)* ~ "]"
 }
