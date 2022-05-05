@@ -6,28 +6,105 @@ sidebar_position: 1
 While MistQL's syntactic footprint is kept relatively small, it does take a little time to get used to. 
 
 ## Initial Context
-The simplest query in MistQL is `@`, which simply returns the _data_ passed in back. `@` refers to the current context, which initially is set to _data_, making `@` the identity query in MistQL.
+The simplest query in MistQL is `@`, which simply returns the _data_ that was passed into MistQL. `@` refers to the _current context_, which initially is set to _data_, making `@` the identity query in MistQL. As an example, we could have the following:
 
-The keys of the current context `@` are populated in the namespace as variables. For example, if the _data_ object is `{ "foo": "bar" }`, the query `foo` returns `"bar"`, as the variable `foo` has been populated in the namespace.
+| Query | Data | Result |
+|---|---|---|
+| `@` | `["arbitrary", "data"]` |  ` ["arbitrary", "data"]` |
+
+In the above, we operate the `@` query over the data `["arbitrary", "data"]`, returning the exact same data structure we passed in directly as output.
+
+
+#### Context variable population
+The keys of the current context `@` are populated in the namespace as variables, such that they can be accessed via bare names:
+
+| Query | Data | Result |
+|---|---|---|
+| `foo` | `{"foo": "bar"}` |  `"bar"` |
+
+In the above, the data has a `foo` key, which gets populated as variable `foo` in the above MistQL query.
 
 ## Basic Operators
-MistQL supports basic numbers and arithmetic expressions. For example, the expression `1 + 5` returns the number `6`. A more complicated expression might look like `10.5 * (30 % 7) - 5 / 8`.
+MistQL supports basic numbers and arithmetic expressions, following standard algebraic notation. For example, consider the following queries.
 
-MistQL also allows basic logical operations. The expression `true && false` outputs `false`, and `!false` outputs `true`. Finally, MistQL supports standard comparisons and equivalences: `50 > 10` outputs `false`, `10 > 50` outputs `false`, and `10 == 10` outputs `true`. For precise equality semantics, please refer to the Types section of the docs site. 
+| Example | Expression | Result |
+|---|---|---|
+| Simple  | `1 + 5` | `6` |
+| Complicated | `10.5 * (30 % 7) - 5 / 8` | `20.375` |
+
+These execute using PEMDAS exactly as expected.
+
+MistQL also allows basic logical operations, using the `||`, `&&`, and `!` operators, as well as the `true` and `false` literals.
+
+| Expression | Result |
+|---|---|
+| `true ││ false` | `true` |
+| `true && false` | `false` |
+| `!false` | `true` |
+
+MistQL allows short-circuiting:
+
+| Expression | Result |
+|---|---|
+| `0 ││ "foo"` | `"foo"` |
+| `[1, 2, 3] && null` | `null` |
+
+Finally, MistQL supports standard comparisons and equivalences: `50 > 10` outputs `false`, `10 > 50` outputs `false`, and `10 == 10` outputs `true`. 
+
+| Expression | Result |
+|---|---|
+| `50 > 10` | `true` |
+| `50 < 10` | `false` |
+| `10 == 10` | `true` |
+
+MistQL equality always returns `false` for disparate types, e.g. if comparing two different types, equality of the values will always result in `false`. For precise equality semantics, please refer to the Types section of the reference docs.
 
 ## Literals
-JSON literals are all valid MistQL. For example the expression `{ "foo": 1, "bar": "baz" }` would return `{ "foo": 1, "bar": "baz" }`, regardless of whatever data was provided.
+JSON literals are all valid MistQL:
 
-JSON literals can contain complicated subexpressions, for example the expression `[2 * 3, 5 * 10, { "food": "hot" +"dog"}]` evaluates to `[6, 50, {"food": "hotdog"}]`.
+```
+{ "foo": 1, "bar": "baz" }
+{ "zeep": [1, "zoop", false], "null": null }
+```
+
+This will hold true for all JSON values regardless of whatever data was provided, becuase MistQL expressions are a strict superset of JSON.
+
+Similarly to JavaScript, you can omit the quotes around key names that are valid identifiers in object literals:
+
+```
+{"type": "cat"} == {type: "cat"}
+```
+
+JSON literals can contain complicated subexpressions, for example: 
+
+```
+[2 * 3, 5 * 10, { food: "hot" +"dog"}] == [6, 50, {food: "hotdog"}]
+```
 
 ## Accessing Fields on Objects
 There are 2 main ways of accessing a field on an object in MistQL, namely *Bracket Notation* and *Dot Notation*.
 
 ### Bracket Notation
-Accessing fields on objects in MistQL is similar to JavaScript. To access fields on objects in MistQL, you use index notation with square brackets using strings. For example, if `@` is `{"hello": "world"}`, then the query `@["hello"]` returns the string `"world"`.
+Accessing fields on objects in MistQL is similar to JavaScript. To access fields on objects in MistQL, you use index notation with square brackets using strings:
+
+| Query | Data | Result |
+|---|---|---|
+| `@["hello"]` | `{"hello": "world"}` | `"world"` |
+| `foo["bar"]["baz"]` | `{"foo": {"bar": { "baz": true}}}` | `true` |
 
 ### Dot Notation
-If the name of the key on an object is alphanumeric, you can use dot notation to access object keys as well. For example, given data of `{"foo": "bar"}`, you can validly rewrite `@["foo"]` as `@.foo`. Nested object can be accessed as a series of dots, e.g. the query `@.foo.bar.baz` over data `{"foo": {"bar": {"baz": 5}}}` yields `5`, as expected.
+If the name of the key on an object is alphanumeric, you can use dot notation to access object keys as well. For example, given data of `{"foo": "bar"}`, you can validly rewrite `@["foo"]` as `@.foo`.
+
+| Query | Data | Result |
+|---|---|---|
+| `@["foo"]` | `{"foo": "bar"}` | `"bar"` |
+| `@.foo` | `{"foo": "bar"}` | `"bar"` |
+
+Nested object can be accessed as a series of dots:
+
+| Query | Data | Result |
+|---|---|---|
+| `@.foo.bar.baz` | `{"foo": {"bar": {"baz": 5}}}` | `5` |
 
 Accessing fields on objects is _null coalescing by default_: if you access missing keys on an object `@.these.keys.dont.exist`, the expression will evaluate to `null` without erroring out.
 
@@ -105,6 +182,7 @@ index (54 * 2) (1 - 3 / 5) (@)
 Piping provides an easy way to pass the result from one function along to another function in a clean, readable manner. When an expression is piped, the result of the expression on the left-hand side of the pipe is passed as the last argument to the function on the right-hand side of the pipe.
 
 For example, these two queries behave identically:
+
 ```
 split "," "dog,cat,walrus"
 "dog,cat,walrus" | split ","
@@ -134,29 +212,7 @@ This will error out, saying that the result of @ + 2 is not a function -- and it
 10 | apply @ * 2   RIGHT
 ```
 
-## Contextualized Expressions
-Contextualized expressions form the core of what differentiate MistQL from many other languages, and so should not be ignored. Contextualized Expressions are MistQL's standin for what would be lambdas in other languages.
-
-When calculating the result of a function, MistQL often executes expressions multiple times under different contexts. For example, in the following code, the expression `@ % 2 == 0` is run multiple times: For each element in the array, filter appends the @ variable (along with any properties of that variable) to the stack, and executes the first expression.
-
-`filter (@%2 == 0) [1, 2, 3, 4, 5, 6, 7]` results in `[2, 4, 6]`
-
-The function calling the expression dictates how context is supplied to that expression, and how to handle the result of the expression. Functions that push to the context stack in this way are notated as `@: SomeContextType -> SomeReturnType` in the documentation.
-
-As always, variables defined on the `@` variable are populated into scope. In the below, since @ is set to each element of the array in turn, the variable `foo` evaluates to the `foo` key of each array element in turn.
-
-```
-(map (foo + 1) [{"num": 10}, {"num": 20}])) == [11, 21]
-```
-
-Having contextualized expressions in this manner allows for some very clean-looking syntax. For example, filtering for all events of a given type and mapping to their email can be done with the following:
-
-`events | filter type == "page_shown" | map email`
-
-In the above query, we first filter for all events where `event.type`  is "page_shown", then map to the email field on each event in turn.
-
 ## The Root Variable `$`
-[ todo: This section is sketched out a little bit, but not much. ]
 
 The root variable `$` is an object containing all of the following:
 * A list of all builtin functions in MistQL
