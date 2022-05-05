@@ -15,7 +15,7 @@ The simplest query in MistQL is `@`, which simply returns the _data_ that was pa
 In the above, we operate the `@` query over the data `["arbitrary", "data"]`, returning the exact same data structure we passed in directly as output.
 
 
-#### Context variable population
+#### Context population
 The keys of the current context `@` are populated in the namespace as variables, such that they can be accessed via bare names:
 
 | Query | Data | Result |
@@ -205,8 +205,6 @@ You may be tempted to write the following to multiply 10 and 2:
 ```
 This will error out, saying that the result of @ + 2 is not a function -- and it's right! Since piping relies on being able to pass functions in without arguments, allowing the above syntax would form an ambiguity:
 
-
-
 ```
 10 | @ * 2         WRONG
 10 | apply @ * 2   RIGHT
@@ -214,17 +212,21 @@ This will error out, saying that the result of @ + 2 is not a function -- and it
 
 ## The Root Variable `$`
 
-The root variable `$` is an object containing all of the following:
-* A list of all builtin functions in MistQL
-* A reference to the root context variable (denoted `@`)
+The root variable `$` is an object containing:
+1. A reference to the root context variable (via the `@` key.)
+1. All builtin functions in MistQL
 
 ### Method overwriting
-In many cases, there can be naming conflicts 
+Functions and variables share the same namespace in MistQL, which can lead to naming conflicts if the current context has keys with the same name as builtins.
 
-Example: `{ "map": [] }`. What does query `map` resolve to?
+As an example, consider the query `map` over the data `{ "map": "data" }`. Since the key `map` exists in the data and is populated in the namespace via context population, the identifier `map` refers to the value `"data"`.
 
-Answer: it resolves to [], as the `map` function is overwritten.
+What this means is that if you were to attempt to use the `map` builtin in this particular case, we'd end up with a name conflict, as the current context overwrites the `map` identifier. Running the query `count | count` over the data `{"count": [1, 2, 3]}` would result in a error stating that arrays cannot be called as functions.
 
-In order to get back to the root, we have to reference an un-overwritable variable, namely the $ variable. 
-Root Context
-In several cases, context can be overwritten in such a way that you need a convenient way 
+In order to ensure we can always maintain a reference back to the original `count` function (or any other for that matter), MistQL provides a `$` variable which has every builtin function as a key.
+
+Rewriting `count | count` as `count | $.count` in the above case (such that `$.count` refers to the builtin `count` variable) resolves the issue.
+
+### `$.@`
+
+The root variable `$` also contains a key `@`, which refers directly to the _data_ the query operates over. This is useful in deeply nested expressions, where the `@` variable has been overwritten.
