@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mistql"
-version = "0.4.8"
+version = "0.4.9"
 description = "Python implementation of MistQL query language"
 authors = ["Evin Sellin <evinism@gmail.com>"]
 
