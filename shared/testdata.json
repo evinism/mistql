@@ -2372,6 +2372,27 @@
                   "throws": true
                 }
               ]
+            },
+            {
+              "it": "indexes strings via unicode code points",
+              "skip": ["js"],
+              "assertions": [
+                {
+                  "query": "\"😊\" | index 0",
+                  "data": null,
+                  "expected": "😊"
+                },
+                {
+                  "query": "\"👋🏽\" | index 0",
+                  "data": null,
+                  "expected": "👋"
+                },
+                {
+                  "query": "\"👋🏽\" | index 1",
+                  "data": null,
+                  "expected": "🏽"
+                }
+              ]
             }
           ]
         },
@@ -3499,6 +3520,17 @@
                   "query": "split (regex \"\\\\s+\") @",
                   "data": "hi there friend!!",
                   "expected": ["hi", "there", "friend!!"]
+                }
+              ]
+            },
+            {
+              "it": "splits unicode strings on codepoints",
+              "skip": ["js"],
+              "assertions": [
+                {
+                  "query": "\"👋🏽\" | split \"\"",
+                  "data": null,
+                  "expected": ["👋", "🏽"]
                 }
               ]
             }
