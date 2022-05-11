@@ -632,7 +632,7 @@ Result:
 | ----- | ------------------- | ---------------- | --------------- |
 | 2     | `string` or `regex` | `string`         | `array<string>` |
 
-Splits a string based on a delimiter.
+Splits a string based on a delimiter. Unicode codepoints are not split.
 
 #### Example
 
