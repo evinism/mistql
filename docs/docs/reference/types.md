@@ -11,7 +11,7 @@ types are considered internal and cannot be provided to or returned from MistQL.
 
 | Type     | Primitive | External | Comment                          |
 | -------- | --------- | -------- | -------------------------------- |
-| string   | ✔         | ✔        |                                  |
+| string   | ✔         | ✔        | Series of unicode codepoints     |
 | number   | ✔         | ✔        | Doubles, without NaN or infinity |
 | boolean  | ✔         | ✔        |                                  |
 | null     | ✔         | ✔        |                                  |

@@ -53,3 +53,6 @@ Dot access is equivalent to the 2-arity index function with the right hand side 
 a string.
 
 For example, `foo.bar` is syntactic sugar for `index "bar" foo`
+
+## Indexing strings
+Strings are indexed via full unicode codepoints rather than with surrogate pairs. For example, `"😊a"[0] == "😊"` and `"😊a"[1] == "a"`. MistQL treats the two codepoints in modifiers as separate characters, as in `"👋🏽"[0] == "👋"`.
