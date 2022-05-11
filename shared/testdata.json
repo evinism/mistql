@@ -2375,7 +2375,6 @@
             },
             {
               "it": "indexes strings via unicode code points",
-              "skip": ["js"],
               "assertions": [
                 {
                   "query": "\"😊\" | index 0",
@@ -3525,7 +3524,6 @@
             },
             {
               "it": "splits unicode strings on codepoints",
-              "skip": ["js"],
               "assertions": [
                 {
                   "query": "\"👋🏽\" | split \"\"",

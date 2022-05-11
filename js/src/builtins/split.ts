@@ -10,6 +10,9 @@ const split: BuiltinFunction = arity(2, (args, stack, exec) => {
   if (["string", "regex"].indexOf(getType(splitter)) === -1) {
     throw new RuntimeError("Expected string or regex as second argument to split");
   }
+  if (splitter === "") {
+    return [...source];
+  }
   return source.split(splitter);
 });
 
