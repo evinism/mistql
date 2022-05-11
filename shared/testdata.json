@@ -185,6 +185,22 @@
               ]
             },
             {
+              "it": "parses numbers which end with a decimal point",
+              "skip": ["js"],
+              "assertions": [
+                {
+                  "query": "0.",
+                  "data": null,
+                  "expected": 0
+                },
+                {
+                  "query": "5.",
+                  "data": null,
+                  "expected": 5
+                }
+              ]
+            },
+            {
               "it": "parses strings",
               "assertions": [
                 {
@@ -414,6 +430,19 @@
                     "index": "hello"
                   },
                   "expected": 2
+                }
+              ]
+            },
+            {
+              "it": "still allows values from higher scopes in lower scopes",
+              "assertions": [
+                {
+                  "query": "f | apply @ + g",
+                  "data": {
+                    "f": 1,
+                    "g": 2
+                  },
+                  "expected": 3
                 }
               ]
             },
@@ -1243,11 +1272,7 @@
                 {
                   "query": "map @ + 1 [1, 2, 3]",
                   "data": {},
-                  "expected": [
-                    2,
-                    3,
-                    4
-                  ]
+                  "expected": [2, 3, 4]
                 }
               ]
             },
@@ -1269,11 +1294,7 @@
                       }
                     ]
                   },
-                  "expected": [
-                    2,
-                    3,
-                    4
-                  ]
+                  "expected": [2, 3, 4]
                 }
               ]
             }
@@ -1288,10 +1309,7 @@
                 {
                   "query": "filter @ > 1 [1, 2, 3]",
                   "data": {},
-                  "expected": [
-                    2,
-                    3
-                  ]
+                  "expected": [2, 3]
                 }
               ]
             },
@@ -1363,13 +1381,7 @@
               "assertions": [
                 {
                   "query": "reduce @[0] + @[1] 0 @",
-                  "data": [
-                    1,
-                    4,
-                    5,
-                    7,
-                    8
-                  ],
+                  "data": [1, 4, 5, 7, 8],
                   "expected": 25
                 }
               ]
@@ -1400,10 +1412,7 @@
                 {
                   "query": "flatten [[], [[]], [[]]]",
                   "data": null,
-                  "expected": [
-                    [],
-                    []
-                  ]
+                  "expected": [[], []]
                 }
               ]
             },
@@ -1413,12 +1422,7 @@
                 {
                   "query": "flatten [[1, 2], [3, 4]]",
                   "data": null,
-                  "expected": [
-                    1,
-                    2,
-                    3,
-                    4
-                  ]
+                  "expected": [1, 2, 3, 4]
                 }
               ]
             },
@@ -1575,12 +1579,7 @@
                 {
                   "query": "[1, 2] + [3, 4]",
                   "data": {},
-                  "expected": [
-                    1,
-                    2,
-                    3,
-                    4
-                  ]
+                  "expected": [1, 2, 3, 4]
                 }
               ]
             }
@@ -2025,10 +2024,7 @@
                 {
                   "query": "[1, 2, 3, 4, 5] | index 2 4",
                   "data": {},
-                  "expected": [
-                    3,
-                    4
-                  ]
+                  "expected": [3, 4]
                 }
               ]
             },
@@ -2048,22 +2044,12 @@
                 {
                   "query": "[1, 2, 3, 4, 5] | index 1 null",
                   "data": {},
-                  "expected": [
-                    2,
-                    3,
-                    4,
-                    5
-                  ]
+                  "expected": [2, 3, 4, 5]
                 },
                 {
                   "query": "[1, 2, 3, 4, 5] | index null (-1)",
                   "data": {},
-                  "expected": [
-                    1,
-                    2,
-                    3,
-                    4
-                  ]
+                  "expected": [1, 2, 3, 4]
                 }
               ]
             },
@@ -2087,46 +2073,22 @@
               "assertions": [
                 {
                   "query": "(@[0:0]) == (index 0 0 @)",
-                  "data": [
-                    1,
-                    {},
-                    "3",
-                    4,
-                    null
-                  ],
+                  "data": [1, {}, "3", 4, null],
                   "expected": true
                 },
                 {
                   "query": "(@[-1]) == (index (-1) @)",
-                  "data": [
-                    1,
-                    {},
-                    "3",
-                    4,
-                    null
-                  ],
+                  "data": [1, {}, "3", 4, null],
                   "expected": true
                 },
                 {
                   "query": "(@[-1:]) == (index (-1) null @)",
-                  "data": [
-                    1,
-                    {},
-                    "3",
-                    4,
-                    null
-                  ],
+                  "data": [1, {}, "3", 4, null],
                   "expected": true
                 },
                 {
                   "query": "(@[:-2]) == (index null (-2) @)",
-                  "data": [
-                    1,
-                    {},
-                    "3",
-                    4,
-                    null
-                  ],
+                  "data": [1, {}, "3", 4, null],
                   "expected": true
                 }
               ]
@@ -2397,10 +2359,7 @@
                 {
                   "query": "{a: 1, b: 2} | keys",
                   "data": {},
-                  "expected": [
-                    "a",
-                    "b"
-                  ]
+                  "expected": ["a", "b"]
                 }
               ]
             },
@@ -2425,10 +2384,7 @@
                 {
                   "query": "{a: 1, b: 2} | values",
                   "data": {},
-                  "expected": [
-                    1,
-                    2
-                  ]
+                  "expected": [1, 2]
                 }
               ]
             },
@@ -2560,24 +2516,12 @@
                 {
                   "query": "[1, 2, 3, 4, 5] | sort",
                   "data": {},
-                  "expected": [
-                    1,
-                    2,
-                    3,
-                    4,
-                    5
-                  ]
+                  "expected": [1, 2, 3, 4, 5]
                 },
                 {
                   "query": "[11, 2, 32, 104, 5] | sort",
                   "data": {},
-                  "expected": [
-                    2,
-                    5,
-                    11,
-                    32,
-                    104
-                  ]
+                  "expected": [2, 5, 11, 32, 104]
                 }
               ]
             },
@@ -2587,12 +2531,7 @@
                 {
                   "query": "[\"banana\", \"apple\", \"carrot\", \"cabbage\"] | sort",
                   "data": {},
-                  "expected": [
-                    "apple",
-                    "banana",
-                    "cabbage",
-                    "carrot"
-                  ]
+                  "expected": ["apple", "banana", "cabbage", "carrot"]
                 }
               ]
             },
@@ -2602,12 +2541,7 @@
                 {
                   "query": "[true, false, true, false] | sort",
                   "data": {},
-                  "expected": [
-                    false,
-                    false,
-                    true,
-                    true
-                  ]
+                  "expected": [false, false, true, true]
                 }
               ]
             },
@@ -2641,6 +2575,17 @@
               "assertions": [
                 {
                   "query": "[[2], [1], [3]] | sort",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "fails to sort arrays of null",
+              "skip": ["js", "py"],
+              "assertions": [
+                {
+                  "query": "[null, null, null] | sort",
                   "data": {},
                   "throws": true
                 }
@@ -2698,11 +2643,7 @@
                 {
                   "query": "[{a: 3}, {a: 1}, {a: 2}] | sortby a | map a",
                   "data": {},
-                  "expected": [
-                    1,
-                    2,
-                    3
-                  ]
+                  "expected": [1, 2, 3]
                 }
               ]
             },
@@ -2737,13 +2678,7 @@
                 {
                   "query": "reverse [1, 2, 3, 4, 5]",
                   "data": {},
-                  "expected": [
-                    5,
-                    4,
-                    3,
-                    2,
-                    1
-                  ]
+                  "expected": [5, 4, 3, 2, 1]
                 }
               ]
             },
@@ -2922,11 +2857,7 @@
                 {
                   "query": "log [1, 2, 3]",
                   "data": {},
-                  "expected": [
-                    1,
-                    2,
-                    3
-                  ]
+                  "expected": [1, 2, 3]
                 },
                 {
                   "query": "log {a: 1, b: 2}",
@@ -3507,24 +3438,12 @@
                 {
                   "query": "split \"hi\" @",
                   "data": "ahi tuna",
-                  "expected": [
-                    "a",
-                    " tuna"
-                  ]
+                  "expected": ["a", " tuna"]
                 },
                 {
                   "query": "split \"\" @",
                   "data": "ahi tuna",
-                  "expected": [
-                    "a",
-                    "h",
-                    "i",
-                    " ",
-                    "t",
-                    "u",
-                    "n",
-                    "a"
-                  ]
+                  "expected": ["a", "h", "i", " ", "t", "u", "n", "a"]
                 }
               ]
             },
@@ -3534,26 +3453,17 @@
                 {
                   "query": "split (regex \"\\\\s+\") @",
                   "data": "hi there",
-                  "expected": [
-                    "hi",
-                    "there"
-                  ]
+                  "expected": ["hi", "there"]
                 },
                 {
                   "query": "split (regex \"\\\\s+\") @",
                   "data": "hi\r\n\r\nthere",
-                  "expected": [
-                    "hi",
-                    "there"
-                  ]
+                  "expected": ["hi", "there"]
                 },
                 {
                   "query": "split (regex \"\\\\s+\") @",
                   "data": "hi\r\n\r\n\nthere",
-                  "expected": [
-                    "hi",
-                    "there"
-                  ]
+                  "expected": ["hi", "there"]
                 }
               ]
             },
@@ -3563,11 +3473,7 @@
                 {
                   "query": "split (regex \"\\\\s+\") @",
                   "data": "hi there friend!!",
-                  "expected": [
-                    "hi",
-                    "there",
-                    "friend!!"
-                  ]
+                  "expected": ["hi", "there", "friend!!"]
                 }
               ]
             }
@@ -3581,11 +3487,7 @@
               "assertions": [
                 {
                   "query": "stringjoin \"\" @",
-                  "data": [
-                    "a",
-                    "b",
-                    "c"
-                  ],
+                  "data": ["a", "b", "c"],
                   "expected": "abc"
                 }
               ]
@@ -3595,11 +3497,7 @@
               "assertions": [
                 {
                   "query": "stringjoin \" \" @",
-                  "data": [
-                    "a",
-                    "b",
-                    "c"
-                  ],
+                  "data": ["a", "b", "c"],
                   "expected": "a b c"
                 }
               ]
@@ -3629,14 +3527,8 @@
                     "b": 2
                   },
                   "expected": [
-                    [
-                      "a",
-                      1
-                    ],
-                    [
-                      "b",
-                      2
-                    ]
+                    ["a", 1],
+                    ["b", 2]
                   ]
                 },
                 {
@@ -3661,14 +3553,8 @@
                 {
                   "query": "fromentries @",
                   "data": [
-                    [
-                      "a",
-                      1
-                    ],
-                    [
-                      "b",
-                      2
-                    ]
+                    ["a", 1],
+                    ["b", 2]
                   ],
                   "expected": {
                     "a": 1,
@@ -3682,16 +3568,7 @@
               "assertions": [
                 {
                   "query": "fromentries @",
-                  "data": [
-                    [
-                      "a",
-                      1
-                    ],
-                    [
-                      "b"
-                    ],
-                    []
-                  ],
+                  "data": [["a", 1], ["b"], []],
                   "expected": {
                     "a": 1,
                     "b": null,
@@ -3706,18 +3583,8 @@
                 {
                   "query": "fromentries @",
                   "data": [
-                    [
-                      {},
-                      1
-                    ],
-                    [
-                      [
-                        1,
-                        2,
-                        3
-                      ],
-                      2
-                    ]
+                    [{}, 1],
+                    [[1, 2, 3], 2]
                   ],
                   "expected": {
                     "{}": 1,
@@ -3776,10 +3643,7 @@
               "assertions": [
                 {
                   "query": "string @",
-                  "data": [
-                    "hi",
-                    "there"
-                  ],
+                  "data": ["hi", "there"],
                   "expected": "[\"hi\",\"there\"]"
                 }
               ]
@@ -3885,24 +3749,11 @@
               "assertions": [
                 {
                   "query": "withindices @",
-                  "data": [
-                    "a",
-                    "b",
-                    "c"
-                  ],
+                  "data": ["a", "b", "c"],
                   "expected": [
-                    [
-                      0,
-                      "a"
-                    ],
-                    [
-                      1,
-                      "b"
-                    ],
-                    [
-                      2,
-                      "c"
-                    ]
+                    [0, "a"],
+                    [1, "b"],
+                    [2, "c"]
                   ]
                 }
               ]
@@ -3974,10 +3825,7 @@
                       }
                     ]
                   },
-                  "expected": [
-                    "flora@example.com",
-                    "william@example.com"
-                  ]
+                  "expected": ["flora@example.com", "william@example.com"]
                 }
               ]
             },
@@ -4165,10 +4013,7 @@
                       }
                     ]
                   },
-                  "expected": [
-                    "194",
-                    "197"
-                  ]
+                  "expected": ["194", "197"]
                 }
               ]
             }
