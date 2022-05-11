@@ -5,16 +5,26 @@ import { arity, validateType } from "../util";
 
 type Indexer = (source: RuntimeValue, key: RuntimeValue, keyEnd: RuntimeValue) => RuntimeValue;
 
+
+const hasSurrogatePairs = (str: string) => {
+  for (let i = 0; i < str.length; i++) {
+    if (str.codePointAt(i) > 0xffff) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const objectIndexer: Indexer = (source, key, keyEnd) => {
   if (keyEnd !== undefined) {
-    throw new RuntimeError("Index ranges not supported for objects")
+    throw new RuntimeError("Index ranges not supported for objects");
   }
   validateType("string", key);
   return source[key] ?? null;
-}
+};
 
 const arrayOrStringSubscript = (data: any[] | string, key: number) => {
-  if (typeof data === "string") {
+  if (typeof data === "string" && hasSurrogatePairs(data)) {
     return [...data][key];
   }
   return data[key];
@@ -25,7 +35,7 @@ const arrayOrStringSlice = (
   start: number,
   end?: number
 ) => {
-  if (typeof data === "string") {
+  if (typeof data === "string" && hasSurrogatePairs(data)) {
     return [...data].slice(start, end).join("");
   }
   return data.slice(start, end);
