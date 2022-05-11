@@ -3513,6 +3513,16 @@
               ]
             },
             {
+              "it": "handles splits of unicode strings with unicode-flagged regexes",
+              "assertions": [
+                {
+                  "query": "\"😊\" | split (regex \".\")",
+                  "data": null,
+                  "expected": ["", ""]
+                }
+              ]
+            },
+            {
               "it": "splits everywhere even with a non-global regex",
               "assertions": [
                 {
