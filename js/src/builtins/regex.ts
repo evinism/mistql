@@ -15,7 +15,8 @@ const regex: BuiltinFunction = arity([1, 2], (args, stack, exec) => {
       throw new RuntimeError("Invalid flags passed to replace: " + flags);
     }
   }
-  return new RegExp(regexStr, flags);
+  // In MistQL, all strings should operate in unicode fashion.
+  return new RegExp(regexStr, flags + "u");
 });
 
 export default regex;
