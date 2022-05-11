@@ -197,6 +197,31 @@
                   "query": "5.",
                   "data": null,
                   "expected": 5
+                },
+                {
+                  "query": "(5.)",
+                  "data": null,
+                  "expected": 5
+                }
+              ]
+            },
+            {
+              "it": "fails to parse numbers which end in a decimal point followed by a non-digit",
+              "assertions": [
+                {
+                  "query": "0.5.",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "0.5e",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "0.n",
+                  "data": null,
+                  "throws": true
                 }
               ]
             },
