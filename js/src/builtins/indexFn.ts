@@ -13,6 +13,24 @@ const objectIndexer: Indexer = (source, key, keyEnd) => {
   return source[key] ?? null;
 }
 
+const arrayOrStringSubscript = (data: any[] | string, key: number) => {
+  if (typeof data === "string") {
+    return [...data][key];
+  }
+  return data[key];
+};
+
+const arrayOrStringSlice = (
+  data: any[] | string,
+  start: number,
+  end?: number
+) => {
+  if (typeof data === "string") {
+    return [...data].slice(start, end).join("");
+  }
+  return data.slice(start, end);
+};
+
 const arrayOrStringIndexer: Indexer = (source: string | any[], key, keyEnd) => {
   // negative indices!
   if (key < 0) {
@@ -26,20 +44,20 @@ const arrayOrStringIndexer: Indexer = (source: string | any[], key, keyEnd) => {
   }
   if (keyEnd === undefined) {
     validateType("number", key);
-    return source[key] ?? null;
+    return arrayOrStringSubscript(source, key) ?? null;
   }
   if (keyEnd === null) {
     validateType("number", key);
-    return source.slice(key);
+    return arrayOrStringSlice(source, key);
   }
   if (key === null) {
     validateType("number", keyEnd);
-    return source.slice(0, keyEnd);
+    return arrayOrStringSlice(source, 0, keyEnd);
   }
   validateType("number", key);
   validateType("number", keyEnd);
-  return source.slice(key, keyEnd);
-}
+  return arrayOrStringSlice(source, key, keyEnd);
+};
 
 const nullIndexer: Indexer = (_, key, keyEnd) => {
   if (keyEnd !== undefined) {
