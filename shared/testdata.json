@@ -186,7 +186,6 @@
             },
             {
               "it": "parses numbers which end with a decimal point",
-              "skip": ["js"],
               "assertions": [
                 {
                   "query": "0.",
@@ -202,6 +201,11 @@
                   "query": "(5.)",
                   "data": null,
                   "expected": 5
+                },
+                {
+                  "query": "-9.e2",
+                  "data": null,
+                  "expected": -900
                 }
               ]
             },
