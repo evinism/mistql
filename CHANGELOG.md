@@ -14,6 +14,9 @@ Format [Keep A ChangeLog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
 - https://github.com/evinism/mistql/pull/150 Modified JS implementation `#index` and `#split` functions to match the expected unicode behavior as established above.
 
+### Fixed
+- https://github.com/evinism/mistql/pull/152 Allowed numbers to end in bare decimal points
+
 ## [0.4.9] 2022-05-05
 
 ### Added
