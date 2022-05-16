@@ -27,7 +27,7 @@ const vaccumsWhitespace = (token: string, direction: "l" | "r") => {
 const refStarter = /[a-zA-Z_]/;
 const refContinuer = /[a-zA-Z_0-9]/;
 const numStarter = /[0-9]/;
-const numIsValid = /^(0|([1-9][0-9]*))(\.[0-9]+)?([eE][+-]?[0-9]+)?/;
+const numIsValid = /^(0|([1-9][0-9]*))(\.[0-9]*)?([eE][+-]?[0-9]+)?/;
 const whitespace = /\s/;
 
 export function lex(raw: string): LexToken[] {
