@@ -32,11 +32,10 @@ const whitespace = /\s/;
 
 export function lex(raw: string): LexToken[] {
   const tokens: LexToken[] = [];
-  const split = raw.split("");
-  for (let i = 0; i < split.length; i++) {
+  for (let i = 0; i < raw.length; i++) {
     // For use in position field in tokens
     const position = i;
-    let buffer = split[i];
+    let buffer = raw[i];
     if (numStarter.test(buffer || "")) {
       const sliced = raw.substring(i);
       const matched = sliced.match(numIsValid);
@@ -48,7 +47,7 @@ export function lex(raw: string): LexToken[] {
       });
       i += res.length - 1;
     } else if (whitespace.test(buffer || "")) {
-      while (whitespace.test(split[i + 1])) {
+      while (whitespace.test(raw[i + 1])) {
         i++;
       }
       tokens.push({
@@ -60,15 +59,14 @@ export function lex(raw: string): LexToken[] {
       specials.filter((operator) => operator.startsWith(buffer)).length > 0
     ) {
       while (
-        specials.filter((operator) =>
-          operator.startsWith(buffer + split[i + 1])
-        ).length > 0
+        specials.filter((operator) => operator.startsWith(buffer + raw[i + 1]))
+          .length > 0
       ) {
         i++;
-        buffer += split[i];
+        buffer += raw[i];
       }
       if (vaccumsWhitespace(buffer, "r")) {
-        while (whitespace.test(split[i + 1])) {
+        while (whitespace.test(raw[i + 1])) {
           i++;
         }
       }
@@ -86,9 +84,9 @@ export function lex(raw: string): LexToken[] {
         position,
       });
     } else if (refStarter.test(buffer || "")) {
-      while (refContinuer.test(split[i + 1] || "")) {
+      while (refContinuer.test(raw[i + 1] || "")) {
         i++;
-        buffer += split[i];
+        buffer += raw[i];
       }
       if (builtinValues[buffer] !== undefined) {
         tokens.push({
@@ -111,13 +109,13 @@ export function lex(raw: string): LexToken[] {
       });
     } else if (buffer === '"') {
       buffer = "";
-      while (split[i + 1] !== '"') {
+      while (raw[i + 1] !== '"') {
         i++;
-        if (split[i] === undefined) {
+        if (raw[i] === undefined) {
           throw new LexError("Unterminated string literal", position, raw);
         } else if (
-          split[i] === "\\" &&
-          split[i + 1] === '"' &&
+          raw[i] === "\\" &&
+          raw[i + 1] === '"' &&
           !endsWithOddNumberOfSlashes(buffer)
         ) {
           // Handle escaped double quotes separately
@@ -126,7 +124,7 @@ export function lex(raw: string): LexToken[] {
           buffer += "\\u0022";
           i++;
         } else {
-          buffer += split[i];
+          buffer += raw[i];
         }
       }
       let value: string = "";
@@ -142,7 +140,7 @@ export function lex(raw: string): LexToken[] {
       });
       i++;
     } else {
-      throw new LexError(`Unexpected character '${split[i]}'`, i, raw);
+      throw new LexError(`Unexpected character '${raw[i]}'`, i, raw);
     }
   }
 
