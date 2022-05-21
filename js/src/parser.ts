@@ -278,7 +278,7 @@ const consumeDotAccess: ParameterizedParser = (left, tokens, offset, ctx) => {
   offset++;
   let ref: string;
   let refToken = tokens[offset];
-  if (tokens.length - 1 === offset || refToken.token !== "ref") {
+  if (!refToken || refToken.token !== "ref") {
     throw new ParseError(
       "Unexpected token " + tokens[offset].value + ", expected :",
       tokens[offset].position,
@@ -439,6 +439,7 @@ const consumeExpression: Parser = (tokens, offset, ctx) => {
         }
       }
       const unaries = tokens.slice(offset, i);
+      offset = i;
       next = tokens[offset];
       hackyUnaryPostProcess = (item) =>
         unaries.reduceRight(
