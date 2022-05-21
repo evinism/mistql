@@ -2023,12 +2023,42 @@
               ]
             },
             {
+              "it": "allows indexing by negative zero",
+              "assertions": [
+                {
+                  "query": "[1, 2, 3] | index (-0)",
+                  "data": {},
+                  "expected": 1
+                },
+                {
+                  "query": "\"hello\" | index (-0)",
+                  "data": {},
+                  "expected": "h"
+                }
+              ]
+            },
+            {
               "it": "correctly indexes strings",
               "assertions": [
                 {
                   "query": "\"abcdef\" | index 2",
                   "data": {},
                   "expected": "c"
+                }
+              ]
+            },
+            {
+              "it": "returns null if out of bounds",
+              "assertions": [
+                {
+                  "query": "\"abcdef\" | index 6",
+                  "data": {},
+                  "expected": null
+                },
+                {
+                  "query": "[2, 3, 4, 5, 6] | index 6",
+                  "data": {},
+                  "expected": null
                 }
               ]
             },
@@ -2064,6 +2094,21 @@
                   "query": "\"abcdef\" | index 2 4",
                   "data": {},
                   "expected": "cd"
+                }
+              ]
+            },
+            {
+              "it": "allows ranges that go outside the bounds of the string",
+              "assertions": [
+                {
+                  "query": "\"abcdef\" | index 2 10",
+                  "data": {},
+                  "expected": "cdef"
+                },
+                {
+                  "query": "[1, 2, 3, 4, 5] | index 2 10",
+                  "data": {},
+                  "expected": [3, 4, 5]
                 }
               ]
             },

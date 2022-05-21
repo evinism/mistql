@@ -25,7 +25,14 @@ const objectIndexer: Indexer = (source, key, keyEnd) => {
 
 const arrayOrStringSubscript = (data: any[] | string, key: number) => {
   if (typeof data === "string" && hasSurrogatePairs(data)) {
-    return [...data][key];
+    let i = 0;
+    for (let codepoint of data) {
+      if (i === key) {
+        return codepoint;
+      }
+      i++;
+    }
+    return null;
   }
   return data[key];
 };
@@ -36,7 +43,17 @@ const arrayOrStringSlice = (
   end?: number
 ) => {
   if (typeof data === "string" && hasSurrogatePairs(data)) {
-    return [...data].slice(start, end).join("");
+    let i = 0;
+    let result = "";
+    for (let codepoint of data) {
+      if (i >= end) {
+        break;
+      } else if (i >= start) {
+        result += codepoint;
+      }
+      i++;
+    }
+    return result;
   }
   return data.slice(start, end);
 };
