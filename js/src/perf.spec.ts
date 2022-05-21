@@ -16,7 +16,7 @@ describe("mistql performance", () => {
       // TODO: This is horrible in terms of performance!!
       // MistQL is performing at terrible levels, and we should aim to bring this down
       // by several orders of magnitude.
-      const maxRatio = 2000;
+      const maxRatio = 50;
 
       const nobelPrizes = fs.readFileSync(
         __dirname + "/shared/data/nobel-prizes.json",
