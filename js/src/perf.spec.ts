@@ -13,24 +13,21 @@ function time(fn) {
 describe("mistql performance", () => {
   describe("parsing", () => {
     it("should have query parsing performance similar to native json parsing", () => {
-      // TODO: This is horrible in terms of performance!!
-      // MistQL is performing at terrible levels, and we should aim to bring this down
-      // by several orders of magnitude.
-      const maxRatio = 50;
+      const maxRatio = 100;
 
       const nobelPrizes = fs.readFileSync(
         __dirname + "/shared/data/nobel-prizes.json",
         "utf8"
       );
-  
+
       const nativeJSTime = time(() => {
         JSON.parse(nobelPrizes);
       });
-  
+
       const mistqlTime = time(() => {
         mistql.query(nobelPrizes, null);
       });
-  
+
       assert.ok(mistqlTime < nativeJSTime * maxRatio);
     }).timeout(10000);
   });
@@ -43,32 +40,30 @@ describe("mistql performance", () => {
         "utf8"
       );
       const nativeJSTime = time(() => {
-        mistql.query("@", rfc6455)[10000]
+        mistql.query("@", rfc6455)[10000];
       });
-  
+
       const mistqlTime = time(() => {
         mistql.query("@[10000]", rfc6455);
       });
-  
+
       assert.ok(mistqlTime < nativeJSTime * maxRatio);
     });
 
     it("handles string indexing within an order of magnitude for utf8", () => {
       // This can likely be tightened substantially if we move to an indexing
       // scheme that operates not off of constructing the entire array.
-      const maxRatio = 20;
-      const rfc6455 = "👋🏽" + fs.readFileSync(
-        __dirname + "/shared/data/rfc6455.txt",
-        "utf8"
-      );
+      const maxRatio = 5;
+      const rfc6455 =
+        "👋🏽" + fs.readFileSync(__dirname + "/shared/data/rfc6455.txt", "utf8");
 
       const nativeJSTime = time(() => {
-        mistql.query("@", rfc6455)[10000]
+        mistql.query("@", rfc6455)[10000];
       });
-  
+
       const mistqlTime = time(() => {
         mistql.query("@[10000]", rfc6455);
-      });  
+      });
       assert.ok(mistqlTime < nativeJSTime * maxRatio);
     });
 
@@ -77,10 +72,9 @@ describe("mistql performance", () => {
       // enough to mostly work on whatever systems we need.
       const maxDuration = 50;
 
-      const nobelPrizes = JSON.parse(fs.readFileSync(
-        __dirname + "/shared/data/nobel-prizes.json",
-        "utf8"
-      ));
+      const nobelPrizes = JSON.parse(
+        fs.readFileSync(__dirname + "/shared/data/nobel-prizes.json", "utf8")
+      );
       const mistqlTime = time(() => {
         mistql.query("@", nobelPrizes);
       });
