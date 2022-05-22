@@ -25,29 +25,48 @@ types are considered internal and cannot be provided to or returned from MistQL.
 Equality in MistQL is strict, meaning that if two variables have different 
 data types, they are considered unequal. 
 
-| Type     | Equality           | Truthiness                         |
-| -------- | ------------------ | ---------------------------------- |
-| string   | exact              | `false` if empty, `true` otherwise |
-| number   | IEEE 754 compliant | IEEE 754 compliant                 |
-| boolean  | exact              | Standard                           |
-| null     | `true`             | `false`                            |
-| object   | Deep equality      | `false` if empty, `true` otherwise |
-| array    | Deep equality      | `false` if empty, `true` otherwise |
-| function | Referential        | `true`                             |
-| regex    | On source and flag | `true`                             |
-
+| Type     | Equality           |
+| -------- | ------------------ |
+| string   | exact              |
+| number   | IEEE 754 compliant |
+| boolean  | exact              |
+| null     | `true`             |
+| object   | Deep equality      |
+| array    | Deep equality      |
+| function | Referential        |
+| regex    | On source and flag |
 
 ## Casting Tables
 
 MistQL defines casting from some types to other types
 
-| Type     | Cast to Float               | Cast To String                                     |
-| -------- | --------------------------- | -------------------------------------------------- |
-| string   | Parsed as float, as per JSON standard. | noop      |
-| number   | noop | As base 10 float. If number is an integer, no trailing digits or decimal. Exponential notation when not within non-inclusive range `1e-7` to `1e21` |
-| boolean  | 1 for `true`, 0 for `false` | `"true"` for `true`, `"false"` for `false`         |
-| null     | 0                           | `"null"`                                           |
-| object   | Throws error                | Concise JSON, recursively converting items         |
-| array    | Throws error                | Concise JSON, recursively converting items         |
-| function | Throws error                | Throws error                                       |
-| regex    | Throws error                | Throws error                                       |
+| Type     | Cast to Float               | Cast To String                                     | Truthiness                         |
+| -------- | --------------------------- | -------------------------------------------------- | ---------------------------------- |
+| string   | Parsed as float, as per JSON standard. | noop      | `false` if empty, `true` otherwise |
+| number   | noop | As base 10 float. If number is an integer, no trailing digits or decimal. Exponential notation when not within non-inclusive range `1e-7` to `1e21` | IEEE 754 compliant                 |
+| boolean  | 1 for `true`, 0 for `false` | `"true"` for `true`, `"false"` for `false`         | Standard                           |
+| null     | 0                           | `"null"`                                           | `false`                            |
+| object   | Invalid Operation           | Concise JSON, recursively converting items         | `false` if empty, `true` otherwise |
+| array    | Invalid Operation           | Concise JSON, recursively converting items         | `false` if empty, `true` otherwise |
+| function | Invalid Operation           | Invalid Operation                                  | `true`                             |
+| regex    | Invalid Operation           | Invalid Operation                                  | `true`                             |
+
+## Type Properties
+There are 3 properties that any given type may or may not exhibit. The properties are as follows:
+
+* `Comparable`: Whether or not a type can be compared to another of the same type.
+* `NumberCastable`: Whether or not a type can be cast to the `number` type.
+* `StringCastable`: Whether or not a type can be cast to the `string` type.
+
+The table for which types exhibit which properties can be seen below:
+
+| Type     | Comparable | NumberCastable | StringCastable |
+| -------- | ---------- | -------------- | -------------- |
+| string   | ✔          | ✔              | ✔              |
+| number   | ✔          | ✔              | ✔              |
+| boolean  | ✔          | ✔              | ✔              |
+| null     | ✔          | ✔              | ✔              |
+| object   |            |                | ✔              |
+| array    |            |                | ✔              |
+| function |            |                |                |
+| regex    |            |                |                |
