@@ -16,6 +16,8 @@ Format [Keep A ChangeLog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 - https://github.com/evinism/mistql/pull/152 Allowed numbers to end in bare decimal points
+- https://github.com/evinism/mistql/pull/158 Dramatically improved JS parser and lexer performance.
+- https://github.com/evinism/mistql/pull/157 Dramatically improved indexing performance on unicode strings.
 
 ## [0.4.9] 2022-05-05
 
