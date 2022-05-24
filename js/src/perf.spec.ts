@@ -3,12 +3,49 @@ import fs from "fs";
 import assert from "assert";
 import { performance } from 'perf_hooks';
 
+// The following is scaffolding for performance testing.
 
-function time(fn) {
-  const start = performance.now();
-  fn();
-  return performance.now() - start;
+type Summary = {
+  median: number;
+  mean: number;
+  p95: number;
+};
+
+type Options = Partial<{
+  iterations: number;
+  name: string;
+}>;
+
+function time(fn, options: Options = {}) {
+  const { iterations = 100, name } = options;
+  const times = [];
+  for (let i = 0; i < iterations; i++) {
+    const start = performance.now();
+    fn();
+    const end = performance.now();
+    times.push(end - start);
+  }
+  const summary = {
+    median: times.sort()[Math.floor(times.length / 2)],
+    mean: times.reduce((a, b) => a + b, 0) / times.length,
+    p95: times.sort()[Math.floor(times.length * 0.95)],
+  };
+  const titleString = name ? ` for "${name}"` : "";
+  console.log(`Performance Summary${titleString} (n=${iterations}):`);
+  console.table(summary);
+  return summary;
 }
+
+function assertTime(
+  fn: () => void,
+  predicate: (summary: Summary) => boolean,
+  options: Options = {}
+) {
+  const summary = time(fn, options);
+  assert(predicate(summary), `Expected ${JSON.stringify(summary)}`);
+}
+
+// The following is the actual test code.
 
 describe("mistql performance", () => {
   describe("parsing", () => {
@@ -20,73 +57,74 @@ describe("mistql performance", () => {
         "utf8"
       );
 
-      const nativeJSTime = time(() => {
-        JSON.parse(nobelPrizes);
-      });
+      const { median: nativeJSTime } = time(
+        () => {
+          JSON.parse(nobelPrizes);
+        },
+        { name: "native json parse", iterations: 20 }
+      );
 
-      const mistqlTime = time(() => {
-        mistql.query(nobelPrizes, null);
-      });
+      const { median: mistqlTime } = time(
+        () => {
+          mistql.query(nobelPrizes, null);
+        },
+        { name: "mistql parse", iterations: 20 }
+      );
+
+      console.log("Ratio: ", mistqlTime / nativeJSTime);
 
       assert.ok(mistqlTime < nativeJSTime * maxRatio);
     }).timeout(10000);
   });
 
   describe("execution", () => {
-    it("handles string indexing at roughly the same speed for non-utf8", () => {
-      const maxRatio = 1.2;
+    it("performs non-utf8 string indexing quickly", () => {
       const rfc6455 = fs.readFileSync(
         __dirname + "/shared/data/rfc6455.txt",
         "utf8"
       );
-      const nativeJSTime = time(() => {
-        mistql.query("@", rfc6455)[10000];
-      });
-
-      const mistqlTime = time(() => {
-        mistql.query("@[10000]", rfc6455);
-      });
-
-      assert.ok(mistqlTime < nativeJSTime * maxRatio);
+      assertTime(
+        () => {
+          mistql.query("@[10000]", rfc6455);
+        },
+        (summary) => summary.median < 2
+      );
     });
 
-    it("handles string indexing within an order of magnitude for utf8", () => {
-      // This can likely be tightened substantially if we move to an indexing
-      // scheme that operates not off of constructing the entire array.
-      const maxRatio = 5;
+    it("performs utf-8 string indexing quickly", () => {
       const rfc6455 =
         "👋🏽" + fs.readFileSync(__dirname + "/shared/data/rfc6455.txt", "utf8");
 
-      const nativeJSTime = time(() => {
-        mistql.query("@", rfc6455)[10000];
-      });
-
-      const mistqlTime = time(() => {
-        mistql.query("@[10000]", rfc6455);
-      });
-      assert.ok(mistqlTime < nativeJSTime * maxRatio);
+      assertTime(
+        () => {
+          mistql.query("@[10000]", rfc6455);
+        },
+        (summary) => summary.median < 2
+      );
     });
 
     it("handles efficient rtts", () => {
       // This will likely differ on different systems, we should make it wide
       // enough to mostly work on whatever systems we need.
-      const maxDuration = 50;
-
       const nobelPrizes = JSON.parse(
         fs.readFileSync(__dirname + "/shared/data/nobel-prizes.json", "utf8")
       );
-      const mistqlTime = time(() => {
-        mistql.query("@", nobelPrizes);
-      });
-      assert.ok(mistqlTime < maxDuration);
+
+      assertTime(
+        () => {
+          mistql.query("@", nobelPrizes);
+        },
+        ({ median }) => median < 50
+      );
     });
 
     it("has low fixed cost to do a query", () => {
-      const maxDuration = 1;
-      const mistqlTime = time(() => {
-        mistql.query("@", null);
-      });
-      assert.ok(mistqlTime < maxDuration);
+      assertTime(
+        () => {
+          mistql.query("@", null);
+        },
+        ({ median }) => median < 0.05
+      );
     });
   });
 });
