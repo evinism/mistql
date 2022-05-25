@@ -8,18 +8,24 @@ Format [Keep A ChangeLog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+### Changed
+- https://github.com/evinism/mistql/pull/161 Established `null` as unsortable.
+
+### Fixed
+- https://github.com/evinism/mistql/pull/161 Made uncomparable types uncomparable when using `<`, `>`, `<=`, and `>=`, as before behavior was platform-specific. 
+
+## [0.4.10]
+
 ### Added
 - https://github.com/evinism/mistql/pull/149 Tests establishing expected behavior for unicode characters and indexing.
 
 ### Changed
 - https://github.com/evinism/mistql/pull/150 Modified JS implementation `#index` and `#split` functions to match the expected unicode behavior as established above.
-- https://github.com/evinism/mistql/pull/161 Established nodes as unsortable.
 
 ### Fixed
 - https://github.com/evinism/mistql/pull/152 Allowed numbers to end in bare decimal points
 - https://github.com/evinism/mistql/pull/158 Dramatically improved JS parser and lexer performance.
 - https://github.com/evinism/mistql/pull/157 Dramatically improved indexing performance on unicode strings.
-- https://github.com/evinism/mistql/pull/161 Made uncomparable types uncomparable when using `<`, `>`, `<=`, and `>=`, as before behavior was platform-specific. 
 
 ## [0.4.9] 2022-05-05
 
