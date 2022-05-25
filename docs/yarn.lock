@@ -7802,10 +7802,10 @@ minimist@^1.2.0, minimist@^1.2.5:
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.5.tgz#67d66014b66a6a8aaa0c083c5fd58df4e4e97602"
   integrity sha512-FM9nNUYrRBAELZQT3xeZQ7fmMOBg6nWNmJKTcgsJeaLstP/UODVpGsr5OhXhhXg6f+qtJ8uiZ+PUxkDWcgIXLw==
 
-mistql@0.4.10:
-  version "0.4.10"
-  resolved "https://registry.yarnpkg.com/mistql/-/mistql-0.4.10.tgz#85b6e1411587422b73b79bb78ecc239867c24102"
-  integrity sha512-EU5hG5s5ouKYqJv0+eq7CJXhPvexQux1XoMnHltffID3relmrJz3vAj8d0oMQIe6vHG0RHpTR1um+sM8mfwIZQ==
+mistql@0.4.11:
+  version "0.4.11"
+  resolved "https://registry.yarnpkg.com/mistql/-/mistql-0.4.11.tgz#abc63993b6213facdb6b4e36f56a41ef981ebcd3"
+  integrity sha512-6nj+axKQUk+zLhZDdOr+GDJV8SSL05H+5Ijt26+8jAjRvS6R3KM6fLYhCHeVs/1WcbquBCU4iUbFG3fNfEW56Q==
 
 mixin-deep@^1.2.0:
   version "1.3.2"

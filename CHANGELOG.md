@@ -6,7 +6,7 @@ In the future, this is expected to change. It's likely that at 0.5.0, we will de
 
 Format [Keep A ChangeLog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [0.4.11]
 
 ### Changed
 - https://github.com/evinism/mistql/pull/161 Established `null` as unsortable.
