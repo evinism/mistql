@@ -1951,6 +1951,136 @@
                   "expected": true
                 }
               ]
+            },
+            {
+              "it": "can compare booleans",
+              "assertions": [
+                {
+                  "query": "true == false",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "true == true",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "true != false",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "true != true",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "true > false",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "true > true",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "true >= false",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "true >= true",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "true < false",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "true < true",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "true <= false",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "true <= true",
+                  "data": {},
+                  "expected": true
+                }
+              ]
+            },
+            {
+              "it": "fails to compare disparate types",
+              "assertions": [
+                {
+                  "query": "1 > \"1\"",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "1 < \"1\"",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "1 >= \"1\"",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "1 <= \"1\"",
+                  "data": {},
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "cannot compare non-comparables",
+              "assertions": [
+                {
+                  "query": "null > null",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "null < null",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "null >= null",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "null <= null",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "count > count",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[] > []",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "{} > {}",
+                  "data": {},
+                  "throws": true
+                }
+              ]
             }
           ]
         },
@@ -2706,7 +2836,6 @@
             },
             {
               "it": "fails to sort arrays of null",
-              "skip": ["js", "py"],
               "assertions": [
                 {
                   "query": "[null, null, null] | sort",
@@ -2730,6 +2859,11 @@
                 },
                 {
                   "query": "[regex \"x\"] | sort",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "[null] | sort",
                   "data": {},
                   "throws": true
                 }
