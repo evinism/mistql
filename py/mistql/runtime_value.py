@@ -5,7 +5,7 @@ from enum import Enum
 from math import isfinite, isnan
 from typing import Any, Callable, Dict, Set, Union
 
-from mistql.exceptions import MistQLTypeError
+from mistql.exceptions import MistQLTypeError, OpenAnIssueIfYouGetThisError
 
 
 class RuntimeValueType(Enum):
@@ -145,8 +145,8 @@ class RuntimeValue:
         """
         if a.type != b.type:
             raise ValueError("Cannot compare MistQL values of different types")
-        if a.type == RuntimeValueType.Null:
-            return 0
+        elif not a.comparable():
+            raise ValueError("Cannot compare MistQL values of type " + str(a.type))
         elif a.type == RuntimeValueType.Boolean:
             return int(a.value) - int(b.value)
         elif a.type == RuntimeValueType.Number:
@@ -154,7 +154,7 @@ class RuntimeValue:
         elif a.type == RuntimeValueType.String:
             return (a.value > b.value) - (a.value < b.value)
         else:
-            raise ValueError("Cannot compare MistQL values of type " + str(a.type))
+            raise OpenAnIssueIfYouGetThisError("Cannot compare MistQL values of type " + str(a.type))
 
     def comparable(self) -> bool:
         """
@@ -164,7 +164,6 @@ class RuntimeValue:
             RuntimeValueType.Boolean,
             RuntimeValueType.Number,
             RuntimeValueType.String,
-            RuntimeValueType.Null,
         )
 
     def __lt__(self, __o: object):

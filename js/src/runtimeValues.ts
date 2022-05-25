@@ -1,10 +1,11 @@
+import { OpenAnIssueIfThisOccursError } from "./errors";
 import { RuntimeValue, RuntimeValueType } from "./types";
 
 export const truthy = (runtimeValue: RuntimeValue): boolean => {
   const type = getType(runtimeValue);
-  if (type === 'array') {
+  if (type === "array") {
     return !!runtimeValue.length;
-  } else if (type === 'object') {
+  } else if (type === "object") {
     return !!getProperties(runtimeValue).length;
   }
   return !!runtimeValue;
@@ -38,7 +39,8 @@ export const castToString = (value: RuntimeValue): RuntimeValue => {
 // 2: asserts empty character
 // 3: allows empty string
 // 4. Doesn't require a digit after the . sign
-const validNumberFormat = /^\s*-?(0|([1-9][0-9]*))(\.[0-9]*)?([eE][+-]?[0-9]+)?\s*$/;
+const validNumberFormat =
+  /^\s*-?(0|([1-9][0-9]*))(\.[0-9]*)?([eE][+-]?[0-9]+)?\s*$/;
 
 export const castToFloat = (value: RuntimeValue): RuntimeValue => {
   const type = getType(value);
@@ -76,7 +78,7 @@ export const getType = (a: RuntimeValue): RuntimeValueType => {
 
 export const comparable = (a: RuntimeValue) => {
   const type = getType(a);
-  if (type === "string" || type === "number" || type === "boolean" || type === "null") {
+  if (type === "string" || type === "number" || type === "boolean") {
     return true;
   } else {
     return false;
@@ -94,15 +96,16 @@ export const compare = (a: RuntimeValue, b: RuntimeValue): number => {
     throw new Error("Comparison between objects not permitted");
   } else if (varType === "regex") {
     throw new Error("Comparison between regexes not permitted");
+  } else if (varType === "null") {
+    throw new Error("Comparison between nulls not permitted");
   } else if (varType === "number") {
     return b - a;
   } else if (varType === "boolean") {
     return +b - +a;
   } else if (varType === "string") {
     return a === b ? 0 : b > a ? 1 : -1;
-  } else {
-    return 0;
   }
+  throw new OpenAnIssueIfThisOccursError("Unknown type " + varType);
 };
 
 export const equal = (a: RuntimeValue, b: RuntimeValue): boolean => {
