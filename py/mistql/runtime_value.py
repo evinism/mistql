@@ -154,7 +154,8 @@ class RuntimeValue:
         elif a.type == RuntimeValueType.String:
             return (a.value > b.value) - (a.value < b.value)
         else:
-            raise OpenAnIssueIfYouGetThisError("Cannot compare MistQL values of type " + str(a.type))
+            raise OpenAnIssueIfYouGetThisError(
+                "Cannot compare MistQL values of type " + str(a.type))
 
     def comparable(self) -> bool:
         """
