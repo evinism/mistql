@@ -1,10 +1,10 @@
 plugins {
     kotlin("multiplatform") version "1.5.10"
-    kotlin("plugin.serialization") version "1.6.21"
+    id("maven-publish")
 }
 
-group = "me.evinsellin"
-version = "1.0-SNAPSHOT"
+group = "com.mistql.mistql"
+version = "0.0.1"
 
 repositories {
     mavenCentral()
@@ -31,11 +31,7 @@ kotlin {
 
     
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
-            }
-        }
+        val commonMain by getting
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
