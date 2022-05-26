@@ -10,6 +10,6 @@ class MistQLTest {
     }
 
     private fun assertQueryEquals(input: String, data: String, expectedOutput: String) {
-        assertEquals(expectedOutput, MistQLSessionFactory.createSession().query(input, data));
+        assertEquals(expectedOutput, CommonMistQLSession.query(input, data));
     }
 }
