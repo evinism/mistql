@@ -3676,7 +3676,6 @@
                   ]
                 },
                 {
-                  "it": "round-trips with fromentries",
                   "query": "(entries @ | fromentries) == @",
                   "data": {
                     "a": 1,
