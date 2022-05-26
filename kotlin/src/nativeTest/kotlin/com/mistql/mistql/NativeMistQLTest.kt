@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 class NativeMistQLTest {
     @Test
     fun testEncodeToString() {
-        assertQueryEquals("@", "hello", "hello")
+        assertQueryEquals("@", "{}", "{}")
     }
 
     private fun assertQueryEquals(input: String, data: String, expectedOutput: String) {
