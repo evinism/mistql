@@ -3,7 +3,7 @@ package com.mistql.mistql
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class MistQLTest {
+class MistQLExecutorTest {
     @Test
     fun testEncodeToString() {
         assertQueryEquals("@", "{}", "{}")

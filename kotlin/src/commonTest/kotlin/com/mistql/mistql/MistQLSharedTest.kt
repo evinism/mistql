@@ -1,6 +1,7 @@
 package com.mistql.mistql
 
 import kotlin.test.Test
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
@@ -35,6 +36,7 @@ data class TestSuite(val data: List<TestDomain>);
 
 class MistQLSharedTest {
     @Test
+    @Ignore
     fun sharedTestSuite() {
         val testSuiteContent = this::class.java.classLoader.getResource("shared/testdata.json").readText();
         val res = Json.parseToJsonElement(testSuiteContent);
