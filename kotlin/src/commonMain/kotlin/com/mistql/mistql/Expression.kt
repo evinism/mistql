@@ -32,6 +32,13 @@ data class ObjectLiteralExpression(val entries: Map<String, Expression>) : Expre
     })
 }
 
-data class PipeExpression(val segments: List<Expression>) : Expression {
-    override fun exec(stack: Stack): Value = throw NotImplementedError("Pipes not implemented")
+data class PipeExpression(val first: Expression, val rest: List<ApplicationExpression>) : Expression {
+    override fun exec(stack: Stack): Value {
+        var data: Value = first.exec(stack)
+        for (stageExpr in rest) {
+            val nextArgs: List<Expression> = stageExpr.args + ReferenceExpression("@")
+            data = ApplicationExpression(stageExpr.fn, nextArgs).exec(stack.withContextValue(data))
+        }
+        return data
+    }
 }

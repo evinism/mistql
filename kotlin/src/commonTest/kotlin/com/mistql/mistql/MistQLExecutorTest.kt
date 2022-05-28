@@ -16,6 +16,7 @@ object E {
     fun ref(name: String) = ReferenceExpression(name)
     fun value(value: Value) = ValueExpression(value)
     fun ap(fn: Expression, args: List<Expression>) = ApplicationExpression(fn, args)
+    fun pipe(first: Expression, vararg rest: ApplicationExpression) = PipeExpression(first, listOf(*rest))
 }
 
 fun shortfn(imp: FunctionImplementation, vararg args: Expression) = E.ap(E.value(V.fn(imp)), listOf(*args))
@@ -33,6 +34,14 @@ class MistQLTest {
         val data = V.arr(V.nil(), V.nil(), V.nil())
         assertExecsTo(V.num(3.toDouble()), expr, data)
     }
+
+    @Test
+    fun testSimplePipe() {
+        val expr = E.pipe(E.ref("@"), shortfn(count))
+        val data = V.arr(V.nil(), V.nil(), V.nil())
+        assertExecsTo(V.num(3.toDouble()), expr, data)
+    }
+
 
     fun assertExecsTo(result: Value, ast: Expression, data: Value = V.nil()) {
         assertEquals(result, Executor.exec(ast, data))
