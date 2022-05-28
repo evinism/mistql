@@ -7,7 +7,7 @@ const darkCodeTheme = require("prism-react-renderer/themes/dracula");
   module.exports = {
     title: "MistQL",
     tagline:
-      "A common expression language for JSON-like structures",
+      "A query language for JSON-like structures",
     url: "https://mistql.com",
     baseUrl: "/",
     onBrokenLinks: "throw",
