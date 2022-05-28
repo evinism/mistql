@@ -13,7 +13,6 @@ expect object MistQLSessionFactory {
     fun createSession(): MistQLSession
 }
 
-
 object CommonMistQLSession : MistQLSession {
     override fun query(query: String, data: JsonElement): JsonElement {
         if (query == "@") {

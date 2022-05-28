@@ -2,14 +2,7 @@ package com.mistql.mistql
 
 object Executor {
     fun getDefaultStack(context: Value): Stack {
-        val frames: List<StackFrame> = listOf(
-            StackFrame(
-                mapOf(
-                    "@" to context
-                )
-            )
-        )
-        return Stack(frames)
+        return Stack().withContextValue(context)
     }
 
     fun exec(expr: Expression, context: Value): Value {
