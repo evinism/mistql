@@ -1,5 +1,4 @@
-# MistQL: Query Language for JSON-like structures
-![mistql logo](https://www.mistql.com/assets/images/icon128-020f567a30894a6c26227dc6773d3406.png)
+<img width="1022" alt="Screen Shot 2022-05-28 at 11 46 17 AM" src="https://user-images.githubusercontent.com/1979887/170838934-0553c383-d517-4158-8d29-589cd089ec28.png">
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/evinism/mistql/blob/main/LICENSE) 
 ![Python](https://github.com/evinism/mistql/actions/workflows/python.yml/badge.svg) 
@@ -7,9 +6,9 @@
 [![npm version](https://img.shields.io/npm/v/mistql.svg?style=flat)](https://www.npmjs.com/package/mistql)
 [![npm version](https://img.shields.io/pypi/v/mistql.svg?style=flat)](https://pypi.org/project/mistql/)
 
-
-MistQL is a query language for JSON-like structures, built for embedding within applications. It supports
-logic for querying and manipulating JSON-like data in a simple, readable manner.
+MistQL is a query language for JSON-like structures, built for embedding across multiple domains. It supports
+logic for querying and manipulating JSON-like data in a simple, readable manner. MistQL serves as a powerful 
+common expression language across multiple implementations.
 
 For more detailed usage information, please visit MistQL's docs site.
 
@@ -22,6 +21,40 @@ For more detailed usage information, please visit MistQL's docs site.
 - [Try it out!](https://www.mistql.com/tryitout)
 - [Functions](https://www.mistql.com/docs/reference/functions)
 - [Reference](https://www.mistql.com/docs/reference/overview)
+
+# At A Glance
+
+MistQL is an embedded query language.
+
+```js
+import mistql from 'mistql';
+
+const animals = [
+  {name: 'charlie', species: 'dog'},
+  {name: 'mulberry', species: 'cat'},
+]
+
+const cats = mistql.query('@ | filter species == "dog" | count')
+```
+
+The primary power of MistQL comes from its strong cross-platform behavior semantics. For example, the following have the same behavior:
+
+```py 
+# Python
+import mistql
+import json
+
+query = 'events | groupby type | keys'
+print(mistql.query(query, json.loads(data))
+```
+
+```js
+// JavaScript
+import mistql from 'mistql'
+
+const query = 'events | groupby type | keys';
+console.log(mistql.query(query, JSON.parse(data))
+```
 
 # Developing MistQL
 
