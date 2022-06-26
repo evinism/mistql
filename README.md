@@ -45,7 +45,7 @@ import mistql
 import json
 
 query = 'events | groupby type | keys'
-print(mistql.query(query, json.loads(data))
+print(mistql.query(query, json.loads(data)))
 ```
 
 ```js
@@ -53,7 +53,7 @@ print(mistql.query(query, json.loads(data))
 import mistql from 'mistql'
 
 const query = 'events | groupby type | keys';
-console.log(mistql.query(query, JSON.parse(data))
+console.log(mistql.query(query, JSON.parse(data)))
 ```
 
 # Developing MistQL
@@ -86,14 +86,14 @@ which defines the language's syntax. This is likely the final grammar that will 
 into ABNF, although it is possible that we may need to fix minor issues before `0.5.0`. I
 expect this to barely change, if at all.
 
-Additionally our language-independent test suite is rather extensive and forms the de-facto
+Additionally, our language-independent test suite is rather extensive and forms the de-facto
 standard of behaviors, as shared by both Python and JavaScript. While not strictly formalized, 
 the tests and the docs together form a cohesive body of behaviors, that, except for a few 
 minuitae, is of sufficient detail to be standardized.
 
 ## Directory Structure
 
-MistQL's directory struture is a monorepo, currently consisting of these main directories:
+MistQL's directory structure is a monorepo, currently consisting of these main directories:
 
 1. `/docs`: Documentation Site (hosted at [mistql.com](https://www.mistql.com/))
 2. `/js`: MistQL's browser implementation (e.g. `mistql` on npm).
