@@ -7,6 +7,7 @@ from mistql import query
 import sys
 import json
 import logging
+import json_lines
 
 log = logging.getLogger(__name__)
 
@@ -34,20 +35,34 @@ parser.add_argument(
 
 
 def main(supplied_args=None):
+    
     if supplied_args is None:
         args = parser.parse_args()
     else:
         args = parser.parse_args(supplied_args)
     raw_data: Union[str, bytes]
+    skip_json_load = False
     if args.data:
         raw_data = args.data
-    elif args.file:
-        with open(args.file, 'rb') as f:
-            raw_data = f.read()
+    elif args.file: 
+         
+        file_ext = args.file.split(".")[-1] 
+        if file_ext in ["jsonl"]: 
+            skip_json_load = True
+            out = []
+            with open(args.file, 'rb') as f:
+                for item in json_lines.reader(f):                    
+                    out.append( query(args.query, item) )
+                     
+        else:
+            with open(args.file, 'rb') as f:
+                raw_data = f.read()
     else:
         raw_data = sys.stdin.buffer.read()
-    data = json.loads(raw_data)
-    out = query(args.query, data)
+        
+    if not skip_json_load:    
+        data = json.loads(raw_data)
+        out = query(args.query, data)
     if args.output:
         # TODO: Allow alternate output encodings other than utf-8
         out_bytes = json.dumps(

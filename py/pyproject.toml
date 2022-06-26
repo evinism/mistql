@@ -8,6 +8,7 @@ authors = ["Evin Sellin <evinism@gmail.com>"]
 python = "^3.6.2"
 lark = "^1.0.0"
 typeguard = "^2.13.3"
+json-lines = "^0.5.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
