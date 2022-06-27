@@ -25,6 +25,10 @@ inputgroup.add_argument(
     "--file", "-f", type=str, help="The file to read the data from. Defaults to stdin"
 )
 
+inputgroup.add_argument(
+    "--file_jsonl", "-fjl", type=str, help="The json-lines file to read the data from."
+)
+
 parser.add_argument(
     "--output", "-o", type=str, help="The output file. Defaults to stdout"
 )
@@ -41,26 +45,23 @@ def main(supplied_args=None):
     else:
         args = parser.parse_args(supplied_args)
     raw_data: Union[str, bytes]
-    skip_json_load = False
+    
     if args.data:
         raw_data = args.data
     elif args.file: 
-         
-        file_ext = args.file.split(".")[-1] 
-        if file_ext in ["jsonl"]: 
-            skip_json_load = True
+           with open(args.file, 'rb') as f:
+                raw_data = f.read()         
+        
+    elif args.file_jsonl:            
             out = []
-            with open(args.file, 'rb') as f:
+            with open(args.file_jsonl, 'rb') as f:
                 for item in json_lines.reader(f):                    
-                    out.append( query(args.query, item) )
-                     
-        else:
-            with open(args.file, 'rb') as f:
-                raw_data = f.read()
+                    out.append( query(args.query, item))
+
     else:
         raw_data = sys.stdin.buffer.read()
         
-    if not skip_json_load:    
+    if not args.file_jsonl:    
         data = json.loads(raw_data)
         out = query(args.query, data)
     if args.output:
