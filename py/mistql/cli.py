@@ -39,29 +39,27 @@ parser.add_argument(
 
 
 def main(supplied_args=None):
-    
     if supplied_args is None:
         args = parser.parse_args()
     else:
         args = parser.parse_args(supplied_args)
     raw_data: Union[str, bytes]
-    
+
     if args.data:
         raw_data = args.data
-    elif args.file: 
-           with open(args.file, 'rb') as f:
-                raw_data = f.read()         
-        
-    elif args.file_jsonl:            
-            out = []
-            with open(args.file_jsonl, 'rb') as f:
-                for item in json_lines.reader(f):                    
-                    out.append( query(args.query, item))
+    elif args.file:
+        with open(args.file, 'rb') as f:
+            raw_data = f.read()
 
+    elif args.file_jsonl:
+        out = []
+        with open(args.file_jsonl, 'rb') as f:
+            for item in json_lines.reader(f):
+                out.append(query(args.query, item))
     else:
         raw_data = sys.stdin.buffer.read()
-        
-    if not args.file_jsonl:    
+
+    if not args.file_jsonl:
         data = json.loads(raw_data)
         out = query(args.query, data)
     if args.output:
