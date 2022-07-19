@@ -17,6 +17,10 @@ toml = "^0.10.2"
 mypy = "^0.942"
 flake8 = "^4.0.1"
 
+[[tool.mypy.overrides]]
+module = "json_lines"
+ignore_missing_imports = true
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
