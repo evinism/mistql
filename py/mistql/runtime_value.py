@@ -343,3 +343,10 @@ def assert_type(
         if value.type != expected_type:
             raise MistQLTypeError(f"Expected {expected_type}, got {value.type}")
     return value
+
+
+def assert_int(value: RuntimeValue):
+    value = assert_type(value, RuntimeValueType.Number)
+    if value.value != int(value.value):
+        raise MistQLTypeError(f"Expected integer, got {value.value}")
+    return value
