@@ -6,7 +6,7 @@ from typing import Callable, Dict, List, Tuple, Union
 from mistql.exceptions import (MistQLRuntimeError, MistQLTypeError,
                                OpenAnIssueIfYouGetThisError)
 from mistql.expression import BaseExpression, RefExpression
-from mistql.runtime_value import RuntimeValue, RuntimeValueType, assert_type
+from mistql.runtime_value import RuntimeValue, RuntimeValueType, assert_type, assert_int
 from mistql.stack import Stack, add_runtime_value_to_stack
 
 Args = List[BaseExpression]
@@ -482,6 +482,26 @@ def match(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("=~", 2)
 def match_operator(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     return match(arguments[::-1], stack, exec)
+
+
+@builtin("range", 1, 3)
+def _range(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
+    start = 0
+    step = 1
+    if len(arguments) == 1:
+        stop = int(assert_int(exec(arguments[0], stack)).value)
+    elif len(arguments) == 2:
+        start = int(assert_int(exec(arguments[0], stack)).value)
+        stop = int(assert_int(exec(arguments[1], stack)).value)
+    elif len(arguments) == 3:
+        start = int(assert_int(exec(arguments[0], stack)).value)
+        stop = int(assert_int(exec(arguments[1], stack)).value)
+        step = int(assert_int(exec(arguments[2], stack)).value)
+    else:
+        raise OpenAnIssueIfYouGetThisError(
+            "Unexpectedly reaching end of function in range call."
+        )
+    return RuntimeValue.of(list(range(start, stop, step)))
 
 
 @builtin("replace", 3)
