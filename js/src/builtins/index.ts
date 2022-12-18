@@ -27,6 +27,7 @@ import not from "./not";
 import notequal from "./notequal";
 import or from "./or";
 import plus from "./plus";
+import range from "./range";
 import reduce from "./reduce";
 import regex from "./regex";
 import replace from "./replace";
@@ -92,7 +93,7 @@ const divide = numericBinaryOperator((a, b) => {
   if (b === 0) {
     throw new RuntimeError("Division by zero");
   }
-  return (a / b);
+  return a / b;
 });
 
 export default {
@@ -117,6 +118,7 @@ export default {
   map,
   mapkeys,
   mapvalues,
+  range,
   reduce,
   regex,
   replace,

@@ -3979,6 +3979,128 @@
           ]
         },
         {
+          "describe": "#range",
+          "cases": [
+            {
+              "it": "returns an array of numbers",
+              "assertions": [
+                {
+                  "query": "range 3",
+                  "data": null,
+                  "expected": [0, 1, 2]
+                }
+              ]
+            },
+            {
+              "it": "returns an array of numbers from a start",
+              "assertions": [
+                {
+                  "query": "range 3 6",
+                  "data": null,
+                  "expected": [3, 4, 5]
+                }
+              ]
+            },
+            {
+              "it": "returns an array of numbers from a start and step",
+              "assertions": [
+                {
+                  "query": "range 3 6 2",
+                  "data": null,
+                  "expected": [3, 5]
+                },
+                {
+                  "query": "range 3 7 2",
+                  "data": null,
+                  "expected": [3, 5]
+                },
+                {
+                  "query": "range 10 100 7",
+                  "data": null,
+                  "expected": [
+                    10, 17, 24, 31, 38, 45, 52, 59, 66, 73, 80, 87, 94
+                  ]
+                }
+              ]
+            },
+            {
+              "it": "fails if any of the arguments are not integers",
+              "assertions": [
+                {
+                  "query": "range 3 6 \"a\"",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "range 3 6 2.5",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "range 3.5 6 2",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "range 3 6.5 2",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "fails if the step is equal to 0",
+              "assertions": [
+                {
+                  "query": "range 3 6 0",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "returns an empty list if the start is greater than the end",
+              "assertions": [
+                {
+                  "query": "range 6 3",
+                  "data": null,
+                  "expected": []
+                },
+                {
+                  "query": "range 6 3 2",
+                  "data": null,
+                  "expected": []
+                }
+              ]
+            },
+            {
+              "it": "returns an empty list if the step size is negative",
+              "assertions": [
+                {
+                  "query": "range 3 6 (-2)",
+                  "data": null,
+                  "expected": []
+                }
+              ]
+            },
+            {
+              "it": "counts backwards iff the step size is negative and start is greater than end",
+              "assertions": [
+                {
+                  "query": "range 6 3 (-2)",
+                  "data": null,
+                  "expected": [6, 4]
+                },
+                {
+                  "query": "range 7 3 (-1)",
+                  "data": null,
+                  "expected": [7, 6, 5, 4]
+                }
+              ]
+            }
+          ]
+        },
+        {
           "describe": "#apply",
           "cases": [
             {
