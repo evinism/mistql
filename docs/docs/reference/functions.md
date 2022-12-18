@@ -503,6 +503,34 @@ Result:
 6
 ```
 
+### `range`
+
+| Arity | Parameter 1 Type | Parameter 2 Type (optional) | Parameter 3 Type (optional) | Return Type |
+| --- | ---| --- | --- | --- |
+| 1 - 3 | `number` | `number` | `number` | `array<number>` |
+
+Takes arguments `start`, `stop`, and `step`. Returns a list of integers starting at `start`, ending at `stop` (non-inclusive), using steps of size `step`. If the sign of `step` does not match the sign of `stop - start`, then an empty list is returned.
+
+Behavior of `range` closely matches python's `range` function.
+
+Below is a table describing how the variables `start`, `stop`, and `step` are constructed at different arities. This corresponds to Python's `range()` method.
+
+| Variable | Arity=1 | Arity=2 | Arity=3 |
+| --- | --- | --- | --- |
+| `stop` | First Arg | Second Arg | Second Arg |
+| `start` | `0` | First Arg | First Arg |
+| `step` | `1` | `1` | Third Arg |
+
+Numbers provided to range must all be integers. Step must be greater than zero.
+
+#### Example
+
+`range 5` yields `[0, 1, 2, 3, 4]`
+
+`range 3 8` yields `[3, 4, 5, 6, 7]`
+
+`range 3 8 2` yields `[3, 5, 7]`
+
 ### `regex`
 
 | Arity | Parameter 1 Type | Parameter 2 Type (optional) | Return Type |
