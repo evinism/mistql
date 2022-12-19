@@ -60,9 +60,11 @@ console.log(mistql.query(query, JSON.parse(data)))
 
 Contributions to MistQL are very welcome!
 
-As MistQL is still a small project, there are no formatting requirements for either issues or pull requests.
+As MistQL is a small project, there are no formatting requirements for either issues or pull requests.
 
 If you're planning on making a new implementation, [ping the discord](https://discord.gg/YupxqvE5Jk) and we'll coordinate!
+
+For an example PR that adds a function to MistQL, refer to [this PR](https://github.com/evinism/mistql/pull/175) as an example of a new function with moderate complexity. 
 
 ### Code workflow
 
