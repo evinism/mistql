@@ -11,7 +11,7 @@ from mistql.expression import (
 )
 from mistql.stack import Stack
 from mistql.builtins import FunctionDefinitionType, builtins
-from mistql.stack import add_runtime_value_to_stack, build_initial_stack, find_in_stack
+from mistql.stack import add_runtime_value_to_stack, build_initial_stack, find_in_stack, StackFrame
 from mistql.expression import BaseExpression
 from mistql.exceptions import MistQLTypeError, OpenAnIssueIfYouGetThisError
 
@@ -69,5 +69,5 @@ def execute(ast: BaseExpression, stack: Stack) -> RuntimeValue:
     raise NotImplementedError("execute() not implemented for " + str(ast.type))
 
 
-def execute_outer(ast: Expression, data: RuntimeValue) -> RuntimeValue:
-    return execute(ast, build_initial_stack(data, builtins))
+def execute_outer(ast: Expression, data: RuntimeValue, extras: StackFrame) -> RuntimeValue:
+    return execute(ast, build_initial_stack(data, builtins, extras))
