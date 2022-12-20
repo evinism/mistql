@@ -9,9 +9,9 @@ import {
   ASTReferenceExpression,
   Closure,
   ExecutionFunction,
-  RuntimeValue
+  FunctionClosure,
+  RuntimeValue,
 } from "./types";
-
 
 export const inputGardenWall = (data: unknown) => {
   if (typeof data === "number" || data instanceof Number) {
@@ -49,7 +49,7 @@ export const inputGardenWall = (data: unknown) => {
 };
 
 export const outputGardenWall = (data: unknown) => {
-  const outputType = getType(data)
+  const outputType = getType(data);
   if (outputType === "function" || outputType === "regex") {
     throw new RuntimeError(
       `Return value of query is "${outputType}", aborting!`
@@ -69,11 +69,19 @@ export const outputGardenWall = (data: unknown) => {
   }
 };
 
-export const execute = (node: ASTExpression, variables: unknown) => {
+export const execute = (
+  node: ASTExpression,
+  variables: unknown,
+  extras?: FunctionClosure
+) => {
   const data = inputGardenWall(variables);
-  const initialStack = [builtins, {
-    $: Object.assign({}, builtins, { "@": data }),
-  }];
+  const functions = extras ? Object.assign({}, builtins, extras) : builtins;
+  const initialStack = [
+    functions,
+    {
+      $: Object.assign({}, functions, { "@": data }),
+    },
+  ];
 
   const result = executeInner(
     node,
