@@ -1,4 +1,4 @@
-from typing import Callable, List, Dict
+from typing import List, Dict, Callable, Union
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
 from mistql.exceptions import MistQLReferenceError
 from typeguard import typechecked
@@ -7,33 +7,38 @@ StackFrame = Dict[str, RuntimeValue]
 Stack = List[StackFrame]
 
 
-def add_runtime_value_to_stack(value: RuntimeValue, stack: Stack):
+def make_stack_entry_from_runtime_value(value: RuntimeValue) -> StackFrame:
     new_stackframe = {"@": value}
     for key in value.keys():
         new_stackframe[key] = value.access(key)
+    return new_stackframe
+
+
+def add_runtime_value_to_stack(value: RuntimeValue, stack: Stack):
+    new_stackframe = make_stack_entry_from_runtime_value(value)
     new_stack = stack.copy()
     new_stack.append(new_stackframe)
     return new_stack
 
 
-def build_initial_stack(data: RuntimeValue, builtins: Dict[str, Callable]) -> Stack:
-    dollar_var = {
-        "@": data,
-    }
-    top_stack_entry = {
-        "@": data,
-    }
-    if data.type == RuntimeValueType.Object:
-        for key, value in data.value.items():
-            top_stack_entry[key] = value
-    for builtin in builtins:
-        fn = RuntimeValue.create_function(builtins[builtin])
-        dollar_var[builtin] = fn
-    top_stack_entry["$"] = RuntimeValue.of(dollar_var)
-    builtin_stackframe = {
-        name: RuntimeValue.create_function(builtins[name]) for name in builtins
-    }
-    return [builtin_stackframe, top_stack_entry]
+def build_initial_stack(data: RuntimeValue, builtins: Dict[str, Callable], extras: Dict[str, Union[Callable, RuntimeValue]]) -> Stack:
+    functions_frame: StackFrame = {}
+    for key, value in builtins.items():
+        functions_frame[key] = RuntimeValue.wrap_function_def(value)
+    for key, value in extras.items():
+        if isinstance(value, RuntimeValue):
+            functions_frame[key] = value
+        else:
+            functions_frame[key] = RuntimeValue.from_py_func(value)
+
+    dollar_var_dict = { "@": data }
+    dollar_var_dict.update(functions_frame)
+
+    return [
+        functions_frame,
+        { "$": RuntimeValue.of(dollar_var_dict) },
+         make_stack_entry_from_runtime_value(data)
+    ]
 
 
 @typechecked

@@ -4,6 +4,7 @@ from datetime import date, datetime, time
 from enum import Enum
 from math import isfinite, isnan
 from typing import Any, Callable, Dict, Set, Union
+import inspect
 
 from mistql.exceptions import MistQLTypeError, OpenAnIssueIfYouGetThisError
 
@@ -89,14 +90,51 @@ class RuntimeValue:
             )
 
     @staticmethod
-    def create_function(definition: Callable):
+    def wrap_function_def(definition: Callable):
         """
-        Create a new function that can be used in MistQL expressions
+        Create a new function that can be used in MistQL expressions.
         """
         return RuntimeValue(
             RuntimeValueType.Function,
             definition,
         )
+
+    @staticmethod
+    def from_py_func(py_func: Callable):
+        """
+        Create a new function from a Python function that can be used in MistQL
+        """
+        spec = inspect.getfullargspec(py_func) 
+        min_arity = len(spec.args)
+        if spec.defaults is not None:
+            min_arity -= len(spec.defaults)
+
+        max_arity = len(spec.args)
+        if spec.varargs is not None:
+            max_arity = None
+
+        if max_arity == 0:
+            raise ValueError("Cannot create MistQL function with no arguments")
+
+        if spec.kwonlyargs:
+            raise ValueError("Cannot create function with keyword-only arguments")
+
+        def definition(args, stack, exec):
+            if len(args) < min_arity:
+                raise MistQLTypeError(
+                    "Function takes no fewer than {} arguments but {} were provided".format(
+                        min_arity, len(args)
+                    )
+                )
+            if max_arity is not None and len(args) > max_arity:
+                raise MistQLTypeError(
+                    "Function takes no more than {} arguments but {} were provided".format(
+                        max_arity, len(args)
+                    )
+                )
+            py_args = [exec(arg, stack).to_python() for arg in args]
+            return RuntimeValue.of(py_func(*py_args))
+        return RuntimeValue.wrap_function_def(definition)
 
     @staticmethod
     def eq(a, b):
