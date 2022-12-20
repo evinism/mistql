@@ -9,7 +9,7 @@ The JS implementation of MistQL can be installed via `npm install mistql`.
 ### Example Usage:
 
 ```js
-import {query} from 'mistql';
+import { query } from 'mistql';
 
 const len = query('count @', [1, 2, 3]);
 console.log(len);
@@ -19,8 +19,13 @@ console.log(len);
 
 | Export | type | Description |
 |---|---|---|
-| `query` | `(query: string, data: any) => any` | The query interface for MistQL | 
-| `default` | `{query: query}` | An object solely consisting of the query interface | 
+| `query` | `(query: string, data: any) => any` | The default query function for MistQL. Most uses of MistQL can rely solely on this function |
+| `defaultInstance` | `MistQLInstance` | The default instance of MistQL. The exported `query` function is an alias to the `query` method on the default instance |
+| `MistQLInstance` | `class` | The class for constructing parameterized MistQL instances. If you're adding custom functions to MistQL, you'll use this interface. |
+| `jsFunctionToMistQLFunction` | `(fn) => FunctionValue` | Helper function for constructing MistQL functions from JS functions |
+| `default` | `{query, defaultInstance, }` | An object consisting of the  | 
+
+MistQL also exposes a number of TS types through the default interface, although they're not listed here.
 
 ### Type correspondence between JS and MistQL
 Separate from the specification of the language, the JS implementation maps from
