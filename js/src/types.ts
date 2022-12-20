@@ -68,7 +68,7 @@ export type ASTExpression =
 export type RuntimeValue =
   | RuntimeValue[]
   | { [key: string]: RuntimeValue }
-  | ExecutionFunction
+  | FunctionValue
   | RegExp
   | number
   | boolean
@@ -89,17 +89,25 @@ export type RuntimeValueType =
 export type Closure = {
   [varname: string]: RuntimeValue;
 };
+
 export type Stack = Closure[];
+
+export type FunctionClosure = {
+  [varname: string]: FunctionValue;
+};
 
 export type ExecutionFunction = (
   exp: ASTExpression,
   stack: Stack
 ) => RuntimeValue;
-export type BuiltinFunction = (
+
+export type FunctionValue = (
   args: ASTExpression[],
   stack: Stack,
   executeInner: ExecutionFunction
 ) => RuntimeValue;
+
+export type BuiltinFunction = FunctionValue;
 
 export type LexToken =
   | {
