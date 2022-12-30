@@ -5,16 +5,13 @@ description = "Python implementation of MistQL query language"
 authors = ["Evin Sellin <evinism@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.6.2"
+python = "^3.7.0"
 lark = "^1.0.0"
 typeguard = "^2.13.3"
 json-lines = "^0.5.0"
 
 [tool.poetry.dev-dependencies]
-pytest = [
-  {version = "^5.2", python = "<3.7"},
-  {version = "^6.0", python = ">3.6"}
-]
+pytest = "^6.0"
 black = {version = "^21.10b0", allow-prereleases = true}
 toml = "^0.10.2"
 mypy = "^0.942"

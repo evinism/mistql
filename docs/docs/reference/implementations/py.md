@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Python Implementation
 
-The Python implementation of MistQL can be installed via `pip install mistql`.
+The Python implementation of MistQL can be installed via `pip install mistql`. Python 3.7+ is supported.
 
 ### Example Usage:
 
