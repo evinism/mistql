@@ -14,7 +14,7 @@ describe("Instance", () => {
     it("should allow for basic extra functions", () => {
       const instance = new MistQLInstance({
         extras: {
-          basicFunction: () => 1 + 2,
+          basicFunction: (_) => 1 + 2,
         },
       });
       assert.strictEqual(instance.query("@ | basicFunction", null), 3);
@@ -25,7 +25,7 @@ describe("Instance", () => {
         args.map((arg) => exec(arg, stack)).reduce((a, b) => a + b, 0);
       const instance = new MistQLInstance({
         extras: {
-          sumargs,
+          sumargs: { definition: sumargs },
         },
       });
       assert.strictEqual(
@@ -34,12 +34,10 @@ describe("Instance", () => {
       );
     });
 
-    it("should accept usage of the jsFunctionToMistQLFunction method", () => {
+    it("should accept simple bare function uses", () => {
       const instance = new MistQLInstance({
         extras: {
-          intersperse: jsFunctionToMistQLFunction((a, b) =>
-            a.flatMap((x) => [x, b]).slice(0, -1)
-          ),
+          intersperse: (a, b) => a.flatMap((x) => [x, b]).slice(0, -1),
         },
       });
       assert.deepStrictEqual(

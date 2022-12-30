@@ -14,24 +14,23 @@ Below is a basic example of writing a custom function available inside a MistQL 
 
 ```js
 import {
-  MistQLInstance, 
-  jsFunctionToMistQLFunction as jsToMQ
+  MistQLInstance
 } from 'mistql';
 
 const mq = new MistQLInstance({
   extras: {
-    sumthree: jsToMQ((a, b, c) => a + b + c);
+    sumthree: (a, b, c) => a + b + c;
   }
 });
 
 console.log(mq.query("sumthree 1 2 3", null)); // Prints 6
 ```
 
-The above eagerly evaluates the 3 arguments to the `threesum` function and passes them to the JS function. The `extras` key in the options parameter to `MistQLInstance` contains a mapping from lexical name to a MistQL `FunctionValue`.
+The above eagerly evaluates the 3 arguments to the `threesum` function and passes them to the JS function. The `extras` key in the options parameter to `MistQLInstance` contains a mapping from lexical name to a function or function definition.
 
 ## A level deeper
 
-Since MistQL lazily evaluates subexpressions due to [contextualized expressions](../tutorial/contextualized-expressions.md), the `extras` dictionary expects `FunctionValue`s as keys rather than converting arbitrary JS functions to MistQL functions.
+Since MistQL lazily evaluates subexpressions due to [contextualized expressions](../tutorial/contextualized-expressions.md), simple JS functions don't capture all the semantics necesary to define MistQL functions in all cases. Instead, function semantics are captured in their entirety via FunctionValues:
 
 The type of `FunctionValue` in MistQL is as follows:
 
@@ -53,6 +52,30 @@ The arguments to this function are as follows
 
 This is the same interface that the MistQL JS implementation uses internally for builtin functions, and as such, you can look at the [builtin implementations](https://github.com/evinism/mistql/tree/main/js/src/builtins) for clean examples on how to write custom functions.
 
-### `jsFunctionToMistQLFunction`
+You can pass a function value the instance `extras` keys by wrapping it in a `{definition: fn}` object. For example:
 
-For many cases, we can use the `jsFunctionToMistQLFunction` helper, as it does mostly what one might expect. It validates arity, eagerly evaluates the arguments under the current lexical scope, and evaluates the JS function with the runtime values passed in as arguments.
+```ts
+import {
+  MistQLInstance
+} from 'mistql';
+
+const functionValue = (args, stack, exec) => (
+  args
+    .map((arg) => exec(arg, stack))
+    .reduce((a, b) => a + b, 0)
+);
+
+const mq = new MistQLInstance({
+  extras: {
+    addall: { 
+      definition: (args, stack, exec) => (
+        args
+          .map((arg) => exec(arg, stack))
+          .reduce((a, b) => a + b, 0)
+      ),
+    }
+  }
+});
+
+console.log(mq.query("addall 1 2 3", null)); // Prints 6
+```
