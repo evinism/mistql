@@ -2,6 +2,7 @@ from typing import Any
 
 from .instance import default_instance
 
+
 def query(query: str, data: Any) -> Any:
     """
     Executes a query on a given data.

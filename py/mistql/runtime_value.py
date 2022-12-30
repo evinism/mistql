@@ -104,7 +104,7 @@ class RuntimeValue:
         """
         Create a new function from a Python function that can be used in MistQL
         """
-        spec = inspect.getfullargspec(py_func) 
+        spec = inspect.getfullargspec(py_func)
         min_arity = len(spec.args)
         if spec.defaults is not None:
             min_arity -= len(spec.defaults)
@@ -121,16 +121,14 @@ class RuntimeValue:
 
         def definition(args, stack, exec):
             if len(args) < min_arity:
+                fstr = "Function takes no fewer than {} arguments but {} were provided"
                 raise MistQLTypeError(
-                    "Function takes no fewer than {} arguments but {} were provided".format(
-                        min_arity, len(args)
-                    )
+                    fstr.format(min_arity, len(args))
                 )
             if max_arity is not None and len(args) > max_arity:
+                fstr = "Function takes no more than {} arguments but {} were provided"
                 raise MistQLTypeError(
-                    "Function takes no more than {} arguments but {} were provided".format(
-                        max_arity, len(args)
-                    )
+                   fstr.format(max_arity, len(args))
                 )
             py_args = [exec(arg, stack).to_python() for arg in args]
             return RuntimeValue.of(py_func(*py_args))
