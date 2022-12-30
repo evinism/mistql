@@ -1,5 +1,5 @@
 from typing import List, Dict, Callable, Union
-from mistql.runtime_value import RuntimeValue, RuntimeValueType
+from mistql.runtime_value import RuntimeValue
 from mistql.exceptions import MistQLReferenceError
 from typeguard import typechecked
 
@@ -21,7 +21,11 @@ def add_runtime_value_to_stack(value: RuntimeValue, stack: Stack):
     return new_stack
 
 
-def build_initial_stack(data: RuntimeValue, builtins: Dict[str, Callable], extras: Dict[str, Union[Callable, RuntimeValue]]) -> Stack:
+def build_initial_stack(
+    data: RuntimeValue,
+    builtins: Dict[str, Callable],
+    extras: Dict[str, Union[Callable, RuntimeValue]]
+) -> Stack:
     functions_frame: StackFrame = {}
     for key, value in builtins.items():
         functions_frame[key] = RuntimeValue.wrap_function_def(value)
@@ -31,13 +35,13 @@ def build_initial_stack(data: RuntimeValue, builtins: Dict[str, Callable], extra
         else:
             functions_frame[key] = RuntimeValue.from_py_func(value)
 
-    dollar_var_dict = { "@": data }
+    dollar_var_dict = {"@": data}
     dollar_var_dict.update(functions_frame)
 
     return [
         functions_frame,
-        { "$": RuntimeValue.of(dollar_var_dict) },
-         make_stack_entry_from_runtime_value(data)
+        {"$": RuntimeValue.of(dollar_var_dict)},
+        make_stack_entry_from_runtime_value(data)
     ]
 
 
