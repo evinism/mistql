@@ -1,4 +1,4 @@
-from typing import List, Dict, Callable, Union
+from typing import List, Mapping, Callable, Union, Dict
 from mistql.runtime_value import RuntimeValue
 from mistql.exceptions import MistQLReferenceError
 from typeguard import typechecked
@@ -23,12 +23,12 @@ def add_runtime_value_to_stack(value: RuntimeValue, stack: Stack):
 
 def build_initial_stack(
     data: RuntimeValue,
-    builtins: Dict[str, Callable],
-    extras: Dict[str, Union[Callable, RuntimeValue]]
+    builtins: Mapping[str, Callable],
+    extras: Mapping[str, Union[Callable, RuntimeValue]]
 ) -> Stack:
     functions_frame: StackFrame = {}
-    for key, value in builtins.items():
-        functions_frame[key] = RuntimeValue.wrap_function_def(value)
+    for key, builtin in builtins.items():
+        functions_frame[key] = RuntimeValue.wrap_function_def(builtin)
     for key, value in extras.items():
         if isinstance(value, RuntimeValue):
             functions_frame[key] = value
