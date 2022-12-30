@@ -21,7 +21,6 @@ def test_variadic_custom_function():
     assert mq.query("add 1 2 3 4", None) == 10
 
 
-
 def test_variadic_custom_function_with_positionals():
     def add(x, *args):
         return x + sum(args)
