@@ -3,7 +3,7 @@ import re
 from datetime import date, datetime, time
 from enum import Enum
 from math import isfinite, isnan
-from typing import Any, Callable, Dict, Set, Union
+from typing import Any, Callable, Dict, Set, Union, Optional
 import inspect
 
 from mistql.exceptions import MistQLTypeError, OpenAnIssueIfYouGetThisError
@@ -109,7 +109,7 @@ class RuntimeValue:
         if spec.defaults is not None:
             min_arity -= len(spec.defaults)
 
-        max_arity = len(spec.args)
+        max_arity: Optional[int] = len(spec.args)
         if spec.varargs is not None:
             max_arity = None
 
