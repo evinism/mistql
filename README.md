@@ -79,13 +79,13 @@ Code contributions to MistQL should roughly follow standard open source workflow
 
 ### MistQL standard
 
-No MistQL standard yet exists, but we're aiming for the `0.5.0` release of `mistql` as a standardizable language. After the `0.5.0` release, we will create a language specification, separate from any implementation.
+No MistQL standard yet exists, but we're aiming for the `1.0.0` release of `mistql` as a standardizable language. After the `1.0.0` release, we will create a language specification, separate from any implementation.
 
 In the meantime, we're actually pretty close.
 
 We have a [Lark grammar](https://github.com/evinism/mistql/blob/main/py/mistql/grammar.lark) 
 which defines the language's syntax. This is likely the final grammar that will be formalized 
-into ABNF, although it is possible that we may need to fix minor issues before `0.5.0`. I
+into ABNF, although it is possible that we may need to fix minor issues before `1.0.0`. I
 expect this to barely change, if at all.
 
 Additionally, our language-independent test suite is rather extensive and forms the de-facto
