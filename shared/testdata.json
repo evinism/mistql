@@ -1477,6 +1477,11 @@
                   "query": "flatten [1, 2, 3]",
                   "data": null,
                   "throws": true
+                },
+                {
+                  "query": "flatten [[1, 2], 3]",
+                  "data": null,
+                  "throws": true
                 }
               ]
             }
@@ -2998,6 +3003,18 @@
         {
           "describe": "#dotaccessor",
           "cases": [
+            {
+              "it": "correctly selects values",
+              "assertions": [
+                {
+                  "query": "hello",
+                  "data": {
+                    "hello": "world"
+                  },
+                  "expected": "world"
+                }
+              ]
+            },
             {
               "it": "correctly selects deep values",
               "assertions": [
