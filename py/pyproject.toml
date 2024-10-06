@@ -7,15 +7,15 @@ authors = ["Evin Sellin <evinism@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.7.0"
 lark = "^1.0.0"
-typeguard = "^2.13.3"
+typeguard = ">=2.13.3,<5.0.0"
 json-lines = "^0.5.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.0"
-black = {version = "^21.10b0", allow-prereleases = true}
+pytest = "^7.4.4"
+black = "^23.3.0"
 toml = "^0.10.2"
-mypy = "^0.942"
-flake8 = "^4.0.1"
+mypy = "^1.4.1"
+flake8 = "^5.0.4"
 
 [[tool.mypy.overrides]]
 module = "json_lines"
