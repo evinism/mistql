@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Mapping, Union, Callable
 from mistql.runtime_value import RuntimeValue, RuntimeValueType
 from mistql.expression import (
     Expression,
@@ -15,7 +15,6 @@ from mistql.stack import (
     add_runtime_value_to_stack,
     build_initial_stack,
     find_in_stack,
-    StackFrame
 )
 from mistql.expression import BaseExpression
 from mistql.exceptions import MistQLTypeError, OpenAnIssueIfYouGetThisError
@@ -77,6 +76,6 @@ def execute(ast: BaseExpression, stack: Stack) -> RuntimeValue:
 def execute_outer(
     ast: Expression,
     data: RuntimeValue,
-    extras: StackFrame
+    extras: Mapping[str, Union[Callable, RuntimeValue]],
 ) -> RuntimeValue:
     return execute(ast, build_initial_stack(data, builtins, extras))

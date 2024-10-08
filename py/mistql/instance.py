@@ -1,4 +1,4 @@
-from typing import Dict, Union, Callable
+from typing import Dict, Union, Callable, Optional, Any
 
 from .execute import execute_outer
 from .runtime_value import RuntimeValue
@@ -6,11 +6,16 @@ from .gardenwall import input_garden_wall, output_garden_wall
 from .parse import parse
 
 
+ExtrasDict = Dict[str, Union[RuntimeValue, Callable]]
+
+
 class MistQLInstance:
-    def __init__(self, extras: Dict[str, Union[RuntimeValue, Callable]] = None):
+    extras: ExtrasDict
+
+    def __init__(self, extras: Optional[ExtrasDict] = None):
         self.extras = extras or {}
 
-    def query(self, query, data):
+    def query(self, query: str, data: Any):
         ast = parse(query)
         data = input_garden_wall(data)
         result = execute_outer(ast, data, self.extras)
