@@ -31,12 +31,13 @@ for block in testdata["data"]:
                             assertion["data"],
                             assertion.get("expected"),
                             assertion.get("throws"),
-                        ) for assertion in test["assertions"]
+                        )
+                        for assertion in test["assertions"]
                     ],
                     block["describe"],
                     innerblock["describe"],
                     test["it"],
-                    test.get("skip")
+                    test.get("skip"),
                 )
             )
 
@@ -56,6 +57,7 @@ def test_shared(case: Case):
 
 
 if len(skipped_cases) > 0:
+
     @pytest.mark.skip
     @pytest.mark.parametrize("case", skipped_cases, ids=get_test_id_for_case)
     def test_shared_skipped(case: Case):

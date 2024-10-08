@@ -3,8 +3,11 @@ import statistics
 from functools import cmp_to_key
 from typing import Callable, Dict, List, Tuple, Union
 
-from mistql.exceptions import (MistQLRuntimeError, MistQLTypeError,
-                               OpenAnIssueIfYouGetThisError)
+from mistql.exceptions import (
+    MistQLRuntimeError,
+    MistQLTypeError,
+    OpenAnIssueIfYouGetThisError,
+)
 from mistql.expression import BaseExpression, RefExpression
 from mistql.runtime_value import RuntimeValue, RuntimeValueType, assert_type, assert_int
 from mistql.stack import Stack, add_runtime_value_to_stack

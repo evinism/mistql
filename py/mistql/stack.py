@@ -24,7 +24,7 @@ def add_runtime_value_to_stack(value: RuntimeValue, stack: Stack):
 def build_initial_stack(
     data: RuntimeValue,
     builtins: Mapping[str, Callable],
-    extras: Mapping[str, Union[Callable, RuntimeValue]]
+    extras: Mapping[str, Union[Callable, RuntimeValue]],
 ) -> Stack:
     functions_frame: StackFrame = {}
     for key, builtin in builtins.items():
@@ -41,7 +41,7 @@ def build_initial_stack(
     return [
         functions_frame,
         {"$": RuntimeValue.of(dollar_var_dict)},
-        make_stack_entry_from_runtime_value(data)
+        make_stack_entry_from_runtime_value(data),
     ]
 
 
