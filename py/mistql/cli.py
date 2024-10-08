@@ -48,12 +48,12 @@ def main(supplied_args=None):
     if args.data:
         raw_data = args.data
     elif args.file:
-        with open(args.file, 'rb') as f:
+        with open(args.file, "rb") as f:
             raw_data = f.read()
 
     elif args.file_jsonl:
         out = []
-        with open(args.file_jsonl, 'rb') as f:
+        with open(args.file_jsonl, "rb") as f:
             for item in json_lines.reader(f):
                 out.append(query(args.query, item))
     else:
@@ -65,9 +65,7 @@ def main(supplied_args=None):
     if args.output:
         # TODO: Allow alternate output encodings other than utf-8
         out_bytes = json.dumps(
-            out,
-            indent=2 if args.pretty else None,
-            ensure_ascii=False
+            out, indent=2 if args.pretty else None, ensure_ascii=False
         ).encode("utf-8")
         with open(args.output, "wb") as f:
             f.write(out_bytes)

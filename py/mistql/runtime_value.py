@@ -28,7 +28,7 @@ class RuntimeValueType(Enum):
 # Passes tests but is also super gross
 UPPER_NUM_FORMATTING_BREAKPOINT = 1e21
 LOWER_NUM_FORMATTING_BREAKPOINT = 1e-7
-MAX_SAFE_INT = 2 ** 53 - 1
+MAX_SAFE_INT = 2**53 - 1
 
 
 e_zero_regex = re.compile(r"e-0+")
@@ -80,9 +80,11 @@ class RuntimeValue:
                 RuntimeValueType.Object,
                 {key: RuntimeValue.of(value[key]) for key in value},
             )
-        elif (isinstance(value, date) or
-                isinstance(value, datetime) or
-                isinstance(value, time)):
+        elif (
+            isinstance(value, date)
+            or isinstance(value, datetime)
+            or isinstance(value, time)
+        ):
             return RuntimeValue(RuntimeValueType.String, value.isoformat())
         else:
             raise ValueError(
@@ -122,16 +124,13 @@ class RuntimeValue:
         def definition(args, stack, exec):
             if len(args) < min_arity:
                 fstr = "Function takes no fewer than {} arguments but {} were provided"
-                raise MistQLTypeError(
-                    fstr.format(min_arity, len(args))
-                )
+                raise MistQLTypeError(fstr.format(min_arity, len(args)))
             if max_arity is not None and len(args) > max_arity:
                 fstr = "Function takes no more than {} arguments but {} were provided"
-                raise MistQLTypeError(
-                   fstr.format(max_arity, len(args))
-                )
+                raise MistQLTypeError(fstr.format(max_arity, len(args)))
             py_args = [exec(arg, stack).to_python() for arg in args]
             return RuntimeValue.of(py_func(*py_args))
+
         return RuntimeValue.wrap_function_def(definition)
 
     @staticmethod
@@ -191,7 +190,8 @@ class RuntimeValue:
             return (a.value > b.value) - (a.value < b.value)
         else:
             raise OpenAnIssueIfYouGetThisError(
-                "Cannot compare MistQL values of type " + str(a.type))
+                "Cannot compare MistQL values of type " + str(a.type)
+            )
 
     def comparable(self) -> bool:
         """
