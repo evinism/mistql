@@ -6,6 +6,12 @@ In the future, this is expected to change. It's likely that at 0.5.0, we will de
 
 Format [Keep A ChangeLog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.4.12]
+
+### Changed
+- https://github.com/evinism/mistql/pull/182, https://github.com/evinism/mistql/pull/181 Bumped many dependencies to latest versions.
+- https://github.com/evinism/mistql/pull/183 Removed EOL'd Python3.7 support.
+
 ## [0.4.11]
 
 ### Changed
