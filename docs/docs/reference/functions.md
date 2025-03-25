@@ -794,7 +794,7 @@ Maps an array to a list of tuple-like arrays with the index as the first member 
 Query:
 
 ```
-["a", "b", "c", "d"] | values
+["a", "b", "c", "d"] | withindices
 ```
 
 Result:
