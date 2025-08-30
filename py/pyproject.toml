@@ -16,8 +16,8 @@ dependencies = [
     "typeguard>=2.13.3,<5.0.0",
     "json-lines>=0.5.0",
 ]
-# authors = ["Evin Sellin <evinism@gmail.com>"]
-# issues = "https://github.com/evinism/mistql/issues"
+authors = [{ name = "Evin Sellin", email = "evinism@gmail.com" }]
+urls = { Repository = "https://github.com/evinism/mistql", Issues = "https://github.com/evinism/mistql/issues" }
 
 [project.optional-dependencies]
 dev = [
