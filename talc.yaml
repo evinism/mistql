@@ -2,11 +2,7 @@ doc: MistQL Project CLI
 commands:
   - name: install
     doc: Install all dependencies in all subdirs
-    shell: (cd py && poetry install) && (cd js && npm install)
-  - name: version 
-    doc: Print the current version of MistQL in the repository
-    shell:
-      "(cd py && (poetry run mqpy 'version' --data ../meta.json))"
+    shell: (cd py && uv venv && uv pip install -e ".[dev]") && (cd js && npm install)
   - name: test
     doc: Test a subproject!
     commands:
@@ -21,7 +17,7 @@ commands:
       - name: py
         doc: Test the JS subproject
         shell:
-          "cd py && poetry run pytest && poetry run mypy -m mistql"
+          "cd py && uv run pytest && uv run mypy mistql"
   - name: build
     doc: Build a subproject!
     commands:
@@ -36,7 +32,7 @@ commands:
       - name: py
         doc: Build the JS subproject
         shell:
-          "cd py && poetry build"
+          "cd py && uv build"
   - name: publish
     doc: Publish subprojects to various platforms
     commands:
@@ -66,7 +62,7 @@ commands:
       - name: py
         doc: Publish the JS subproject
         shell:
-          "cd py && poetry publish"
+          "cd py && uv publish"
   - name: docs
     doc: Serves the docs site locally
     shell: (cd docs && npm run start)
