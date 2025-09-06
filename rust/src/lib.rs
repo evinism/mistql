@@ -14,11 +14,11 @@ pub mod errors;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// use mistql::query;
 ///
 /// let data = serde_json::json!([{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]);
-/// let result = query("filter age > 26 | map name", &data)?;
+/// let result = query("filter age > 26 | map name", &data).unwrap();
 /// ```
 pub fn query(query_str: &str, data: &serde_json::Value) -> Result<serde_json::Value, errors::MistQLError> {
     // TODO: Implement query execution

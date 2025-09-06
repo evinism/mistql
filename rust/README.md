@@ -8,14 +8,21 @@ This is the Rust implementation of MistQL, a miniature query language for perfor
 
 ## Development Roadmap
 
-### Phase 1: Core Architecture (Tasks 1-7)
+### Phase 1: Core Architecture
 
 - [x] **Project Setup** - Set up Rust project structure with Cargo.toml, workspace configuration, and basic directory layout
-- [ ] **Dependencies Research** - Research and select Rust dependencies for JSON parsing, regex, CLI, and testing frameworks
+- [x] **Dependencies Research** - Research and select Rust dependencies for JSON parsing, regex, CLI, and testing frameworks
+- [ ] **Bare minimal testing framework** - Implement a bare minimal testing framework in Rust
 - [ ] **Type System** - Implement RuntimeValue enum and type system for 8 core MistQL types (null, boolean, number, string, object, array, function, regex)
-- [ ] **Parser Implementation** - Implement parser using nom or pest to replace Lark grammar, supporting all MistQL syntax features
+- [ ] **Test type system** - Test the type system (match tests in Python implementation)
+- [ ] **Lexer Implementation** - Implement lexer from scratch in Rust
+- [ ] **Test lexer** - Test the lexer (match tests in Python implementation)
+- [ ] **Parser Implementation** - Implement parser from scratch in Rust
+- [ ] **Test parser** - Test the parser (match tests in Python implementation)
 - [ ] **AST Definition** - Define AST node types (FnExpression, RefExpression, ValueExpression, Array, Object, Pipe expressions)
+- [ ] **Test AST** - Test the AST (match tests in Python implementation)
 - [ ] **Execution Engine** - Implement expression execution engine with contextualized expressions and lazy evaluation
+- [ ] **Test execution engine** - Test the execution engine (match tests in Python implementation)
 - [ ] **Stack Management** - Implement execution stack for variable scoping and context management
 
 ### Phase 2: Feature Implementation (Tasks 8-12)
@@ -86,25 +93,63 @@ let result = instance.query("custom_sum 1 2", &serde_json::Value::Null)?;
 - **Mathematical**: sum, summarize, range
 - **Utility**: if, log, apply, string, float
 
-## Dependencies (Planned)
+## Dependencies (Selected)
 
 ```toml
 [dependencies]
+# Core JSON and serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-regex = "1.0"
-clap = { version = "4.0", features = ["derive"] }
+
+# Error handling
 thiserror = "1.0"
-nom = "7.0"  # or pest = "2.0" for parsing
+anyhow = "1.0"
+
+# Parsing - using nom for parser combinators (replaces Lark)
+nom = "7.0"
+
+# Regular expressions (for regex type and string operations)
+regex = "1.0"
+
+# CLI interface (replaces Python's argparse)
+clap = { version = "4.0", features = ["derive", "color", "suggestions"] }
+
+# Logging (for debug logging function)
+log = "0.4"
+env_logger = "0.10"
+
+# JSONL support (replaces Python's json-lines)
+jsonl = "0.1"
+
+# Date/time handling (for DateTime -> ISO string conversion)
+chrono = { version = "0.4", features = ["serde"] }
+
+# Mathematical operations and statistics
+num-traits = "0.2"
+statistical = "0.1"
+
+# String manipulation utilities
+unicode-segmentation = "1.0"
 ```
 
 ## Development Tools
 
 ```toml
 [dev-dependencies]
-criterion = "0.5"  # Benchmarking
-proptest = "1.0"   # Property-based testing
+# Testing framework (replaces Python's pytest)
+rstest = "0.19"
+
+# Property-based testing (for comprehensive test coverage)
+proptest = "1.0"
+
+# Benchmarking (for performance comparison with JS/Python)
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Additional testing utilities
+tempfile = "3.0"
 ```
+
+See [DEPENDENCIES.md](DEPENDENCIES.md) for detailed rationale and comparisons with existing implementations.
 
 ## Project Structure
 
