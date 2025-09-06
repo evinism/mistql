@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.8.1"
 resolution-markers = [
     "python_full_version >= '3.9'",
@@ -78,13 +78,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "json-lines", specifier = "~=0.5.0" },
-    { name = "lark", specifier = "~=1.0.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = "~=1.4.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = "~=7.4.4" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = "~=0.11.12" },
-    { name = "toml", marker = "extra == 'dev'", specifier = "~=0.10.2" },
-    { name = "typeguard", specifier = "~=2.13.3,<5.0.0" },
+    { name = "json-lines", specifier = ">=0.5.0,<1.0.0" },
+    { name = "lark", specifier = ">=1.0.0,<2.0.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.4.1,<2.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.4,<8.0.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11.12,<0.12.0" },
+    { name = "toml", marker = "extra == 'dev'", specifier = ">=0.10.2,<1.0.0" },
+    { name = "typeguard", specifier = ">=2.13.3,<5.0.0" },
 ]
 provides-extras = ["dev"]
 
