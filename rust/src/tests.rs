@@ -133,26 +133,38 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
         non_skipped_cases.push(test_case);
     }
 
+    // Count total assertions across all test cases
+    let total_assertions: usize = non_skipped_cases.iter()
+        .map(|tc| tc.assertions.len())
+        .sum();
+    let skipped_assertions: usize = skipped_cases.iter()
+        .map(|tc| tc.assertions.len())
+        .sum();
+
     let mut results = TestResults {
-        total_tests: 0,
-        passed_tests: 0,
-        failed_tests: 0,
-        skipped_tests: skipped_cases.len(),
+        total_test_cases: non_skipped_cases.len(),
+        total_assertions,
+        passed_assertions: 0,
+        failed_assertions: 0,
+        skipped_test_cases: skipped_cases.len(),
         failures: Vec::new(),
     };
 
-    println!("Running {} non-skipped test cases ({} skipped)", non_skipped_cases.len(), skipped_cases.len());
+    println!("Test Suite Overview:");
+    println!("  Test Cases: {} ({} skipped)", non_skipped_cases.len(), skipped_cases.len());
+    println!("  Assertions: {} ({} skipped)", total_assertions, skipped_assertions);
+    println!("  Total Tests: {}", total_assertions + skipped_assertions);
+    println!();
 
     for test_case in non_skipped_cases {
         for assertion in &test_case.assertions {
-            results.total_tests += 1;
 
             match run_assertion(assertion) {
                 Ok(true) => {
-                    results.passed_tests += 1;
+                    results.passed_assertions += 1;
                 }
                 Ok(false) => {
-                    results.failed_tests += 1;
+                    results.failed_assertions += 1;
                     results.failures.push(TestFailure {
                         describe_block: test_case.describe_block.clone(),
                         describe_inner: test_case.describe_inner.clone(),
@@ -165,7 +177,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
                     });
                 }
                 Err(error) => {
-                    results.failed_tests += 1;
+                    results.failed_assertions += 1;
                     results.failures.push(TestFailure {
                         describe_block: test_case.describe_block.clone(),
                         describe_inner: test_case.describe_inner.clone(),
@@ -186,10 +198,11 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
 
 #[derive(Debug)]
 pub struct TestResults {
-    pub total_tests: usize,
-    pub passed_tests: usize,
-    pub failed_tests: usize,
-    pub skipped_tests: usize,
+    pub total_test_cases: usize,
+    pub total_assertions: usize,
+    pub passed_assertions: usize,
+    pub failed_assertions: usize,
+    pub skipped_test_cases: usize,
     pub failures: Vec<TestFailure>,
 }
 
@@ -225,11 +238,16 @@ impl std::fmt::Display for TestFailure {
 
 impl std::fmt::Display for TestResults {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Test Results:")?;
-        writeln!(f, "  Total: {}", self.total_tests)?;
-        writeln!(f, "  Passed: {}", self.passed_tests)?;
-        writeln!(f, "  Failed: {}", self.failed_tests)?;
-        writeln!(f, "  Skipped: {}", self.skipped_tests)?;
+        writeln!(f, "Test Results Summary:")?;
+        writeln!(f, "  Test Cases: {} ({} skipped)", self.total_test_cases, self.skipped_test_cases)?;
+        writeln!(f, "  Assertions: {} total", self.total_assertions)?;
+        writeln!(f, "    ✅ Passed: {}", self.passed_assertions)?;
+        writeln!(f, "    ❌ Failed: {}", self.failed_assertions)?;
+
+        if self.total_assertions > 0 {
+            let pass_rate = (self.passed_assertions as f64 / self.total_assertions as f64) * 100.0;
+            writeln!(f, "  Pass Rate: {:.1}%", pass_rate)?;
+        }
 
         if !self.failures.is_empty() {
             writeln!(f, "\nFailures:")?;
@@ -254,13 +272,13 @@ mod test_runner {
 
                 // For now, we'll allow some failures as the implementation is still in progress
                 // TODO: Make this stricter once the implementation is more complete
-                if results.failed_tests > 0 {
-                    println!("Note: {} tests failed. This is expected during development.", results.failed_tests);
+                if results.failed_assertions > 0 {
+                    println!("Note: {} assertions failed. This is expected during development.", results.failed_assertions);
                     println!("Focus on implementing missing functionality to reduce failures.");
                 }
 
                 // At minimum, we should have some tests running
-                assert!(results.total_tests > 0, "No tests were executed");
+                assert!(results.total_assertions > 0, "No assertions were executed");
             }
             Err(e) => {
                 panic!("Failed to run test suite: {}", e);

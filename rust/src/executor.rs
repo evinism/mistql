@@ -221,8 +221,8 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> 
         Expression::ObjectExpression { entries } => execute_object(entries, context),
         Expression::PipeExpression { stages } => execute_pipeline(stages, context),
         Expression::ParentheticalExpression { expression } => execute_expression(expression, context),
-        Expression::UnaryExpression { operator, operand } => execute_unary(*operator, operand, context),
-        Expression::BinaryExpression { operator, left, right } => execute_binary(*operator, left, right, context),
+        Expression::UnaryExpression { operator, operand } => execute_unary(operator.clone(), operand, context),
+        Expression::BinaryExpression { operator, left, right } => execute_binary(operator.clone(), left, right, context),
         Expression::DotAccessExpression { object, field } => execute_dot_access(object, field, context),
         Expression::IndexExpression { target, index } => execute_indexing(target, index, context),
     }
@@ -275,11 +275,31 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
         // Push data as new context
         context.push_context(data.clone());
 
-        // Execute stage with data as @ context
-        data = execute_expression(stage, context)?;
+        // If the stage is a function call, append data as the last argument
+        let result = match stage {
+            Expression::FnExpression { function, arguments } => {
+                // Create new arguments with data appended as the last argument
+                let mut new_args = arguments.clone();
+                new_args.push(Expression::ValueExpression { value: data.clone() });
+
+                // Create new function call expression
+                let new_call = Expression::FnExpression {
+                    function: function.clone(),
+                    arguments: new_args,
+                };
+
+                execute_expression(&new_call, context)?
+            }
+            _ => {
+                // For non-function expressions, execute normally
+                execute_expression(stage, context)?
+            }
+        };
 
         // Pop context
         context.pop_context()?;
+
+        data = result;
     }
 
     Ok(data)

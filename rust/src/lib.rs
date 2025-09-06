@@ -28,7 +28,7 @@ mod tests;
 /// let result = query("filter age > 26 | map name", &data).unwrap();
 /// ```
 pub fn query(query_str: &str, data: &serde_json::Value) -> Result<serde_json::Value, errors::MistQLError> {
-    use crate::parser::{Expression, Parser};
+    use crate::parser::Parser;
     use crate::executor::{execute_expression, ExecutionContext};
     use crate::types::RuntimeValue;
 

@@ -72,7 +72,7 @@ pub enum Expression {
 }
 
 /// Unary operators in MistQL
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum UnaryOperator {
     /// Logical NOT: `!`
     Not,
@@ -81,7 +81,7 @@ pub enum UnaryOperator {
 }
 
 /// Binary operators in MistQL
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BinaryOperator {
     /// Logical OR: `||`
     Or,
@@ -809,6 +809,31 @@ mod tests {
             Parser::parse("filter condition").unwrap(),
             expected
         );
+    }
+
+    #[test]
+    fn test_debug_count_array() {
+        // Debug test for count [] parsing
+        let result = Parser::parse("count []");
+        println!("count [] parsed as: {:#?}", result);
+
+        // This should be a function call, not an indexing operation
+        let expected = Expression::function_call(
+            Expression::reference("count", false),
+            vec![Expression::array(vec![])]
+        );
+        assert_eq!(result.unwrap(), expected);
+    }
+
+    #[test]
+    fn test_debug_function_call_parsing() {
+        // Test what parse_function_call does with "count []"
+        let result = parse_function_call("count []");
+        println!("parse_function_call('count []') = {:#?}", result);
+
+        // Test what parse_op_a does with "count []"
+        let result2 = parse_op_a("count []");
+        println!("parse_op_a('count []') = {:#?}", result2);
     }
 
     #[test]
