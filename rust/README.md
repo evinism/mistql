@@ -17,17 +17,24 @@ This is the Rust implementation of MistQL, a miniature query language for perfor
 - [x] **Test type system** - Test the type system (match tests in Python implementation)
 - [x] **Lexer Implementation** - Implement lexer from scratch in Rust
 - [x] **Test lexer** - Test the lexer (match tests in Python implementation)
-- [ ] **Parser Implementation** - Implement parser from scratch in Rust
-- [ ] **Test parser** - Test the parser (match tests in Python implementation)
-- [ ] **AST Definition** - Define AST node types (FnExpression, RefExpression, ValueExpression, Array, Object, Pipe expressions)
-- [ ] **Test AST** - Test the AST (match tests in Python implementation)
-- [ ] **Execution Engine** - Implement expression execution engine with contextualized expressions and lazy evaluation
+- [x] **Parser Implementation** - Implement parser from scratch in Rust
+- [x] **Test parser** - Test the parser (match tests in Python implementation)
+- [x] **AST Definition** - Define AST node types (FnExpression, RefExpression, ValueExpression, Array, Object, Pipe expressions)
+- [x] **Test AST** - Test the AST (match tests in Python implementation)
+- [x] **Execution Engine** - Implement expression execution engine with contextualized expressions
+  - [x] **Execution Stack** - Implement execution stack and context management system
+  - [x] **Core Execution Engine** - Implement core expression execution engine with pattern matching
+  - [x] **Binary and Unary Operators** - Implement binary and unary operator evaluation
+  - [x] **Function Call Execution** - Implement function call execution and argument handling
+  - [x] **Pipeline Execution** - Implement pipeline execution with context passing
+  - [x] **Dot Access and Indexing** - Implement dot access and indexing operations
+  - [x] **Comprehensive Tests** - Create comprehensive tests for executor functionality
+  - [x] **Contextualized Expressions** - Implement contextualized expressions (@ variable handling)
 - [ ] **Test execution engine** - Test the execution engine (match tests in Python implementation)
-- [ ] **Stack Management** - Implement execution stack for variable scoping and context management
 
 ### Phase 2: Feature Implementation (Tasks 8-12)
 
-- [ ] **Built-in Functions** - Implement all 40+ built-in functions (array, object, string, mathematical, utility operations)
+- [x] **Built-in Functions** - Implement all 40+ built-in functions (array, object, string, mathematical, utility operations)
 - [ ] **Instance Management** - Implement MistQLInstance for custom functions and parameterized instances
 - [ ] **Type Boundaries** - Implement type conversion between Rust and MistQL types (serde integration, special handling for Option<T>, DateTime, etc.)
 - [ ] **Error Handling** - Implement custom error types and user-friendly error messages
