@@ -4,10 +4,12 @@
 //! conversion, equality, comparison, and truthiness operations.
 
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::collections::HashMap;
 use std::fmt;
 use regex::Regex;
+
+#[cfg(test)]
+use serde_json::json;
 
 /// Custom regex wrapper that implements Serialize/Deserialize
 #[derive(Debug, Clone)]
@@ -261,7 +263,12 @@ impl RuntimeValue {
             RuntimeValue::Null => serde_json::Value::Null,
             RuntimeValue::Boolean(b) => serde_json::Value::Bool(*b),
             RuntimeValue::Number(n) => {
-                serde_json::Value::Number(serde_json::Number::from_f64(*n).unwrap_or(serde_json::Number::from(0)))
+                // Try to preserve integer format if the number is a whole number
+                if n.fract() == 0.0 && n.abs() <= 9007199254740992.0 { // Max safe integer
+                    serde_json::Value::Number(serde_json::Number::from(*n as i64))
+                } else {
+                    serde_json::Value::Number(serde_json::Number::from_f64(*n).unwrap_or(serde_json::Number::from(0)))
+                }
             }
             RuntimeValue::String(s) => serde_json::Value::String(s.clone()),
             RuntimeValue::Array(arr) => {
@@ -326,6 +333,16 @@ impl RuntimeValue {
             RuntimeValue::Null => Ok(0.0),
             _ => Err(format!("Cannot convert {} to float", self.get_type())),
         }
+    }
+
+    /// Create a RuntimeValue from a float
+    pub fn from_float(f: f64) -> Self {
+        RuntimeValue::Number(f)
+    }
+
+    /// Create a RuntimeValue from an integer
+    pub fn from_int(i: i64) -> Self {
+        RuntimeValue::Number(i as f64)
     }
 
     /// Access object property
