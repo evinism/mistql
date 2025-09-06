@@ -1,0 +1,22 @@
+[package]
+name = "mistql"
+version = "0.4.12"
+edition = "2021"
+description = "A miniature query language for performing computations on JSON-like structures"
+license = "MIT"
+repository = "https://github.com/evinism/mistql"
+keywords = ["query", "json", "data", "language"]
+categories = ["data-structures", "parsing"]
+
+[lib]
+name = "mistql"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mq"
+path = "src/bin/mq.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
