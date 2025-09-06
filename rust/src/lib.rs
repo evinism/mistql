@@ -11,10 +11,7 @@ pub mod builtins;
 pub mod instance;
 pub mod errors;
 
-#[cfg(test)]
-mod types_tests;
-#[cfg(test)]
-mod lexer_tests;
+// Test modules are integrated into their respective source files
 
 /// Main query function - the primary entry point for MistQL queries
 ///
