@@ -10,6 +10,9 @@ pub mod builtins;
 pub mod instance;
 pub mod errors;
 
+#[cfg(test)]
+mod types_tests;
+
 /// Main query function - the primary entry point for MistQL queries
 ///
 /// # Examples

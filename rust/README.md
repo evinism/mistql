@@ -12,9 +12,9 @@ This is the Rust implementation of MistQL, a miniature query language for perfor
 
 - [x] **Project Setup** - Set up Rust project structure with Cargo.toml, workspace configuration, and basic directory layout
 - [x] **Dependencies Research** - Research and select Rust dependencies for JSON parsing, regex, CLI, and testing frameworks
-- [ ] **Bare minimal testing framework** - Implement a bare minimal testing framework in Rust
-- [ ] **Type System** - Implement RuntimeValue enum and type system for 8 core MistQL types (null, boolean, number, string, object, array, function, regex)
-- [ ] **Test type system** - Test the type system (match tests in Python implementation)
+- [x] **Bare minimal testing framework** - Implement a bare minimal testing framework in Rust
+- [x] **Type System** - Implement RuntimeValue enum and type system for 8 core MistQL types (null, boolean, number, string, object, array, function, regex)
+- [x] **Test type system** - Test the type system (match tests in Python implementation)
 - [ ] **Lexer Implementation** - Implement lexer from scratch in Rust
 - [ ] **Test lexer** - Test the lexer (match tests in Python implementation)
 - [ ] **Parser Implementation** - Implement parser from scratch in Rust
