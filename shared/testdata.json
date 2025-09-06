@@ -577,6 +577,20 @@
                     "toggle": false
                   },
                   "expected": ["two"]
+                },
+                {
+                  "query": "$[fnname] {one: \"two\"}",
+                  "data": {
+                    "fnname": "keys"
+                  },
+                  "expected": ["one"]
+                },
+                {
+                  "query": "$[fnname] {one: \"two\"}",
+                  "data": {
+                    "fnname": "values"
+                  },
+                  "expected": ["two"]
                 }
               ]
             }
@@ -1150,6 +1164,21 @@
                   "query": "{ ct: [5] | count } | entries",
                   "data": null,
                   "expected": [["ct", 1]]
+                }
+              ]
+            },
+            {
+              "it": "binds unary operators more tightly than function calls",
+              "assertions": [
+                {
+                  "query": "-count [1, 2, 3]",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "-(count [1, 2, 3])",
+                  "data": null,
+                  "expected": -3
                 }
               ]
             }
