@@ -4,6 +4,7 @@
 //! It serves as a powerful common expression language with strong cross-platform behavior semantics.
 
 pub mod types;
+pub mod lexer;
 pub mod parser;
 pub mod executor;
 pub mod builtins;
@@ -12,6 +13,8 @@ pub mod errors;
 
 #[cfg(test)]
 mod types_tests;
+#[cfg(test)]
+mod lexer_tests;
 
 /// Main query function - the primary entry point for MistQL queries
 ///
