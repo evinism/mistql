@@ -600,7 +600,7 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
         // Indexing: [expression]
         map(
             pair(
-                pair(ws, char('[')),
+                char('['),
                 pair(ws, parse_indexing_innards),
             ),
             |(_, (_, index_expr))| ("index", index_expr),
