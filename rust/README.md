@@ -4,14 +4,14 @@ This is the Rust implementation of MistQL, a miniature query language for perfor
 
 ## Project Status
 
-🚧 **MVP Complete - Core Infrastructure Ready** - The basic MistQL infrastructure is working with a comprehensive test suite. Ready for systematic implementation of builtin functions.
+🚧 **MVP Complete - Core Infrastructure Ready** - The basic MistQL infrastructure is working with a comprehensive test suite.
 
 **Current Status**:
-- ✅ **Core Architecture**: Lexer, Parser, Executor, Type System
-- ✅ **Test Framework**: 325+ tests running from shared test suite
-- ✅ **Basic Query Function**: Main API working
-- ⚠️ **Builtin Functions**: Most functions need implementation (see TODO list below)
-- ⚠️ **Test Match**: ~7/514 assertions in the test suite are failing.
+- [x] **Core Architecture**: Lexer, Parser, Executor, Type System.
+- [x] **Test Framework**: ~7/514 assertions in the test suite are failing.
+- [x] **Basic Query Function**: Main API working.
+- [x] **Builtin Functions**: Most functions need implementation (see TODO list below)
+- [ ] **Refactor**: Carefully read the LLM-assisted port and refactor it.
 
 ## Development Roadmap
 
