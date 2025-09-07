@@ -8,37 +8,27 @@ use crate::parser::{Expression, UnaryOperator, BinaryOperator};
 use crate::builtins::execute_builtin;
 use std::collections::HashMap;
 
-/// A single frame in the execution stack containing variable bindings
+/// A single frame in the execution stack containing variable bindings.
 pub type StackFrame = HashMap<String, RuntimeValue>;
 
-/// The execution stack containing nested variable scopes
+/// The execution stack containing nested variable scopes.
 pub type ExecutionStack = Vec<StackFrame>;
 
-/// Execution context containing the stack, builtins, and root data
+/// Execution context containing the stack, builtins, and root data.
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
-    /// The execution stack with nested variable scopes
     stack: ExecutionStack,
-    /// Built-in functions available in this context
     builtins: HashMap<String, RuntimeValue>,
-    /// The root data that the query operates on
     root_data: RuntimeValue,
 }
 
-/// Custom error type for execution errors
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExecutionError {
-    /// Variable not found in any stack frame
     VariableNotFound(String),
-    /// Attempted to call a non-function value
     NotCallable(String),
-    /// Type mismatch in operation
     TypeMismatch(String),
-    /// Division by zero
     DivisionByZero,
-    /// Invalid operation
     InvalidOperation(String),
-    /// Custom error message
     Custom(String),
 }
 
@@ -58,7 +48,6 @@ impl std::fmt::Display for ExecutionError {
 impl std::error::Error for ExecutionError {}
 
 impl ExecutionContext {
-    /// Create a new execution context with the given data and builtins
     pub fn new(data: RuntimeValue, builtins: HashMap<String, RuntimeValue>) -> Self {
         let mut context = Self {
             stack: Vec::new(),
@@ -66,26 +55,22 @@ impl ExecutionContext {
             root_data: data.clone(),
         };
 
-        // Build initial stack with builtins, $ variable, and data context
         context.build_initial_stack(data);
         context
     }
 
-    /// Create a new execution context with default builtins
     pub fn with_builtins(data: RuntimeValue) -> Self {
         use crate::builtins::get_builtins;
         Self::new(data, get_builtins())
     }
 
-    /// Build the initial execution stack
     fn build_initial_stack(&mut self, data: RuntimeValue) {
-        // Frame 0: Built-in functions and $ variable
+        // Frame 0: Built-in functions and $ variable.
         let mut functions_frame = HashMap::new();
         for (key, value) in &self.builtins {
             functions_frame.insert(key.clone(), value.clone());
         }
 
-        // Create the $ variable containing builtins and root data
         let mut dollar_frame = HashMap::new();
         dollar_frame.insert("@".to_string(), data.clone());
         for (key, value) in &self.builtins {
@@ -95,21 +80,19 @@ impl ExecutionContext {
 
         self.stack.push(functions_frame);
 
-        // Frame 1: Data context (object keys become variables)
+        // Frame 1: Data context (object keys become variables).
         self.push_context(data);
     }
 
-    /// Push a new context frame onto the stack
     pub fn push_context(&mut self, value: RuntimeValue) {
         let mut new_frame = HashMap::new();
 
-        // Always add @ variable
+        // Always add @ variable.
         new_frame.insert("@".to_string(), value.clone());
 
-        // If the value is an object, populate its keys as variables
+        // If the value is an object, populate keys as variables.
         if let RuntimeValue::Object(obj) = &value {
             for (key, val) in obj {
-                // Only add valid identifier keys
                 if is_valid_identifier(key) {
                     new_frame.insert(key.clone(), val.clone());
                 }
@@ -119,27 +102,25 @@ impl ExecutionContext {
         self.stack.push(new_frame);
     }
 
-    /// Pop the top context frame from the stack
     pub fn pop_context(&mut self) -> Result<(), ExecutionError> {
         if self.stack.len() <= 2 {
-            // Don't pop the initial frames (builtins+$, and data)
             return Err(ExecutionError::Custom("Cannot pop initial stack frames".to_string()));
         }
         self.stack.pop();
         Ok(())
     }
 
-    /// Find a variable in the execution stack
+    /// Find a variable in the execution stack.
     pub fn find_variable(&self, name: &str, absolute: bool) -> Result<RuntimeValue, ExecutionError> {
         if absolute {
-            // For absolute references (like $), only search in the first frame (builtins)
+            // For absolute references (like $), only search in the first frame (builtins).
             if let Some(frame) = self.stack.first() {
                 if let Some(value) = frame.get(name) {
                     return Ok(value.clone());
                 }
             }
         } else {
-            // Search from top to bottom of stack
+            // Search from top to bottom of stack.
             for frame in self.stack.iter().rev() {
                 if let Some(value) = frame.get(name) {
                     return Ok(value.clone());
@@ -150,13 +131,12 @@ impl ExecutionContext {
         Err(ExecutionError::VariableNotFound(name.to_string()))
     }
 
-    /// Get a built-in function by name
     pub fn get_builtin(&self, name: &str) -> Result<&RuntimeValue, ExecutionError> {
         self.builtins.get(name)
             .ok_or_else(|| ExecutionError::VariableNotFound(name.to_string()))
     }
 
-    /// Get the current @ context value
+    /// Get the current @ context value.
     pub fn get_current_context(&self) -> Result<&RuntimeValue, ExecutionError> {
         for frame in self.stack.iter().rev() {
             if let Some(value) = frame.get("@") {
@@ -166,18 +146,16 @@ impl ExecutionContext {
         Err(ExecutionError::VariableNotFound("@".to_string()))
     }
 
-    /// Get the root data
     pub fn get_root_data(&self) -> &RuntimeValue {
         &self.root_data
     }
 
-    /// Get the current stack depth
     pub fn stack_depth(&self) -> usize {
         self.stack.len()
     }
 }
 
-/// Check if a string is a valid identifier for variable binding
+/// Check if a string is a valid identifier for variable binding.
 fn is_valid_identifier(s: &str) -> bool {
     if s.is_empty() {
         return false;
@@ -186,32 +164,15 @@ fn is_valid_identifier(s: &str) -> bool {
     let mut chars = s.chars();
     let first = chars.next().unwrap();
 
-    // First character must be alphabetic or underscore
+    // First character must be alphabetic or underscore.
     if !first.is_alphabetic() && first != '_' {
         return false;
     }
 
-    // Remaining characters must be alphanumeric or underscore
+    // Remaining characters must be alphanumeric or underscore.
     chars.all(|c| c.is_alphanumeric() || c == '_')
 }
 
-/// Create a stack frame from a runtime value
-pub fn make_stack_frame_from_value(value: &RuntimeValue) -> StackFrame {
-    let mut frame = HashMap::new();
-    frame.insert("@".to_string(), value.clone());
-
-    if let RuntimeValue::Object(obj) = value {
-        for (key, val) in obj {
-            if is_valid_identifier(key) {
-                frame.insert(key.clone(), val.clone());
-            }
-        }
-    }
-
-    frame
-}
-
-/// Execute a MistQL expression
 pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     match expr {
         Expression::ValueExpression { value } => Ok(value.clone()),
@@ -221,14 +182,13 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> 
         Expression::ObjectExpression { entries } => execute_object(entries, context),
         Expression::PipeExpression { stages } => execute_pipeline(stages, context),
         Expression::ParentheticalExpression { expression } => execute_expression(expression, context),
-        Expression::UnaryExpression { operator, operand } => execute_unary(operator.clone(), operand, context),
-        Expression::BinaryExpression { operator, left, right } => execute_binary(operator.clone(), left, right, context),
+        Expression::UnaryExpression { operator, operand } => execute_unary(*operator, operand, context),
+        Expression::BinaryExpression { operator, left, right } => execute_binary(*operator, left, right, context),
         Expression::DotAccessExpression { object, field } => execute_dot_access(object, field, context),
         Expression::IndexExpression { target, index } => execute_indexing(target, index, context),
     }
 }
 
-/// Execute an array expression
 fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let mut result = Vec::new();
     for item in items {
@@ -238,7 +198,6 @@ fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result
     Ok(RuntimeValue::Array(result))
 }
 
-/// Execute an object expression
 fn execute_object(entries: &std::collections::HashMap<String, Expression>, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let mut result = std::collections::HashMap::new();
     for (key, expr) in entries {
@@ -248,7 +207,6 @@ fn execute_object(entries: &std::collections::HashMap<String, Expression>, conte
     Ok(RuntimeValue::Object(result))
 }
 
-/// Execute a function call expression
 fn execute_function_call(function: &Expression, arguments: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let func_value = execute_expression(function, context)?;
 
@@ -261,7 +219,6 @@ fn execute_function_call(function: &Expression, arguments: &[Expression], contex
     }
 }
 
-/// Execute a pipeline expression
 fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     if stages.is_empty() {
         return Err(ExecutionError::Custom("Empty pipeline".to_string()));
@@ -762,29 +719,6 @@ mod tests {
         assert!(!is_valid_identifier("name-with-dash"));
         assert!(!is_valid_identifier("name with space"));
         assert!(!is_valid_identifier("name.with.dot"));
-    }
-
-    #[test]
-    fn test_make_stack_frame_from_value() {
-        let value = RuntimeValue::Object({
-            let mut map = HashMap::new();
-            map.insert("valid_key".to_string(), RuntimeValue::String("value".to_string()));
-            map.insert("123invalid".to_string(), RuntimeValue::String("ignored".to_string()));
-            map
-        });
-
-        let frame = make_stack_frame_from_value(&value);
-
-        // Should have @ variable
-        assert!(frame.contains_key("@"));
-        assert_eq!(frame["@"], value);
-
-        // Should have valid keys as variables
-        assert!(frame.contains_key("valid_key"));
-        assert_eq!(frame["valid_key"], RuntimeValue::String("value".to_string()));
-
-        // Should not have invalid keys
-        assert!(!frame.contains_key("123invalid"));
     }
 
     #[test]
