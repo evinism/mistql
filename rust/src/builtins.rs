@@ -455,7 +455,11 @@ pub fn keys(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
     validate_args("keys", args, 1, Some(1))?;
     let object = assert_object(execute_expression(&args[0], context)?)?;
 
-    let keys: Vec<RuntimeValue> = object.keys()
+    // Sort keys to match JavaScript behavior
+    let mut sorted_keys: Vec<String> = object.keys().cloned().collect();
+    sorted_keys.sort();
+
+    let keys: Vec<RuntimeValue> = sorted_keys.iter()
         .map(|k| RuntimeValue::String(k.clone()))
         .collect();
 
@@ -467,7 +471,13 @@ pub fn values(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     validate_args("values", args, 1, Some(1))?;
     let object = assert_object(execute_expression(&args[0], context)?)?;
 
-    let values: Vec<RuntimeValue> = object.values().cloned().collect();
+    // Sort keys to match JavaScript behavior
+    let mut sorted_keys: Vec<String> = object.keys().cloned().collect();
+    sorted_keys.sort();
+
+    let values: Vec<RuntimeValue> = sorted_keys.iter()
+        .map(|key| object[key].clone())
+        .collect();
     Ok(RuntimeValue::Array(values))
 }
 
@@ -476,8 +486,13 @@ pub fn entries(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     validate_args("entries", args, 1, Some(1))?;
     let object = assert_object(execute_expression(&args[0], context)?)?;
 
+    // Sort keys to match JavaScript behavior
+    let mut sorted_keys: Vec<String> = object.keys().cloned().collect();
+    sorted_keys.sort();
+
     let mut result = Vec::new();
-    for (key, value) in object {
+    for key in sorted_keys {
+        let value = object[&key].clone();
         let entry = RuntimeValue::Array(vec![
             RuntimeValue::String(key),
             value
@@ -625,13 +640,34 @@ pub fn filtervalues(args: &[Expression], context: &mut ExecutionContext) -> Resu
 pub fn split(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("split", args, 2, Some(2))?;
 
-    let delimiter = assert_string(execute_expression(&args[0], context)?)?;
+    let delimiter_value = execute_expression(&args[0], context)?;
     let string = assert_string(execute_expression(&args[1], context)?)?;
 
-    let parts: Vec<RuntimeValue> = string
-        .split(&delimiter)
-        .map(|s| RuntimeValue::String(s.to_string()))
-        .collect();
+    let parts: Vec<RuntimeValue> = match delimiter_value {
+        RuntimeValue::String(delimiter) => {
+            if delimiter.is_empty() {
+                // Special case: empty delimiter splits into individual characters
+                string.chars().map(|c| RuntimeValue::String(c.to_string())).collect()
+            } else {
+                // Normal splitting
+                string
+                    .split(&delimiter)
+                    .map(|s| RuntimeValue::String(s.to_string()))
+                    .collect()
+            }
+        }
+        RuntimeValue::Regex(regex) => {
+            // Split by regex
+            let compiled_regex = regex.as_regex();
+            compiled_regex
+                .split(&string)
+                .map(|s| RuntimeValue::String(s.to_string()))
+                .collect()
+        }
+        _ => {
+            return Err(ExecutionError::TypeMismatch(format!("Expected string or regex for split delimiter, got {}", delimiter_value.get_type())));
+        }
+    };
 
     Ok(RuntimeValue::Array(parts))
 }
@@ -664,8 +700,14 @@ pub fn replace(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
 
     match pattern {
         RuntimeValue::String(pattern_str) => {
-            // Simple string replacement - replace first occurrence
-            let result = target.replace(&pattern_str, &replacement);
+            // Simple string replacement - replace first occurrence only
+            let result = if let Some(pos) = target.find(&pattern_str) {
+                let mut result = target.clone();
+                result.replace_range(pos..pos + pattern_str.len(), &replacement);
+                result
+            } else {
+                target.clone()
+            };
             Ok(RuntimeValue::String(result))
         }
         RuntimeValue::Regex(regex_obj) => {
@@ -693,8 +735,11 @@ pub fn match_function(args: &[Expression], context: &mut ExecutionContext) -> Re
 
     let matches = match pattern {
         RuntimeValue::String(pattern_str) => {
-            // Simple string matching - check if pattern is contained in target
-            target.contains(&pattern_str)
+            // String arguments should be treated as regexes
+            match regex::Regex::new(&pattern_str) {
+                Ok(regex) => regex.is_match(&target),
+                Err(_) => return Err(ExecutionError::Custom(format!("Invalid regex pattern: {}", pattern_str)))
+            }
         }
         RuntimeValue::Regex(regex_obj) => {
             // Regex matching
@@ -731,7 +776,13 @@ pub fn regex(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
 pub fn string(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("string", args, 1, Some(1))?;
     let value = execute_expression(&args[0], context)?;
-    Ok(RuntimeValue::String(value.to_string()))
+
+    match value {
+        RuntimeValue::String(s) => Ok(RuntimeValue::String(s)),
+        RuntimeValue::Function(_) => Err(ExecutionError::TypeMismatch("Cannot cast function to string".to_string())),
+        RuntimeValue::Regex(_) => Err(ExecutionError::TypeMismatch("Cannot cast regex to string".to_string())),
+        _ => Ok(RuntimeValue::String(value.to_string())),
+    }
 }
 
 /// Float function - converts a value to a number
