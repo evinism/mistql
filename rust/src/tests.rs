@@ -360,13 +360,21 @@ mod test_runner {
         // Test $ variable access
         let data = json!({"filter": "cat", "nums": [1, 2, 3]});
 
-        // Test if $ variable exists at all
-        let result = query("$", &data).expect("$ variable should exist");
-        println!("$ variable result: {}", result);
+        // Test $.@ access (should return the root data)
+        let result = query("$.@", &data).expect("$.@ should work");
+        assert_eq!(result, data);
 
-        // Test $.filter access
-        let result = query("$.filter", &data).expect("$.filter should work");
-        println!("$.filter result: {}", result);
+        // Test accessing data fields through $ variable
+        let result = query("$.@.filter", &data).expect("$.@.filter should work");
+        assert_eq!(result, json!("cat"));
+
+        // Test that we can use builtin functions from $ variable
+        let result = query("$.count $.@.nums", &data).expect("$.count $.@.nums should work");
+        assert_eq!(result, json!(3));
+
+        // Test that we can access builtin functions through $ variable
+        let result = query("$.sum $.@.nums", &data).expect("$.sum $.@.nums should work");
+        assert_eq!(result, json!(6));
     }
 
     #[test]

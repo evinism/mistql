@@ -72,7 +72,7 @@ pub enum Expression {
 }
 
 /// Unary operators in MistQL
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOperator {
     /// Logical NOT: `!`
     Not,
@@ -81,7 +81,7 @@ pub enum UnaryOperator {
 }
 
 /// Binary operators in MistQL
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinaryOperator {
     /// Logical OR: `||`
     Or,

@@ -11,7 +11,7 @@ This is the Rust implementation of MistQL, a miniature query language for perfor
 - ✅ **Test Framework**: 325+ tests running from shared test suite
 - ✅ **Basic Query Function**: Main API working
 - ⚠️ **Builtin Functions**: Most functions need implementation (see TODO list below)
-- ⚠️ **Test Pass Rate**: ~90% (expected during development)
+- ⚠️ **Test Match**: ~7/514 assertions in the test suite are failing.
 
 ## Development Roadmap
 
@@ -37,7 +37,7 @@ This is the Rust implementation of MistQL, a miniature query language for perfor
   - [x] **Dot Access and Indexing** - Implement dot access and indexing operations
   - [x] **Comprehensive Tests** - Create comprehensive tests for executor functionality
   - [x] **Contextualized Expressions** - Implement contextualized expressions (@ variable handling)
-- [ ] **Test execution engine** - Test the execution engine (match tests in Python implementation)
+- [x] **Test execution engine** - Test the execution engine (match tests in Python implementation)
 
 ### Phase 2: Feature Implementation (Tasks 8-12)
 
