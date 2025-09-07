@@ -8,10 +8,12 @@ use std::collections::HashMap;
 use std::fmt;
 use regex::Regex;
 
+/// TODO: What's this for?
 #[cfg(test)]
 use serde_json::json;
 
-/// Custom regex wrapper that implements Serialize/Deserialize
+/// Custom regex wrapper that implements Serialize/Deserialize/
+/// TODO: Do we really need this?
 #[derive(Debug, Clone)]
 pub struct MistQLRegex {
     pattern: String,
@@ -29,10 +31,8 @@ impl Eq for MistQLRegex {}
 
 impl MistQLRegex {
     pub fn new(pattern: &str, flags: &str) -> Result<Self, regex::Error> {
-        // Build the regex with flags
         let mut regex_builder = regex::RegexBuilder::new(pattern);
 
-        // Apply flags
         for flag in flags.chars() {
             match flag {
                 'i' => { regex_builder.case_insensitive(true); }
@@ -168,12 +168,11 @@ pub enum RuntimeValue {
     String(String),
     Object(HashMap<String, RuntimeValue>),
     Array(Vec<RuntimeValue>),
-    Function(String), // TODO: Implement proper function type
+    Function(String),
     Regex(MistQLRegex),
 }
 
 impl RuntimeValue {
-    /// Get the type of this runtime value
     pub fn get_type(&self) -> RuntimeValueType {
         match self {
             RuntimeValue::Null => RuntimeValueType::Null,
@@ -187,7 +186,6 @@ impl RuntimeValue {
         }
     }
 
-    /// Check if this value is truthy according to MistQL rules
     pub fn truthy(&self) -> bool {
         match self {
             RuntimeValue::Null => false,
@@ -201,7 +199,6 @@ impl RuntimeValue {
         }
     }
 
-    /// Check if this value is comparable (can be used in <, >, <=, >= operations)
     pub fn comparable(&self) -> bool {
         matches!(self, RuntimeValue::Boolean(_) | RuntimeValue::Number(_) | RuntimeValue::String(_))
     }
