@@ -275,26 +275,23 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
         // Push data as new context
         context.push_context(data.clone());
 
-        // If the stage is a function call or function reference, append data as the last argument
+        // Handle different types of pipeline stages
         let result = match stage {
             Expression::FnExpression { function, arguments } => {
-                // Create new arguments with data appended as the last argument
+                // For function calls, append data as the last argument
                 let mut new_args = arguments.clone();
                 new_args.push(Expression::ValueExpression { value: data.clone() });
 
-                // Create new function call expression
                 let new_call = Expression::FnExpression {
                     function: function.clone(),
                     arguments: new_args,
                 };
-
                 execute_expression(&new_call, context)?
             }
             Expression::RefExpression { name, absolute } => {
-                // Check if this is a function reference
+                // For function references, create a function call with data as argument
                 let func_value = context.find_variable(name, *absolute)?;
                 if matches!(func_value, RuntimeValue::Function(_)) {
-                    // Convert function reference to function call with data as argument
                     let new_call = Expression::FnExpression {
                         function: Box::new(stage.clone()),
                         arguments: vec![Expression::ValueExpression { value: data.clone() }],
@@ -305,9 +302,34 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
                     execute_expression(stage, context)?
                 }
             }
+            Expression::DotAccessExpression { object: _, field: _ } => {
+                // For dot access, check if it resolves to a function
+                let func_value = execute_expression(stage, context)?;
+                if matches!(func_value, RuntimeValue::Function(_)) {
+                    let new_call = Expression::FnExpression {
+                        function: Box::new(Expression::ValueExpression { value: func_value }),
+                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                    };
+                    execute_expression(&new_call, context)?
+                } else {
+                    // For non-function results, return as-is
+                    func_value
+                }
+            }
             _ => {
-                // For non-function expressions, execute normally
-                execute_expression(stage, context)?
+                // For other expressions, execute and check if result is a function
+                let stage_result = execute_expression(stage, context)?;
+                if matches!(stage_result, RuntimeValue::Function(_)) {
+                    // If the result is a function, execute it with data as argument
+                    let new_call = Expression::FnExpression {
+                        function: Box::new(Expression::ValueExpression { value: stage_result }),
+                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                    };
+                    execute_expression(&new_call, context)?
+                } else {
+                    // For non-function results, return as-is
+                    stage_result
+                }
             }
         };
 
@@ -362,12 +384,19 @@ fn execute_binary(operator: BinaryOperator, left: &Expression, right: &Expressio
 fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let obj_value = execute_expression(object, context)?;
 
-    // Validate that the target is an object
+    // Handle different types - dot access should fail for non-object types
     match obj_value {
         RuntimeValue::Object(obj) => {
             Ok(obj.get(field).cloned().unwrap_or(RuntimeValue::Null))
         }
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot access property '{}' on {}", field, obj_value.get_type())))
+        RuntimeValue::Null => {
+            // Null coalescing: accessing properties on null returns null
+            Ok(RuntimeValue::Null)
+        }
+        _ => {
+            // For other types, dot access should fail
+            Err(ExecutionError::TypeMismatch(format!("Cannot access property '{}' on type {}", field, obj_value.get_type())))
+        }
     }
 }
 
@@ -408,6 +437,10 @@ fn execute_indexing(target: &Expression, index: &Expression, context: &mut Execu
             } else {
                 Ok(s.chars().nth(idx as usize).map(|c| RuntimeValue::String(c.to_string())).unwrap_or(RuntimeValue::Null))
             }
+        }
+        (RuntimeValue::Object(obj), RuntimeValue::String(key)) => {
+            // Object indexing with string key
+            Ok(obj.get(key).cloned().unwrap_or(RuntimeValue::Null))
         }
         _ => Err(ExecutionError::TypeMismatch(format!("Cannot index {:?} with {:?}", target_value.get_type(), index_value.get_type())))
     }
