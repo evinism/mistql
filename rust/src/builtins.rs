@@ -951,7 +951,7 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
     match operand {
         RuntimeValue::Array(ref arr) => {
             let index_num = assert_number(index)?;
-            if index_num % 1.0 != 0.0 {
+            if index_num.fract() != 0.0 {
                 return Err(ExecutionError::Custom("index: Non-integers cannot be used on arrays".to_string()));
             }
             let index_num = index_num as i64;
@@ -970,10 +970,11 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
             }
         }
         RuntimeValue::String(ref s) => {
-            let index_num = assert_number(index)? as i64;
-            if index_num % 1 != 0 {
+            let index_num = assert_number(index)?;
+            if index_num.fract() != 0.0 {
                 return Err(ExecutionError::Custom("index: Non-integers cannot be used on strings".to_string()));
             }
+            let index_num = index_num as i64;
 
             let len = s.len() as i64;
             let actual_index = if index_num < 0 {
@@ -1011,20 +1012,27 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
     match operand {
         RuntimeValue::Array(ref arr) => {
             let start_num = if matches!(start, RuntimeValue::Null) {
-                0
+                0.0
             } else {
-                assert_number(start)? as i64
+                let num = assert_number(start)?;
+                if num.fract() != 0.0 {
+                    return Err(ExecutionError::Custom("index: Non-integers cannot be used on arrays".to_string()));
+                }
+                num
             };
 
             let end_num = if matches!(end, RuntimeValue::Null) {
-                arr.len() as i64
+                arr.len() as f64
             } else {
-                assert_number(end)? as i64
+                let num = assert_number(end)?;
+                if num.fract() != 0.0 {
+                    return Err(ExecutionError::Custom("index: Non-integers cannot be used on arrays".to_string()));
+                }
+                num
             };
 
-            if start_num % 1 != 0 || end_num % 1 != 0 {
-                return Err(ExecutionError::Custom("index: Non-integers cannot be used on arrays".to_string()));
-            }
+            let start_num = start_num as i64;
+            let end_num = end_num as i64;
 
             let len = arr.len() as i64;
             let actual_start = if start_num < 0 { len + start_num } else { start_num };
@@ -1041,20 +1049,27 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
         }
         RuntimeValue::String(ref s) => {
             let start_num = if matches!(start, RuntimeValue::Null) {
-                0
+                0.0
             } else {
-                assert_number(start)? as i64
+                let num = assert_number(start)?;
+                if num.fract() != 0.0 {
+                    return Err(ExecutionError::Custom("index: Non-integers cannot be used on strings".to_string()));
+                }
+                num
             };
 
             let end_num = if matches!(end, RuntimeValue::Null) {
-                s.len() as i64
+                s.len() as f64
             } else {
-                assert_number(end)? as i64
+                let num = assert_number(end)?;
+                if num.fract() != 0.0 {
+                    return Err(ExecutionError::Custom("index: Non-integers cannot be used on strings".to_string()));
+                }
+                num
             };
 
-            if start_num % 1 != 0 || end_num % 1 != 0 {
-                return Err(ExecutionError::Custom("index: Non-integers cannot be used on strings".to_string()));
-            }
+            let start_num = start_num as i64;
+            let end_num = end_num as i64;
 
             let len = s.len() as i64;
             let actual_start = if start_num < 0 { len + start_num } else { start_num };
