@@ -302,6 +302,31 @@ impl RuntimeValue {
         }
     }
 
+    /// Convert to serde_json::Value, always treating numbers as floats
+    pub fn to_serde_value_as_float(&self) -> serde_json::Value {
+        match self {
+            RuntimeValue::Null => serde_json::Value::Null,
+            RuntimeValue::Boolean(b) => serde_json::Value::Bool(*b),
+            RuntimeValue::Number(n) => {
+                // Always serialize as float
+                serde_json::Value::Number(serde_json::Number::from_f64(*n).unwrap_or(serde_json::Number::from(0)))
+            }
+            RuntimeValue::String(s) => serde_json::Value::String(s.clone()),
+            RuntimeValue::Array(arr) => {
+                serde_json::Value::Array(arr.iter().map(|v| v.to_serde_value_as_float()).collect())
+            }
+            RuntimeValue::Object(obj) => {
+                let mut map = serde_json::Map::new();
+                for (key, value) in obj {
+                    map.insert(key.clone(), value.to_serde_value_as_float());
+                }
+                serde_json::Value::Object(map)
+            }
+            RuntimeValue::Function(_) => serde_json::Value::String("[function]".to_string()),
+            RuntimeValue::Regex(_) => serde_json::Value::String("[regex]".to_string()),
+        }
+    }
+
     /// Compare two values for ordering (<, >, <=, >=)
     pub fn compare(&self, other: &Self) -> Result<std::cmp::Ordering, String> {
         if self.get_type() != other.get_type() {

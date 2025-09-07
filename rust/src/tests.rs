@@ -5,6 +5,45 @@
 
 use serde_json::Value;
 
+/// Compare two JSON values with special handling for numeric equality
+fn values_equal(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        // For numbers, compare the numeric values rather than the JSON representation
+        (Value::Number(n1), Value::Number(n2)) => {
+            if let (Some(f1), Some(f2)) = (n1.as_f64(), n2.as_f64()) {
+                f1 == f2
+            } else {
+                a == b  // Fallback to exact comparison
+            }
+        }
+        // For arrays, compare each element
+        (Value::Array(arr1), Value::Array(arr2)) => {
+            if arr1.len() != arr2.len() {
+                return false;
+            }
+            arr1.iter().zip(arr2.iter()).all(|(a, b)| values_equal(a, b))
+        }
+        // For objects, compare each key-value pair
+        (Value::Object(obj1), Value::Object(obj2)) => {
+            if obj1.len() != obj2.len() {
+                return false;
+            }
+            for (key, value1) in obj1 {
+                if let Some(value2) = obj2.get(key) {
+                    if !values_equal(value1, value2) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+            true
+        }
+        // For other types, use exact comparison
+        _ => a == b,
+    }
+}
+
 /// Test case structure matching the shared testdata.json format
 #[derive(Debug, Clone)]
 pub struct TestCase {
@@ -111,7 +150,12 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<bool, String> {
         match query(&assertion.query, &assertion.data) {
             Ok(result) => {
                 if let Some(expected) = &assertion.expected {
-                    Ok(result == *expected)
+                    let matches = values_equal(&result, expected);
+                    if !matches {
+                        println!("FAIL: {} | Query: {} | Data: {:?} | Expected: {:?} | Got: {:?}",
+                                assertion.query, assertion.query, assertion.data, expected, result);
+                    }
+                    Ok(matches)
                 } else {
                     Ok(true) // No expected value specified, just check it doesn't error
                 }
