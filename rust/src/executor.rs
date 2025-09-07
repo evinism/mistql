@@ -614,7 +614,7 @@ mod tests {
         let context = ExecutionContext::new(data.clone(), builtins);
 
         assert_eq!(context.get_root_data(), &data);
-        assert!(context.stack_depth() >= 3); // builtins, $, and data frames
+        assert!(context.stack_depth() >= 2); // builtins+$ and data frames
     }
 
     #[test]

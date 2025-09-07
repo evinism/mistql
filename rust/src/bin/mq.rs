@@ -3,7 +3,6 @@
 //! This binary provides a command-line interface for executing MistQL queries,
 //! similar to the JavaScript and Python implementations.
 
-use std::io::{self, Read};
 use std::process;
 
 fn main() {
