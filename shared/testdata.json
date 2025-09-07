@@ -666,6 +666,25 @@
                   "expected": "baz zoop bloop"
                 }
               ]
+            },
+            {
+              "it": "appends the context variable of the piped value into that segment of the pipe expression, but no further",
+              "assertions": [
+                {
+                  "query": "foo | values | values",
+                  "data": {
+                    "foo": {"values": {}}
+                  },
+                  "throws": true
+                },
+                {
+                  "query": "foo | $.values | values",
+                  "data": {
+                    "foo": {"values": {}}
+                  },
+                  "expected": []
+                }
+              ]
             }
           ]
         },
