@@ -212,7 +212,6 @@ fn execute_function_call(function: &Expression, arguments: &[Expression], contex
 
     match func_value {
         RuntimeValue::Function(func_name) => {
-            // Execute the builtin function
             execute_builtin(&func_name, arguments, context)
         }
         _ => Err(ExecutionError::NotCallable(func_value.get_type().to_string()))
@@ -224,18 +223,15 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
         return Err(ExecutionError::Custom("Empty pipeline".to_string()));
     }
 
-    // Execute first stage
+    // Execute first stage separately.
     let mut data = execute_expression(&stages[0], context)?;
 
-    // Process remaining stages
     for stage in &stages[1..] {
-        // Push data as new context
         context.push_context(data.clone());
 
-        // Handle different types of pipeline stages
         let result = match stage {
             Expression::FnExpression { function, arguments } => {
-                // For function calls, append data as the last argument
+                // For function calls, append data as the last argument.
                 let mut new_args = arguments.clone();
                 new_args.push(Expression::ValueExpression { value: data.clone() });
 
@@ -246,7 +242,7 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
                 execute_expression(&new_call, context)?
             }
             Expression::RefExpression { name, absolute } => {
-                // For function references, create a function call with data as argument
+                // For function references, create a function call with data as argument.
                 let func_value = context.find_variable(name, *absolute)?;
                 if matches!(func_value, RuntimeValue::Function(_)) {
                     let new_call = Expression::FnExpression {
@@ -255,12 +251,12 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
                     };
                     execute_expression(&new_call, context)?
                 } else {
-                    // For non-function references, execute normally
+                    // For non-function references, execute normally.
                     execute_expression(stage, context)?
                 }
             }
             Expression::DotAccessExpression { object: _, field: _ } => {
-                // For dot access, check if it resolves to a function
+                // For dot access, check if it resolves to a function.
                 let func_value = execute_expression(stage, context)?;
                 if matches!(func_value, RuntimeValue::Function(_)) {
                     let new_call = Expression::FnExpression {
@@ -269,37 +265,34 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
                     };
                     execute_expression(&new_call, context)?
                 } else {
-                    // For non-function results, return as-is
+                    // For non-function results, return as-is.
                     func_value
                 }
             }
             _ => {
-                // For other expressions, execute and check if result is a function
+                // For other expressions, execute and check if result is a function.
                 let stage_result = execute_expression(stage, context)?;
                 if matches!(stage_result, RuntimeValue::Function(_)) {
-                    // If the result is a function, execute it with data as argument
+                    // If the result is a function, execute it with data as argument.
                     let new_call = Expression::FnExpression {
                         function: Box::new(Expression::ValueExpression { value: stage_result }),
                         arguments: vec![Expression::ValueExpression { value: data.clone() }],
                     };
                     execute_expression(&new_call, context)?
                 } else {
-                    // For non-function results, return as-is
+                    // For non-function results, return as-is.
                     stage_result
                 }
             }
         };
 
-        // Pop context
         context.pop_context()?;
-
         data = result;
     }
 
     Ok(data)
 }
 
-/// Execute a unary expression
 fn execute_unary(operator: UnaryOperator, operand: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let value = execute_expression(operand, context)?;
 
@@ -314,7 +307,6 @@ fn execute_unary(operator: UnaryOperator, operand: &Expression, context: &mut Ex
     }
 }
 
-/// Execute a binary expression
 fn execute_binary(operator: BinaryOperator, left: &Expression, right: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let left_val = execute_expression(left, context)?;
     let right_val = execute_expression(right, context)?;
@@ -337,35 +329,30 @@ fn execute_binary(operator: BinaryOperator, left: &Expression, right: &Expressio
     }
 }
 
-/// Execute dot access expression
 fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let obj_value = execute_expression(object, context)?;
 
-    // Handle different types - dot access should fail for non-object types
     match obj_value {
         RuntimeValue::Object(obj) => {
             Ok(obj.get(field).cloned().unwrap_or(RuntimeValue::Null))
         }
         RuntimeValue::Null => {
-            // Null coalescing: accessing properties on null returns null
+            // Null coalescing: property access on null returns null.
             Ok(RuntimeValue::Null)
         }
         _ => {
-            // For other types, dot access should fail
             Err(ExecutionError::TypeMismatch(format!("Cannot access property '{}' on type {}", field, obj_value.get_type())))
         }
     }
 }
 
-/// Execute indexing expression
 fn execute_indexing(target: &Expression, index: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let target_value = execute_expression(target, context)?;
 
-    // Check if this is a slicing operation (index is a function call to "index" with two arguments)
     if let Expression::FnExpression { function, arguments } = index {
         if let Expression::RefExpression { name, .. } = function.as_ref() {
             if name == "index" && arguments.len() == 2 {
-                // This is a slicing operation: [start:end]
+                // This is a slicing operation: [start:end] (index is a function call to "index" with two arguments).
                 let start_value = execute_expression(&arguments[0], context)?;
                 let end_value = execute_expression(&arguments[1], context)?;
                 return execute_slicing(&target_value, &start_value, &end_value);
@@ -373,7 +360,7 @@ fn execute_indexing(target: &Expression, index: &Expression, context: &mut Execu
         }
     }
 
-    // Regular single index access
+    // Regular single index access.
     let index_value = execute_expression(index, context)?;
 
     match (&target_value, &index_value) {
@@ -396,14 +383,13 @@ fn execute_indexing(target: &Expression, index: &Expression, context: &mut Execu
             }
         }
         (RuntimeValue::Object(obj), RuntimeValue::String(key)) => {
-            // Object indexing with string key
             Ok(obj.get(key).cloned().unwrap_or(RuntimeValue::Null))
         }
         _ => Err(ExecutionError::TypeMismatch(format!("Cannot index {:?} with {:?}", target_value.get_type(), index_value.get_type())))
     }
 }
 
-/// Execute slicing operation: target[start:end]
+/// Execute slicing operation: target[start:end].
 fn execute_slicing(target: &RuntimeValue, start: &RuntimeValue, end: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
     match target {
         RuntimeValue::Array(arr) => {
@@ -468,7 +454,6 @@ fn execute_slicing(target: &RuntimeValue, start: &RuntimeValue, end: &RuntimeVal
     }
 }
 
-// Binary operator implementations
 fn execute_plus(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
     match (left, right) {
         (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a + b)),
