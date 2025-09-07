@@ -152,8 +152,8 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<bool, String> {
                 if let Some(expected) = &assertion.expected {
                     let matches = values_equal(&result, expected);
                     if !matches {
-                        println!("FAIL: {} | Query: {} | Data: {:?} | Expected: {:?} | Got: {:?}",
-                                assertion.query, assertion.query, assertion.data, expected, result);
+                        println!("FAIL: Assertion failed | Query: {} | Data: {:?} | Expected: {:?} | Got: {:?}",
+                                assertion.query, assertion.data, expected, result);
                     }
                     Ok(matches)
                 } else {
