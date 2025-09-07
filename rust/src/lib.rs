@@ -11,19 +11,33 @@ pub mod parser;
 pub mod executor;
 pub mod builtins;
 pub mod instance;
-pub mod errors;
 
-// Test modules
+// Shared test modules.
 #[cfg(test)]
 mod tests;
 
-// Test modules are integrated into their respective source files
+// MistQL error types.
+#[derive(Debug, thiserror::Error)]
+pub enum MistQLError {
+    #[error("Parser error: {0}")]
+    Parser(String),
+
+    #[error("Runtime error: {0}")]
+    Runtime(String),
+
+    #[error("Type error: {0}")]
+    Type(String),
+
+    #[error("Reference error: {0}")]
+    Reference(String),
+}
+
 
 /// Validate that a RuntimeValue can be output (no functions or regexes)
-fn validate_output_value(value: &RuntimeValue) -> Result<(), errors::MistQLError> {
+fn validate_output_value(value: &RuntimeValue) -> Result<(), MistQLError> {
     match value {
-        RuntimeValue::Function(_) => Err(errors::MistQLError::Runtime("Cannot output function".to_string())),
-        RuntimeValue::Regex(_) => Err(errors::MistQLError::Runtime("Cannot output regex".to_string())),
+        RuntimeValue::Function(_) => Err(MistQLError::Runtime("Cannot output function".to_string())),
+        RuntimeValue::Regex(_) => Err(MistQLError::Runtime("Cannot output regex".to_string())),
         RuntimeValue::Array(arr) => {
             // Validate all array elements
             for item in arr {
@@ -52,14 +66,14 @@ fn validate_output_value(value: &RuntimeValue) -> Result<(), errors::MistQLError
 /// let data = serde_json::json!([{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]);
 /// let result = query("filter age > 26 | map name", &data).unwrap();
 /// ```
-pub fn query(query_str: &str, data: &serde_json::Value) -> Result<serde_json::Value, errors::MistQLError> {
+pub fn query(query_str: &str, data: &serde_json::Value) -> Result<serde_json::Value, MistQLError> {
     use crate::parser::Parser;
     use crate::executor::{execute_expression, ExecutionContext};
     use crate::types::RuntimeValue;
 
     // Parse the query string into an expression
     let expr = Parser::parse(query_str)
-        .map_err(|e| errors::MistQLError::Parser(e))?;
+        .map_err(|e| MistQLError::Parser(e))?;
 
     // Convert serde_json::Value to RuntimeValue
     let runtime_data = RuntimeValue::from_serde_value(data);
@@ -69,7 +83,7 @@ pub fn query(query_str: &str, data: &serde_json::Value) -> Result<serde_json::Va
 
     // Execute the expression
     let result = execute_expression(&expr, &mut context)
-        .map_err(|e| errors::MistQLError::Runtime(e.to_string()))?;
+        .map_err(|e| MistQLError::Runtime(e.to_string()))?;
 
     // Validate that the result can be output
     validate_output_value(&result)?;
