@@ -361,7 +361,14 @@ fn execute_binary(operator: BinaryOperator, left: &Expression, right: &Expressio
 /// Execute dot access expression
 fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let obj_value = execute_expression(object, context)?;
-    Ok(obj_value.access(field))
+
+    // Validate that the target is an object
+    match obj_value {
+        RuntimeValue::Object(obj) => {
+            Ok(obj.get(field).cloned().unwrap_or(RuntimeValue::Null))
+        }
+        _ => Err(ExecutionError::TypeMismatch(format!("Cannot access property '{}' on {}", field, obj_value.get_type())))
+    }
 }
 
 /// Execute indexing expression

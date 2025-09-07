@@ -215,7 +215,7 @@ pub fn flatten(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     for item in array {
         match item {
             RuntimeValue::Array(nested) => result.extend(nested),
-            other => result.push(other),
+            _ => return Err(ExecutionError::TypeMismatch(format!("flatten: all elements must be arrays, got {}", item.get_type())))
         }
     }
 
@@ -236,11 +236,7 @@ pub fn sum(args: &[Expression], context: &mut ExecutionContext) -> Result<Runtim
     for item in array {
         let num = match item {
             RuntimeValue::Number(n) => n,
-            RuntimeValue::String(s) => {
-                s.trim().parse::<f64>()
-                    .map_err(|_| ExecutionError::TypeMismatch(format!("Expected number, got string")))?
-            }
-            _ => return Err(ExecutionError::TypeMismatch(format!("Expected number, got {}", item.get_type())))
+            _ => return Err(ExecutionError::TypeMismatch(format!("sum: all elements must be numbers, got {}", item.get_type())))
         };
         total += num;
     }
@@ -253,8 +249,16 @@ pub fn sort(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
     validate_args("sort", args, 1, Some(1))?;
     let mut array = assert_array(execute_expression(&args[0], context)?)?;
 
-    // Check that all elements are comparable
+    if array.is_empty() {
+        return Ok(RuntimeValue::Array(array));
+    }
+
+    // Check that all elements are of the same type and comparable
+    let first_type = array[0].get_type();
     for item in &array {
+        if item.get_type() != first_type {
+            return Err(ExecutionError::TypeMismatch(format!("sort: cannot sort non-homogeneous arrays (found {} and {})", first_type, item.get_type())));
+        }
         if !item.comparable() {
             return Err(ExecutionError::Custom("sort: Cannot sort non-comparable values".to_string()));
         }
@@ -748,6 +752,20 @@ pub fn range(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
         return Err(ExecutionError::Custom("range takes 1-3 arguments".to_string()));
     }
 
+    // Helper function to validate integer arguments
+    let validate_integer = |value: RuntimeValue, arg_name: &str| -> Result<i64, ExecutionError> {
+        match value {
+            RuntimeValue::Number(n) => {
+                if n.fract() == 0.0 {
+                    Ok(n as i64)
+                } else {
+                    Err(ExecutionError::TypeMismatch(format!("range: {} must be an integer, got {}", arg_name, n)))
+                }
+            }
+            _ => Err(ExecutionError::TypeMismatch(format!("range: {} must be a number, got {}", arg_name, value.get_type())))
+        }
+    };
+
     let start: i64;
     let stop: i64;
     let step: i64;
@@ -755,21 +773,35 @@ pub fn range(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
     if args.len() == 1 {
         // range(stop) -> start=0, step=1
         start = 0;
-        stop = assert_number(execute_expression(&args[0], context)?)? as i64;
+        stop = validate_integer(execute_expression(&args[0], context)?, "stop")?;
         step = 1;
     } else if args.len() == 2 {
         // range(start, stop) -> step=1
-        start = assert_number(execute_expression(&args[0], context)?)? as i64;
-        stop = assert_number(execute_expression(&args[1], context)?)? as i64;
+        start = validate_integer(execute_expression(&args[0], context)?, "start")?;
+        stop = validate_integer(execute_expression(&args[1], context)?, "stop")?;
         step = 1;
     } else {
         // range(start, stop, step)
-        start = assert_number(execute_expression(&args[0], context)?)? as i64;
-        stop = assert_number(execute_expression(&args[1], context)?)? as i64;
-        step = assert_number(execute_expression(&args[2], context)?)? as i64;
+        start = validate_integer(execute_expression(&args[0], context)?, "start")?;
+        stop = validate_integer(execute_expression(&args[1], context)?, "stop")?;
+        step = validate_integer(execute_expression(&args[2], context)?, "step")?;
     }
 
-    // Validate that all numbers are integers
+    // Handle negative step sizes (backward ranges)
+    if step < 0 {
+        if start <= stop {
+            return Ok(RuntimeValue::Array(vec![])); // Empty range
+        }
+        let mut result = Vec::new();
+        let mut current = start;
+        while current > stop {
+            result.push(RuntimeValue::Number(current as f64));
+            current += step;
+        }
+        return Ok(RuntimeValue::Array(result));
+    }
+
+    // Validate positive step
     if step <= 0 {
         return Err(ExecutionError::Custom("range: step must be greater than 0".to_string()));
     }
