@@ -79,23 +79,23 @@ impl ExecutionContext {
 
     /// Build the initial execution stack
     fn build_initial_stack(&mut self, data: RuntimeValue) {
-        // Frame 0: Built-in functions
+        // Frame 0: Built-in functions and $ variable
         let mut functions_frame = HashMap::new();
         for (key, value) in &self.builtins {
             functions_frame.insert(key.clone(), value.clone());
         }
-        self.stack.push(functions_frame);
 
-        // Frame 1: $ variable containing builtins and root data
+        // Create the $ variable containing builtins and root data
         let mut dollar_frame = HashMap::new();
         dollar_frame.insert("@".to_string(), data.clone());
         for (key, value) in &self.builtins {
             dollar_frame.insert(key.clone(), value.clone());
         }
-        dollar_frame.insert("$".to_string(), RuntimeValue::Object(dollar_frame.clone()));
-        self.stack.push(dollar_frame);
+        functions_frame.insert("$".to_string(), RuntimeValue::Object(dollar_frame));
 
-        // Frame 2: Data context (object keys become variables)
+        self.stack.push(functions_frame);
+
+        // Frame 1: Data context (object keys become variables)
         self.push_context(data);
     }
 
@@ -121,8 +121,8 @@ impl ExecutionContext {
 
     /// Pop the top context frame from the stack
     pub fn pop_context(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.len() <= 3 {
-            // Don't pop the initial frames (builtins, $, and data)
+        if self.stack.len() <= 2 {
+            // Don't pop the initial frames (builtins+$, and data)
             return Err(ExecutionError::Custom("Cannot pop initial stack frames".to_string()));
         }
         self.stack.pop();
@@ -275,7 +275,7 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
         // Push data as new context
         context.push_context(data.clone());
 
-        // If the stage is a function call, append data as the last argument
+        // If the stage is a function call or function reference, append data as the last argument
         let result = match stage {
             Expression::FnExpression { function, arguments } => {
                 // Create new arguments with data appended as the last argument
@@ -289,6 +289,21 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
                 };
 
                 execute_expression(&new_call, context)?
+            }
+            Expression::RefExpression { name, absolute } => {
+                // Check if this is a function reference
+                let func_value = context.find_variable(name, *absolute)?;
+                if matches!(func_value, RuntimeValue::Function(_)) {
+                    // Convert function reference to function call with data as argument
+                    let new_call = Expression::FnExpression {
+                        function: Box::new(stage.clone()),
+                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                    };
+                    execute_expression(&new_call, context)?
+                } else {
+                    // For non-function references, execute normally
+                    execute_expression(stage, context)?
+                }
             }
             _ => {
                 // For non-function expressions, execute normally
@@ -352,6 +367,20 @@ fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionC
 /// Execute indexing expression
 fn execute_indexing(target: &Expression, index: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let target_value = execute_expression(target, context)?;
+
+    // Check if this is a slicing operation (index is a function call to "index" with two arguments)
+    if let Expression::FnExpression { function, arguments } = index {
+        if let Expression::RefExpression { name, .. } = function.as_ref() {
+            if name == "index" && arguments.len() == 2 {
+                // This is a slicing operation: [start:end]
+                let start_value = execute_expression(&arguments[0], context)?;
+                let end_value = execute_expression(&arguments[1], context)?;
+                return execute_slicing(&target_value, &start_value, &end_value);
+            }
+        }
+    }
+
+    // Regular single index access
     let index_value = execute_expression(index, context)?;
 
     match (&target_value, &index_value) {
@@ -374,6 +403,71 @@ fn execute_indexing(target: &Expression, index: &Expression, context: &mut Execu
             }
         }
         _ => Err(ExecutionError::TypeMismatch(format!("Cannot index {:?} with {:?}", target_value.get_type(), index_value.get_type())))
+    }
+}
+
+/// Execute slicing operation: target[start:end]
+fn execute_slicing(target: &RuntimeValue, start: &RuntimeValue, end: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
+    match target {
+        RuntimeValue::Array(arr) => {
+            let start_idx = match start {
+                RuntimeValue::Number(n) => *n as isize,
+                RuntimeValue::Null => 0,
+                _ => return Err(ExecutionError::TypeMismatch(format!("Slice start must be number or null, got {:?}", start.get_type())))
+            };
+
+            let end_idx = match end {
+                RuntimeValue::Number(n) => *n as isize,
+                RuntimeValue::Null => arr.len() as isize,
+                _ => return Err(ExecutionError::TypeMismatch(format!("Slice end must be number or null, got {:?}", end.get_type())))
+            };
+
+            let len = arr.len() as isize;
+            let start_idx = if start_idx < 0 { len + start_idx } else { start_idx };
+            let end_idx = if end_idx < 0 { len + end_idx } else { end_idx };
+
+            let start_idx = start_idx.max(0).min(len) as usize;
+            let end_idx = end_idx.max(0).min(len) as usize;
+
+            if start_idx >= end_idx {
+                Ok(RuntimeValue::Array(vec![]))
+            } else {
+                Ok(RuntimeValue::Array(arr[start_idx..end_idx].to_vec()))
+            }
+        }
+        RuntimeValue::String(s) => {
+            let start_idx = match start {
+                RuntimeValue::Number(n) => *n as isize,
+                RuntimeValue::Null => 0,
+                _ => return Err(ExecutionError::TypeMismatch(format!("Slice start must be number or null, got {:?}", start.get_type())))
+            };
+
+            let end_idx = match end {
+                RuntimeValue::Number(n) => *n as isize,
+                RuntimeValue::Null => s.len() as isize,
+                _ => return Err(ExecutionError::TypeMismatch(format!("Slice end must be number or null, got {:?}", end.get_type())))
+            };
+
+            let len = s.len() as isize;
+            let start_idx = if start_idx < 0 { len + start_idx } else { start_idx };
+            let end_idx = if end_idx < 0 { len + end_idx } else { end_idx };
+
+            let start_idx = start_idx.max(0).min(len) as usize;
+            let end_idx = end_idx.max(0).min(len) as usize;
+
+            if start_idx >= end_idx {
+                Ok(RuntimeValue::String(String::new()))
+            } else {
+                // Handle Unicode characters properly
+                let chars: Vec<char> = s.chars().collect();
+                if start_idx >= chars.len() || end_idx > chars.len() {
+                    Ok(RuntimeValue::String(String::new()))
+                } else {
+                    Ok(RuntimeValue::String(chars[start_idx..end_idx].iter().collect()))
+                }
+            }
+        }
+        _ => Err(ExecutionError::TypeMismatch(format!("Cannot slice {:?}", target.get_type())))
     }
 }
 
@@ -435,6 +529,13 @@ fn execute_regex_match(left: &RuntimeValue, right: &RuntimeValue) -> Result<Runt
     match (left, right) {
         (RuntimeValue::String(s), RuntimeValue::Regex(regex)) => {
             Ok(RuntimeValue::Boolean(regex.as_regex().is_match(s)))
+        }
+        (RuntimeValue::String(s), RuntimeValue::String(pattern)) => {
+            // Treat string as regex pattern
+            match regex::Regex::new(pattern) {
+                Ok(regex) => Ok(RuntimeValue::Boolean(regex.is_match(s))),
+                Err(_) => Err(ExecutionError::TypeMismatch(format!("Invalid regex pattern: {}", pattern)))
+            }
         }
         _ => Err(ExecutionError::TypeMismatch(format!("Cannot match {:?} with {:?}", left.get_type(), right.get_type())))
     }

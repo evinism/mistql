@@ -301,4 +301,90 @@ mod test_runner {
         let result = query("@", &data).expect("Object identity query should work");
         assert_eq!(result, data);
     }
+
+    #[test]
+    fn test_dollar_variable() {
+        use crate::query;
+        use serde_json::json;
+
+        // Test $ variable access
+        let data = json!({"filter": "cat", "nums": [1, 2, 3]});
+
+        // Test if $ variable exists at all
+        let result = query("$", &data).expect("$ variable should exist");
+        println!("$ variable result: {}", result);
+
+        // Test $.filter access
+        let result = query("$.filter", &data).expect("$.filter should work");
+        println!("$.filter result: {}", result);
+    }
+
+    #[test]
+    fn test_float_function() {
+        use crate::query;
+        use serde_json::json;
+
+        // Test float function with scientific notation
+        let result = query("float \"1.1e1\"", &json!(null)).expect("float should work");
+        println!("float \"1.1e1\" result: {} (type: {:?})", result, result);
+
+        // Test float function with trailing dot
+        let result = query("float \"5.\"", &json!(null)).expect("float should work");
+        println!("float \"5.\" result: {} (type: {:?})", result, result);
+
+        // Test with serde_json serialization
+        let result = query("float \"1.1e1\"", &json!(null)).expect("float should work");
+        println!("float \"1.1e1\" serialized: {}", serde_json::to_string(&result).unwrap());
+
+        let result = query("float \"5.\"", &json!(null)).expect("float should work");
+        println!("float \"5.\" serialized: {}", serde_json::to_string(&result).unwrap());
+    }
+
+    #[test]
+    fn test_string_function() {
+        use crate::query;
+        use serde_json::json;
+
+        // Test string function with various numbers
+        let test_cases = vec![
+            (1e50, "1e+50"),
+            (3e20, "300000000000000000000"),
+            (3e21, "3e+21"),
+            (1e-7, "1e-7"),
+        ];
+
+        for (input, expected) in test_cases {
+            let result = query("string @", &json!(input)).expect("string should work");
+            println!("string {} = {} (expected: {})", input, result, expected);
+        }
+    }
+
+    #[test]
+    fn test_keys_function() {
+        use crate::query;
+        use serde_json::json;
+
+        // Test keys function
+        let data = json!({"a": 1, "b": 2});
+        let result = query("{a: 1, b: 2} | keys", &json!({})).expect("keys should work");
+        println!("keys result: {}", result);
+
+        // Test empty object
+        let result = query("{} | keys", &json!({})).expect("keys should work");
+        println!("empty keys result: {}", result);
+    }
+
+    #[test]
+    fn test_regex_operator() {
+        use crate::query;
+        use serde_json::json;
+
+        // Test =~ operator with string pattern
+        let result = query("\"Hello\" =~ \"[a-z]ello\"", &json!(null)).expect("regex should work");
+        println!("Hello =~ [a-z]ello: {}", result);
+
+        // Test =~ operator with regex object
+        let result = query("\"Hello\" =~ (regex \"[a-z]ello\" \"i\")", &json!(null)).expect("regex should work");
+        println!("Hello =~ (regex [a-z]ello i): {}", result);
+    }
 }

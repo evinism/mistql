@@ -227,14 +227,38 @@ fn ws1(input: &str) -> IResult<&str, &str> {
     multispace1(input)
 }
 
-/// Parse a float number (with decimal point)
+/// Parse a float number (with decimal point and optional scientific notation)
 fn parse_float(input: &str) -> IResult<&str, &str> {
-    recognize(pair(digit1, pair(char('.'), digit1)))(input)
+    recognize(pair(
+        digit1,
+        pair(
+            char('.'),
+            pair(
+                opt(digit1),
+                opt(pair(
+                    alt((char('e'), char('E'))),
+                    pair(
+                        opt(alt((char('+'), char('-')))),
+                        digit1
+                    )
+                ))
+            )
+        )
+    ))(input)
 }
 
-/// Parse an integer number
+/// Parse an integer number (with optional scientific notation)
 fn parse_integer(input: &str) -> IResult<&str, &str> {
-    digit1(input)
+    recognize(pair(
+        digit1,
+        opt(pair(
+            alt((char('e'), char('E'))),
+            pair(
+                opt(alt((char('+'), char('-')))),
+                digit1
+            )
+        ))
+    ))(input)
 }
 
 /// Parse a number (integer or float)
@@ -495,10 +519,10 @@ fn parse_op_d(input: &str) -> IResult<&str, Expression> {
             parse_op_e,
             many0(pair(
                 pair(ws, alt((
-                    map(tag(">"), |_| BinaryOperator::Gt),
-                    map(tag("<"), |_| BinaryOperator::Lt),
                     map(tag(">="), |_| BinaryOperator::Gte),
                     map(tag("<="), |_| BinaryOperator::Lte),
+                    map(tag(">"), |_| BinaryOperator::Gt),
+                    map(tag("<"), |_| BinaryOperator::Lt),
                 ))),
                 pair(ws, parse_op_e),
             )),
@@ -632,15 +656,45 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
 /// Parse indexing innards (for array/string indexing and slicing)
 /// index_innards: piped_expression? (WCOLON piped_expression?)*
 fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
-    // For now, just parse a simple expression
-    // TODO: Implement proper slicing support
-    let (remaining, expr) = opt(parse_pipeline)(input)?;
-    let (remaining, _) = pair(ws, char(']'))(remaining)?;
+    // Parse slicing syntax: [start:end], [start:], [:end], [:], or [index]
+    let (remaining, result) = alt((
+        // Slice syntax: start:end, start:, :end, or :
+        map(
+            pair(
+                opt(pair(ws, parse_pipeline)),
+                pair(
+                    pair(ws, char(':')),
+                    opt(pair(ws, parse_pipeline))
+                )
+            ),
+            |(start_opt, (_, end_opt))| {
+                let start = start_opt.map(|(_, expr)| expr);
+                let end = end_opt.map(|(_, expr)| expr);
+                // Create a special expression for slicing
+                // We'll handle this in the executor as a two-argument index call
+                Expression::function_call(
+                    Expression::reference("index", false),
+                    vec![
+                        start.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),
+                        end.unwrap_or_else(|| Expression::value(RuntimeValue::Null))
+                    ]
+                )
+            }
+        ),
+        // Single index: just an expression
+        map(
+            opt(parse_pipeline),
+            |expr_opt| {
+                match expr_opt {
+                    Some(expr) => expr,
+                    None => Expression::value(RuntimeValue::Null),
+                }
+            }
+        )
+    ))(input)?;
 
-    match expr {
-        Some(e) => Ok((remaining, e)),
-        None => Ok((remaining, Expression::value(RuntimeValue::Null))),
-    }
+    let (remaining, _) = pair(ws, char(']'))(remaining)?;
+    Ok((remaining, result))
 }
 
 /// Parse a complete expression (top-level entry point)
