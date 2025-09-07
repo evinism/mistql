@@ -54,7 +54,13 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                                                     assertion.get("data")
                                                 ) {
                                                     let expected = assertion.get("expected");
-                                                    let throws = assertion.get("throws").and_then(|t| t.as_str());
+                                                    let throws = assertion.get("throws").and_then(|t| {
+                                                        if t.is_boolean() && t.as_bool().unwrap_or(false) {
+                                                            Some("true")
+                                                        } else {
+                                                            t.as_str()
+                                                        }
+                                                    });
 
                                                     assertions.push(TestAssertion {
                                                         query: query.to_string(),
@@ -359,13 +365,14 @@ mod test_runner {
         }
     }
 
+
     #[test]
     fn test_keys_function() {
         use crate::query;
         use serde_json::json;
 
         // Test keys function
-        let data = json!({"a": 1, "b": 2});
+        let _data = json!({"a": 1, "b": 2});
         let result = query("{a: 1, b: 2} | keys", &json!({})).expect("keys should work");
         println!("keys result: {}", result);
 

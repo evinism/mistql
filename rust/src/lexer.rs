@@ -177,7 +177,7 @@ impl std::error::Error for LexerError {}
 
 /// The main lexer struct
 pub struct Lexer<'a> {
-    input: &'a str,
+    _input: &'a str,
     chars: Chars<'a>,
     pub current_pos: Position,
     peek_pos: Position,
@@ -189,7 +189,7 @@ impl<'a> Lexer<'a> {
     /// Create a new lexer for the given input string
     pub fn new(input: &'a str) -> Self {
         let mut lexer = Self {
-            input,
+            _input: input,
             chars: input.chars(),
             current_pos: Position::start(),
             peek_pos: Position::start(),
@@ -245,7 +245,7 @@ impl<'a> Lexer<'a> {
 
     /// Read an identifier or keyword
     fn read_identifier(&mut self) -> String {
-        let start_pos = self.current_pos.clone();
+        let _start_pos = self.current_pos.clone();
         let mut identifier = String::new();
 
         while let Some(c) = self.current_char {

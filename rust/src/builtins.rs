@@ -26,6 +26,7 @@ fn validate_args(name: &str, args: &[Expression], min_args: usize, max_args: Opt
 }
 
 /// Assert that a value is of a specific type
+#[allow(dead_code)]
 fn assert_type(value: RuntimeValue, expected_type: RuntimeValueType) -> Result<RuntimeValue, ExecutionError> {
     if value.get_type() == expected_type {
         Ok(value)
@@ -866,10 +867,11 @@ pub fn index(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
 fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
     match operand {
         RuntimeValue::Array(ref arr) => {
-            let index_num = assert_number(index)? as i64;
-            if index_num % 1 != 0 {
+            let index_num = assert_number(index)?;
+            if index_num % 1.0 != 0.0 {
                 return Err(ExecutionError::Custom("index: Non-integers cannot be used on arrays".to_string()));
             }
+            let index_num = index_num as i64;
 
             let len = arr.len() as i64;
             let actual_index = if index_num < 0 {
@@ -911,8 +913,11 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
             Ok(obj.get(&key).cloned().unwrap_or(RuntimeValue::Null))
         }
         RuntimeValue::Null => {
-            // Indexing null returns null
-            Ok(RuntimeValue::Null)
+            // Indexing null returns null, but only if index is number or string
+            match index {
+                RuntimeValue::Number(_) | RuntimeValue::String(_) => Ok(RuntimeValue::Null),
+                _ => Err(ExecutionError::TypeMismatch(format!("Expected number or string, got {}", index.get_type())))
+            }
         }
         _ => Err(ExecutionError::Custom(format!("index: Cannot index {}", operand.get_type())))
     }

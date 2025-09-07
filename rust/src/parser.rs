@@ -7,7 +7,7 @@ use crate::types::RuntimeValue;
 use std::collections::HashMap;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while},
+    bytes::complete::tag,
     character::complete::{alpha1, alphanumeric1, char, digit1, multispace0, multispace1},
     combinator::{map, opt, recognize, value},
     multi::{many0, separated_list0, separated_list1},
@@ -276,16 +276,83 @@ fn parse_number(input: &str) -> IResult<&str, RuntimeValue> {
     )(input)
 }
 
-/// Parse a string literal
+/// Parse a string literal with proper escape handling
 fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
-    map(
-        delimited(
-            char('"'),
-            take_while(|c| c != '"'),
-            char('"'),
-        ),
-        |s: &str| RuntimeValue::String(s.to_string()),
-    )(input)
+    let (remaining, _) = char('"')(input)?;
+
+    let mut result = String::new();
+    let mut chars = remaining.chars();
+
+    while let Some(c) = chars.next() {
+        match c {
+            '"' => {
+                // End of string
+                return Ok((chars.as_str(), RuntimeValue::String(result)));
+            }
+            '\\' => {
+                // Handle escape sequences
+                if let Some(next) = chars.next() {
+                    match next {
+                        '"' => result.push('"'),
+                        '\\' => result.push('\\'),
+                        '/' => result.push('/'),
+                        'b' => result.push('\u{0008}'), // backspace
+                        'f' => result.push('\u{000C}'), // form feed
+                        'n' => result.push('\n'),
+                        'r' => result.push('\r'),
+                        't' => result.push('\t'),
+                        'u' => {
+                            // Unicode escape sequence \uXXXX
+                            let mut unicode_str = String::new();
+                            for _ in 0..4 {
+                                if let Some(hex_char) = chars.next() {
+                                    unicode_str.push(hex_char);
+                                } else {
+                                    return Err(nom::Err::Error(nom::error::Error::new(
+                                        input,
+                                        nom::error::ErrorKind::Tag,
+                                    )));
+                                }
+                            }
+                            if let Ok(unicode_value) = u32::from_str_radix(&unicode_str, 16) {
+                                if let Some(unicode_char) = char::from_u32(unicode_value) {
+                                    result.push(unicode_char);
+                                } else {
+                                    return Err(nom::Err::Error(nom::error::Error::new(
+                                        input,
+                                        nom::error::ErrorKind::Tag,
+                                    )));
+                                }
+                            } else {
+                                return Err(nom::Err::Error(nom::error::Error::new(
+                                    input,
+                                    nom::error::ErrorKind::Tag,
+                                )));
+                            }
+                        }
+                        _ => {
+                            // Unknown escape sequence, just add the character as-is
+                            result.push(next);
+                        }
+                    }
+                } else {
+                    return Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Tag,
+                    )));
+                }
+            }
+            _ => {
+                result.push(c);
+            }
+        }
+    }
+
+    // Unterminated string
+    Err(nom::Err::Error(nom::error::Error::new(
+        input,
+        nom::error::ErrorKind::Tag,
+    )))
 }
 
 /// Parse boolean literals
