@@ -113,34 +113,7 @@ pub enum BinaryOperator {
     Mod,
 }
 
-/// Operator precedence levels (highest to lowest)
-/// Based on MistQL documentation and Python grammar
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PrecedenceLevel {
-    /// Level 1: Dot access (highest precedence)
-    Dot = 1,
-    /// Level 2: Unary operators (!, -)
-    Unary = 2,
-    /// Level 3: Multiplication, division, modulo (*, /, %)
-    MulDivMod = 3,
-    /// Level 4: Addition, subtraction (+, -)
-    AddSub = 4,
-    /// Level 5: Comparison (<, >, <=, >=)
-    Comparison = 5,
-    /// Level 6: Equality (==, !=, =~)
-    Equality = 6,
-    /// Level 7: Logical AND (&&)
-    LogicalAnd = 7,
-    /// Level 8: Logical OR (||)
-    LogicalOr = 8,
-    /// Level 9: Function application
-    FunctionApplication = 9,
-    /// Level 10: Pipeline (|) (lowest precedence)
-    Pipeline = 10,
-}
-
 impl Expression {
-    /// Create a reference expression
     pub fn reference(name: &str, absolute: bool) -> Self {
         Expression::RefExpression {
             name: name.to_string(),
@@ -148,12 +121,10 @@ impl Expression {
         }
     }
 
-    /// Create a value expression
     pub fn value(value: RuntimeValue) -> Self {
         Expression::ValueExpression { value }
     }
 
-    /// Create a function call expression
     pub fn function_call(function: Expression, arguments: Vec<Expression>) -> Self {
         Expression::FnExpression {
             function: Box::new(function),
@@ -161,29 +132,24 @@ impl Expression {
         }
     }
 
-    /// Create a pipeline expression
     pub fn pipeline(stages: Vec<Expression>) -> Self {
         Expression::PipeExpression { stages }
     }
 
-    /// Create an array expression
     pub fn array(items: Vec<Expression>) -> Self {
         Expression::ArrayExpression { items }
     }
 
-    /// Create an object expression
     pub fn object(entries: HashMap<String, Expression>) -> Self {
         Expression::ObjectExpression { entries }
     }
 
-    /// Create a parenthetical expression
     pub fn parenthetical(expression: Expression) -> Self {
         Expression::ParentheticalExpression {
             expression: Box::new(expression),
         }
     }
 
-    /// Create a unary expression
     pub fn unary(operator: UnaryOperator, operand: Expression) -> Self {
         Expression::UnaryExpression {
             operator,
@@ -191,7 +157,6 @@ impl Expression {
         }
     }
 
-    /// Create a binary expression
     pub fn binary(operator: BinaryOperator, left: Expression, right: Expression) -> Self {
         Expression::BinaryExpression {
             operator,
@@ -200,7 +165,6 @@ impl Expression {
         }
     }
 
-    /// Create a dot access expression
     pub fn dot_access(object: Expression, field: &str) -> Self {
         Expression::DotAccessExpression {
             object: Box::new(object),
@@ -208,23 +172,12 @@ impl Expression {
         }
     }
 
-    /// Create an index expression
     pub fn index(target: Expression, index: Expression) -> Self {
         Expression::IndexExpression {
             target: Box::new(target),
             index: Box::new(index),
         }
     }
-}
-
-/// Parse whitespace
-fn ws(input: &str) -> IResult<&str, &str> {
-    multispace0(input)
-}
-
-/// Parse whitespace with at least one space
-fn ws1(input: &str) -> IResult<&str, &str> {
-    multispace1(input)
 }
 
 /// Parse a float number (with decimal point and optional scientific notation)
@@ -402,12 +355,12 @@ fn parse_reference(input: &str) -> IResult<&str, Expression> {
 fn parse_array(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(
-            pair(char('['), ws),
+            pair(char('['), multispace0),
             separated_list0(
-                pair(ws, char(',')),
-                pair(ws, parse_expression),
+                pair(multispace0, char(',')),
+                pair(multispace0, parse_expression),
             ),
-            pair(ws, char(']')),
+            pair(multispace0, char(']')),
         ),
         |items| Expression::array(items.into_iter().map(|(_, expr)| expr).collect()),
     )(input)
@@ -417,12 +370,12 @@ fn parse_array(input: &str) -> IResult<&str, Expression> {
 fn parse_object(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(
-            pair(char('{'), ws),
+            pair(char('{'), multispace0),
             separated_list0(
-                pair(ws, char(',')),
-                pair(ws, parse_object_entry),
+                pair(multispace0, char(',')),
+                pair(multispace0, parse_object_entry),
             ),
-            pair(ws, char('}')),
+            pair(multispace0, char('}')),
         ),
         |entries| {
             let mut map = HashMap::new();
@@ -444,7 +397,7 @@ fn parse_object_entry(input: &str) -> IResult<&str, (String, Expression)> {
             }),
             map(parse_identifier, |s| s.to_string()),
         )),
-        pair(ws, char(':')),
+        pair(multispace0, char(':')),
         parse_expression,
     )(input)
 }
@@ -453,9 +406,9 @@ fn parse_object_entry(input: &str) -> IResult<&str, (String, Expression)> {
 fn parse_parenthetical(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(
-            pair(char('('), ws),
+            pair(char('('), multispace0),
             parse_pipeline,
-            pair(ws, char(')')),
+            pair(multispace0, char(')')),
         ),
         Expression::parenthetical,
     )(input)
@@ -470,8 +423,8 @@ fn parse_pipeline(input: &str) -> IResult<&str, Expression> {
 
     // Then try to parse pipeline stages
     let (remaining, stages) = many0(pair(
-        pair(ws, char('|')),
-        pair(ws, parse_function_call)
+        pair(multispace0, char('|')),
+        pair(multispace0, parse_function_call)
     ))(remaining)?;
 
     if stages.is_empty() {
@@ -501,7 +454,7 @@ fn parse_function_call(input: &str) -> IResult<&str, Expression> {
     let (remaining, function) = parse_op_a(input)?;
 
     // Then try to parse function arguments (space-separated op_a expressions)
-    let (remaining, args) = many0(pair(ws1, parse_op_a))(remaining)?;
+    let (remaining, args) = many0(pair(multispace1, parse_op_a))(remaining)?;
     let arguments: Vec<Expression> = args.into_iter().map(|(_, arg)| arg).collect();
 
     if arguments.is_empty() {
@@ -516,8 +469,8 @@ fn parse_function_call(input: &str) -> IResult<&str, Expression> {
 fn parse_op_a(input: &str) -> IResult<&str, Expression> {
     map(
         separated_list1(
-            pair(ws, tag("||")),
-            pair(ws, parse_op_b),
+            pair(multispace0, tag("||")),
+            pair(multispace0, parse_op_b),
         ),
         |operands| {
             let operands: Vec<Expression> = operands.into_iter().map(|(_, operand)| operand).collect();
@@ -538,8 +491,8 @@ fn parse_op_a(input: &str) -> IResult<&str, Expression> {
 fn parse_op_b(input: &str) -> IResult<&str, Expression> {
     map(
         separated_list1(
-            pair(ws, tag("&&")),
-            pair(ws, parse_op_c),
+            pair(multispace0, tag("&&")),
+            pair(multispace0, parse_op_c),
         ),
         |operands| {
             let operands: Vec<Expression> = operands.into_iter().map(|(_, operand)| operand).collect();
@@ -562,12 +515,12 @@ fn parse_op_c(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_d,
             many0(pair(
-                pair(ws, alt((
+                pair(multispace0, alt((
                     map(tag("=="), |_| BinaryOperator::Eq),
                     map(tag("!="), |_| BinaryOperator::Neq),
                     map(tag("=~"), |_| BinaryOperator::Match),
                 ))),
-                pair(ws, parse_op_d),
+                pair(multispace0, parse_op_d),
             )),
         ),
         |(left, rest)| {
@@ -585,13 +538,13 @@ fn parse_op_d(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_e,
             many0(pair(
-                pair(ws, alt((
+                pair(multispace0, alt((
                     map(tag(">="), |_| BinaryOperator::Gte),
                     map(tag("<="), |_| BinaryOperator::Lte),
                     map(tag(">"), |_| BinaryOperator::Gt),
                     map(tag("<"), |_| BinaryOperator::Lt),
                 ))),
-                pair(ws, parse_op_e),
+                pair(multispace0, parse_op_e),
             )),
         ),
         |(left, rest)| {
@@ -609,11 +562,11 @@ fn parse_op_e(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_f,
             many0(pair(
-                pair(ws, alt((
+                pair(multispace0, alt((
                     map(tag("+"), |_| BinaryOperator::Plus),
                     map(tag("-"), |_| BinaryOperator::Minus),
                 ))),
-                pair(ws, parse_op_f),
+                pair(multispace0, parse_op_f),
             )),
         ),
         |(left, rest)| {
@@ -631,12 +584,12 @@ fn parse_op_f(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_g,
             many0(pair(
-                pair(ws, alt((
+                pair(multispace0, alt((
                     map(tag("*"), |_| BinaryOperator::Mul),
                     map(tag("/"), |_| BinaryOperator::Div),
                     map(tag("%"), |_| BinaryOperator::Mod),
                 ))),
-                pair(ws, parse_op_g),
+                pair(multispace0, parse_op_g),
             )),
         ),
         |(left, rest)| {
@@ -655,7 +608,7 @@ fn parse_op_g(input: &str) -> IResult<&str, Expression> {
         map(
             pair(
                 char('!'),
-                pair(ws, parse_op_g), // Recursive to handle multiple unary operators
+                pair(multispace0, parse_op_g), // Recursive to handle multiple unary operators
             ),
             |(_, (_, operand))| Expression::unary(UnaryOperator::Not, operand),
         ),
@@ -663,7 +616,7 @@ fn parse_op_g(input: &str) -> IResult<&str, Expression> {
         map(
             pair(
                 char('-'),
-                pair(ws, parse_op_g), // Recursive to handle multiple unary operators
+                pair(multispace0, parse_op_g), // Recursive to handle multiple unary operators
             ),
             |(_, (_, operand))| Expression::unary(UnaryOperator::Negate, operand),
         ),
@@ -683,8 +636,8 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
         // Dot access: .reference
         map(
             pair(
-                pair(ws, char('.')),
-                pair(ws, parse_reference),
+                pair(multispace0, char('.')),
+                pair(multispace0, parse_reference),
             ),
             |(_, (_, reference))| ("dot", reference),
         ),
@@ -692,7 +645,7 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
         map(
             pair(
                 char('['),
-                pair(ws, parse_indexing_innards),
+                pair(multispace0, parse_indexing_innards),
             ),
             |(_, (_, index_expr))| ("index", index_expr),
         ),
@@ -728,10 +681,10 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
         // Slice syntax: start:end, start:, :end, or :
         map(
             pair(
-                opt(pair(ws, parse_pipeline)),
+                opt(pair(multispace0, parse_pipeline)),
                 pair(
-                    pair(ws, char(':')),
-                    opt(pair(ws, parse_pipeline))
+                    pair(multispace0, char(':')),
+                    opt(pair(multispace0, parse_pipeline))
                 )
             ),
             |(start_opt, (_, end_opt))| {
@@ -760,7 +713,7 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
         )
     ))(input)?;
 
-    let (remaining, _) = pair(ws, char(']'))(remaining)?;
+    let (remaining, _) = pair(multispace0, char(']'))(remaining)?;
     Ok((remaining, result))
 }
 
