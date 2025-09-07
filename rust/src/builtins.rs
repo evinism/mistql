@@ -90,27 +90,23 @@ pub fn if_function(args: &[Expression], context: &mut ExecutionContext) -> Resul
     }
 }
 
-/// Apply function - applies a function to a value
+/// Apply function - applies an expression to a value (sets @ context)
 pub fn apply(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("apply", args, 2, Some(2))?;
 
-    let func = execute_expression(&args[0], context)?;
+    let expression = &args[0];
     let value = execute_expression(&args[1], context)?;
 
-    match func {
-        RuntimeValue::Function(func_name) => {
-            // Create a function call expression with the value as argument
-            let call_expr = Expression::FnExpression {
-                function: Box::new(Expression::RefExpression {
-                    name: func_name,
-                    absolute: false
-                }),
-                arguments: vec![Expression::ValueExpression { value }]
-            };
-            execute_expression(&call_expr, context)
-        }
-        _ => Err(ExecutionError::NotCallable(func.get_type().to_string()))
-    }
+    // Push the value as the new context (@)
+    context.push_context(value);
+
+    // Execute the expression in the new context
+    let result = execute_expression(expression, context);
+
+    // Pop the context
+    let _ = context.pop_context();
+
+    result
 }
 
 // ============================================================================
@@ -228,11 +224,24 @@ pub fn flatten(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
 /// Sum function - sums all numbers in an array
 pub fn sum(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("sum", args, 1, Some(1))?;
-    let array = assert_array(execute_expression(&args[0], context)?)?;
+    let value = execute_expression(&args[0], context)?;
+
+    let array = match value {
+        RuntimeValue::Array(arr) => arr,
+        _ => return Err(ExecutionError::TypeMismatch(format!("Expected array, got {}", value.get_type())))
+    };
 
     let mut total = 0.0;
     for item in array {
-        total += assert_number(item)?;
+        let num = match item {
+            RuntimeValue::Number(n) => n,
+            RuntimeValue::String(s) => {
+                s.trim().parse::<f64>()
+                    .map_err(|_| ExecutionError::TypeMismatch(format!("Expected number, got string")))?
+            }
+            _ => return Err(ExecutionError::TypeMismatch(format!("Expected number, got {}", item.get_type())))
+        };
+        total += num;
     }
 
     Ok(RuntimeValue::Number(total))
