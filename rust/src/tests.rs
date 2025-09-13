@@ -5,6 +5,47 @@
 
 use serde_json::Value;
 
+/// Test case structure matching the shared testdata.json format
+#[derive(Debug, Clone)]
+pub struct TestCase {
+    pub assertions: Vec<TestAssertion>,
+    pub describe_block: String,
+    pub describe_inner: String,
+    pub it_description: String,
+    pub skip: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TestAssertion {
+    pub query: String,
+    pub data: Value,
+    pub expected: Option<Value>,
+    pub throws: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct TestResults {
+    pub total_test_cases: usize,
+    pub total_assertions: usize,
+    pub passed_assertions: usize,
+    pub failed_assertions: usize,
+    pub skipped_test_cases: usize,
+    pub skipped_assertions: usize,
+    pub failures: Vec<TestFailure>,
+}
+
+#[derive(Debug)]
+pub struct TestFailure {
+    pub describe_block: String,
+    pub describe_inner: String,
+    pub it_description: String,
+    pub query: String,
+    pub data: Value,
+    pub expected: Option<Value>,
+    pub actual: Option<Value>,
+    pub error: Option<String>,
+}
+
 /// Compare two JSON values with special handling for numeric equality
 fn values_equal(a: &Value, b: &Value) -> bool {
     match (a, b) {
@@ -13,7 +54,7 @@ fn values_equal(a: &Value, b: &Value) -> bool {
             if let (Some(f1), Some(f2)) = (n1.as_f64(), n2.as_f64()) {
                 f1 == f2
             } else {
-                a == b  // Fallback to exact comparison
+                a == b // Fallback to exact comparison
             }
         }
         // For arrays, compare each element
@@ -44,24 +85,6 @@ fn values_equal(a: &Value, b: &Value) -> bool {
     }
 }
 
-/// Test case structure matching the shared testdata.json format
-#[derive(Debug, Clone)]
-pub struct TestCase {
-    pub assertions: Vec<TestAssertion>,
-    pub describe_block: String,
-    pub describe_inner: String,
-    pub it_description: String,
-    pub skip: Option<Vec<String>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct TestAssertion {
-    pub query: String,
-    pub data: Value,
-    pub expected: Option<Value>,
-    pub throws: Option<String>,
-}
-
 /// Load test data from the shared testdata.json file
 pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
     let testdata_path = "shared/testdata.json";
@@ -80,17 +103,19 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                             if let Some(test_array) = inner_block.get("cases").and_then(|c| c.as_array()) {
                                 for test in test_array {
                                     if let Some(it_description) = test.get("it").and_then(|i| i.as_str()) {
-                                        let skip = test.get("skip")
-                                            .and_then(|s| s.as_array())
-                                            .map(|arr| arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect());
+                                        let skip = test.get("skip").and_then(|s| s.as_array()).map(|arr| {
+                                            arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect()
+                                        });
 
-                                        if let Some(assertions_array) = test.get("assertions").and_then(|a| a.as_array()) {
+                                        if let Some(assertions_array) =
+                                            test.get("assertions").and_then(|a| a.as_array())
+                                        {
                                             let mut assertions = Vec::new();
 
                                             for assertion in assertions_array {
                                                 if let (Some(query), Some(data)) = (
                                                     assertion.get("query").and_then(|q| q.as_str()),
-                                                    assertion.get("data")
+                                                    assertion.get("data"),
                                                 ) {
                                                     let expected = assertion.get("expected");
                                                     let throws = assertion.get("throws").and_then(|t| {
@@ -132,32 +157,35 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
 }
 
 /// Run a single test assertion
-pub fn run_assertion(assertion: &TestAssertion) -> Result<bool, String> {
+/// Returns (pass_status, actual_value) where actual_value is Some for successful queries
+pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>), String> {
     use crate::query;
 
     if let Some(expected_error) = &assertion.throws {
         // Test should throw an error
         match query(&assertion.query, &assertion.data) {
-            Ok(_) => Err(format!("Expected error '{}' but query succeeded", expected_error)),
+            Ok(actual_result) => {
+                let actual_value: Option<Value> = Some(actual_result.into());
+                Err(format!(
+                    "Expected error '{}' but query succeeded with result: {:?}",
+                    expected_error, actual_value
+                ))
+            }
             Err(_e) => {
-                // For now, any error is acceptable if we expect an error
-                // TODO: Match specific error types when error handling is more refined
-                Ok(true)
+                // Could be more granular, but shared tests don't specify error types.
+                Ok((true, None)) // No actual value for error cases
             }
         }
     } else {
         // Test should succeed and return expected value
         match query(&assertion.query, &assertion.data) {
             Ok(result) => {
+                let actual_value = Some(result.clone().into());
                 if let Some(expected) = &assertion.expected {
-                    let matches = values_equal(&result, expected);
-                    if !matches {
-                        println!("FAIL: Assertion failed | Query: {} | Data: {:?} | Expected: {:?} | Got: {:?}",
-                                assertion.query, assertion.data, expected, result);
-                    }
-                    Ok(matches)
+                    let matches = values_equal(&result.clone().into(), expected);
+                    Ok((matches, actual_value))
                 } else {
-                    Ok(true) // No expected value specified, just check it doesn't error
+                    Ok((true, actual_value)) // No expected value specified, just check it doesn't error
                 }
             }
             Err(e) => Err(format!("Query failed with error: {}", e)),
@@ -184,12 +212,8 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
     }
 
     // Count total assertions across all test cases
-    let total_assertions: usize = non_skipped_cases.iter()
-        .map(|tc| tc.assertions.len())
-        .sum();
-    let skipped_assertions: usize = skipped_cases.iter()
-        .map(|tc| tc.assertions.len())
-        .sum();
+    let total_assertions: usize = non_skipped_cases.iter().map(|tc| tc.assertions.len()).sum();
+    let skipped_assertions: usize = skipped_cases.iter().map(|tc| tc.assertions.len()).sum();
 
     let mut results = TestResults {
         total_test_cases: non_skipped_cases.len(),
@@ -197,23 +221,17 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
         passed_assertions: 0,
         failed_assertions: 0,
         skipped_test_cases: skipped_cases.len(),
+        skipped_assertions: skipped_assertions,
         failures: Vec::new(),
     };
 
-    println!("Test Suite Overview:");
-    println!("  Test Cases: {} ({} skipped)", non_skipped_cases.len(), skipped_cases.len());
-    println!("  Assertions: {} ({} skipped)", total_assertions, skipped_assertions);
-    println!("  Total Tests: {}", total_assertions + skipped_assertions);
-    println!();
-
     for test_case in non_skipped_cases {
         for assertion in &test_case.assertions {
-
             match run_assertion(assertion) {
-                Ok(true) => {
+                Ok((true, _actual)) => {
                     results.passed_assertions += 1;
                 }
-                Ok(false) => {
+                Ok((false, actual)) => {
                     results.failed_assertions += 1;
                     results.failures.push(TestFailure {
                         describe_block: test_case.describe_block.clone(),
@@ -222,7 +240,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
                         query: assertion.query.clone(),
                         data: assertion.data.clone(),
                         expected: assertion.expected.clone(),
-                        actual: None, // TODO: Capture actual result for better error reporting
+                        actual,
                         error: None,
                     });
                 }
@@ -246,28 +264,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
     Ok(results)
 }
 
-#[derive(Debug)]
-pub struct TestResults {
-    pub total_test_cases: usize,
-    pub total_assertions: usize,
-    pub passed_assertions: usize,
-    pub failed_assertions: usize,
-    pub skipped_test_cases: usize,
-    pub failures: Vec<TestFailure>,
-}
-
-#[derive(Debug)]
-pub struct TestFailure {
-    pub describe_block: String,
-    pub describe_inner: String,
-    pub it_description: String,
-    pub query: String,
-    pub data: Value,
-    pub expected: Option<Value>,
-    pub actual: Option<Value>,
-    pub error: Option<String>,
-}
-
+#[rustfmt::skip]
 impl std::fmt::Display for TestFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "FAIL: {}::{}::{}", self.describe_block, self.describe_inner, self.it_description)?;
@@ -286,6 +283,7 @@ impl std::fmt::Display for TestFailure {
     }
 }
 
+#[rustfmt::skip]
 impl std::fmt::Display for TestResults {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Test Results Summary:")?;
@@ -293,6 +291,7 @@ impl std::fmt::Display for TestResults {
         writeln!(f, "  Assertions: {} total", self.total_assertions)?;
         writeln!(f, "    ✅ Passed: {}", self.passed_assertions)?;
         writeln!(f, "    ❌ Failed: {}", self.failed_assertions)?;
+        writeln!(f, "    ⏭️ Skipped: {}", self.skipped_assertions)?;
 
         if self.total_assertions > 0 {
             let pass_rate = (self.passed_assertions as f64 / self.total_assertions as f64) * 100.0;
@@ -323,7 +322,10 @@ mod test_runner {
                 // For now, we'll allow some failures as the implementation is still in progress
                 // TODO: Make this stricter once the implementation is more complete
                 if results.failed_assertions > 0 {
-                    println!("Note: {} assertions failed. This is expected during development.", results.failed_assertions);
+                    println!(
+                        "Note: {} assertions failed. This is expected during development.",
+                        results.failed_assertions
+                    );
                     println!("Focus on implementing missing functionality to reduce failures.");
                 }
 
@@ -344,12 +346,12 @@ mod test_runner {
         // Test basic identity query
         let data = json!([1, 2, 3]);
         let result = query("@", &data).expect("Basic identity query should work");
-        assert_eq!(result, data);
+        assert_eq!(result, data.into());
 
         // Test object identity
         let data = json!({"a": 1, "b": 2});
         let result = query("@", &data).expect("Object identity query should work");
-        assert_eq!(result, data);
+        assert_eq!(result, data.into());
     }
 
     #[test]
@@ -361,20 +363,20 @@ mod test_runner {
         let data = json!({"filter": "cat", "nums": [1, 2, 3]});
 
         // Test $.@ access (should return the root data)
-        let result = query("$.@", &data).expect("$.@ should work");
-        assert_eq!(result, data);
+        let result = query("$.@", &data.clone()).expect("$.@ should work");
+        assert_eq!(result, data.clone().into());
 
         // Test accessing data fields through $ variable
         let result = query("$.@.filter", &data).expect("$.@.filter should work");
-        assert_eq!(result, json!("cat"));
+        assert_eq!(result, json!("cat").into());
 
         // Test that we can use builtin functions from $ variable
         let result = query("$.count $.@.nums", &data).expect("$.count $.@.nums should work");
-        assert_eq!(result, json!(3));
+        assert_eq!(result, json!(3).into());
 
         // Test that we can access builtin functions through $ variable
         let result = query("$.sum $.@.nums", &data).expect("$.sum $.@.nums should work");
-        assert_eq!(result, json!(6));
+        assert_eq!(result, json!(6).into());
     }
 
     #[test]
@@ -392,7 +394,10 @@ mod test_runner {
 
         // Test with serde_json serialization
         let result = query("float \"1.1e1\"", &json!(null)).expect("float should work");
-        println!("float \"1.1e1\" serialized: {}", serde_json::to_string(&result).unwrap());
+        println!(
+            "float \"1.1e1\" serialized: {}",
+            serde_json::to_string(&result).unwrap()
+        );
 
         let result = query("float \"5.\"", &json!(null)).expect("float should work");
         println!("float \"5.\" serialized: {}", serde_json::to_string(&result).unwrap());
@@ -416,7 +421,6 @@ mod test_runner {
             println!("string {} = {} (expected: {})", input, result, expected);
         }
     }
-
 
     #[test]
     fn test_keys_function() {
