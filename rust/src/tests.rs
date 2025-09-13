@@ -103,20 +103,18 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                             if let Some(test_array) = inner_block.get("cases").and_then(|c| c.as_array()) {
                                 for test in test_array {
                                     if let Some(it_description) = test.get("it").and_then(|i| i.as_str()) {
-                                        let skip = test.get("skip").and_then(|s| s.as_array()).map(|arr| {
-                                            arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect()
-                                        });
+                                        let skip = test
+                                            .get("skip")
+                                            .and_then(|s| s.as_array())
+                                            .map(|arr| arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect());
 
-                                        if let Some(assertions_array) =
-                                            test.get("assertions").and_then(|a| a.as_array())
-                                        {
+                                        if let Some(assertions_array) = test.get("assertions").and_then(|a| a.as_array()) {
                                             let mut assertions = Vec::new();
 
                                             for assertion in assertions_array {
-                                                if let (Some(query), Some(data)) = (
-                                                    assertion.get("query").and_then(|q| q.as_str()),
-                                                    assertion.get("data"),
-                                                ) {
+                                                if let (Some(query), Some(data)) =
+                                                    (assertion.get("query").and_then(|q| q.as_str()), assertion.get("data"))
+                                                {
                                                     let expected = assertion.get("expected");
                                                     let throws = assertion.get("throws").and_then(|t| {
                                                         if t.is_boolean() && t.as_bool().unwrap_or(false) {
@@ -394,10 +392,7 @@ mod test_runner {
 
         // Test with serde_json serialization
         let result = query("float \"1.1e1\"", &json!(null)).expect("float should work");
-        println!(
-            "float \"1.1e1\" serialized: {}",
-            serde_json::to_string(&result).unwrap()
-        );
+        println!("float \"1.1e1\" serialized: {}", serde_json::to_string(&result).unwrap());
 
         let result = query("float \"5.\"", &json!(null)).expect("float should work");
         println!("float \"5.\" serialized: {}", serde_json::to_string(&result).unwrap());
@@ -409,12 +404,7 @@ mod test_runner {
         use serde_json::json;
 
         // Test string function with various numbers
-        let test_cases = vec![
-            (1e50, "1e+50"),
-            (3e20, "300000000000000000000"),
-            (3e21, "3e+21"),
-            (1e-7, "1e-7"),
-        ];
+        let test_cases = vec![(1e50, "1e+50"), (3e20, "300000000000000000000"), (3e21, "3e+21"), (1e-7, "1e-7")];
 
         for (input, expected) in test_cases {
             let result = query("string @", &json!(input)).expect("string should work");
