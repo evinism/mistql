@@ -204,6 +204,13 @@ impl RuntimeValue {
     }
 }
 
+impl fmt::Display for RuntimeValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: lol.
+        self.to_serde_value().fmt(f)
+    }
+}
+
 impl PartialEq for RuntimeValue {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -253,7 +260,10 @@ impl RuntimeValue {
                 if let Some(f) = n.as_f64() {
                     RuntimeValue::Number(f)
                 } else {
-                    RuntimeValue::Number(0.0) // Fallback for very large numbers
+                    // Going against the docs, see comment:
+                    // https://www.mistql.com/docs/reference/types
+                    // Likely the original decision was because JSON does not support NaN or Infinity.
+                    RuntimeValue::Number(f64::INFINITY)
                 }
             }
             serde_json::Value::String(s) => RuntimeValue::String(s.clone()),
@@ -469,6 +479,28 @@ impl RuntimeValue {
             RuntimeValue::Object(obj) => obj.keys().cloned().collect(),
             _ => Vec::new(),
         }
+    }
+}
+
+impl Into<serde_json::Value> for RuntimeValue {
+    fn into(self) -> serde_json::Value {
+        self.to_serde_value()
+    }
+}
+
+impl Into<RuntimeValue> for serde_json::Value {
+    fn into(self) -> RuntimeValue {
+        RuntimeValue::from_serde_value(&self)
+    }
+}
+
+pub trait ToRuntimeValue {
+    fn to_runtime_value(&self) -> RuntimeValue;
+}
+
+impl ToRuntimeValue for serde_json::Value {
+    fn to_runtime_value(&self) -> RuntimeValue {
+        RuntimeValue::from_serde_value(self)
     }
 }
 
