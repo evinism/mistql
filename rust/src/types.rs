@@ -3,10 +3,10 @@
 //! This module implements the 8 core MistQL types with proper type safety,
 //! conversion, equality, comparison, and truthiness operations.
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
-use regex::Regex;
 
 /// TODO: What's this for?
 #[cfg(test)]
@@ -35,12 +35,22 @@ impl MistQLRegex {
 
         for flag in flags.chars() {
             match flag {
-                'i' => { regex_builder.case_insensitive(true); }
+                'i' => {
+                    regex_builder.case_insensitive(true);
+                }
                 'g' => { /* Global flag is handled by the regex engine */ }
-                'm' => { regex_builder.multi_line(true); }
-                's' => { regex_builder.dot_matches_new_line(true); }
-                'x' => { regex_builder.ignore_whitespace(true); }
-                'U' => { regex_builder.swap_greed(true); }
+                'm' => {
+                    regex_builder.multi_line(true);
+                }
+                's' => {
+                    regex_builder.dot_matches_new_line(true);
+                }
+                'x' => {
+                    regex_builder.ignore_whitespace(true);
+                }
+                'U' => {
+                    regex_builder.swap_greed(true);
+                }
                 _ => { /* Ignore unknown flags */ }
             }
         }
@@ -240,9 +250,7 @@ impl PartialEq for RuntimeValue {
                 a.iter().zip(b.iter()).all(|(a, b)| a == b)
             }
             (RuntimeValue::Function(a), RuntimeValue::Function(b)) => a == b, // Referential equality
-            (RuntimeValue::Regex(a), RuntimeValue::Regex(b)) => {
-                a.pattern() == b.pattern() && a.flags() == b.flags()
-            }
+            (RuntimeValue::Regex(a), RuntimeValue::Regex(b)) => a.pattern() == b.pattern() && a.flags() == b.flags(),
             _ => false,
         }
     }
@@ -267,9 +275,7 @@ impl RuntimeValue {
                 }
             }
             serde_json::Value::String(s) => RuntimeValue::String(s.clone()),
-            serde_json::Value::Array(arr) => {
-                RuntimeValue::Array(arr.iter().map(Self::from_serde_value).collect())
-            }
+            serde_json::Value::Array(arr) => RuntimeValue::Array(arr.iter().map(Self::from_serde_value).collect()),
             serde_json::Value::Object(obj) => {
                 let mut map = HashMap::new();
                 for (key, value) in obj {
@@ -287,16 +293,15 @@ impl RuntimeValue {
             RuntimeValue::Boolean(b) => serde_json::Value::Bool(*b),
             RuntimeValue::Number(n) => {
                 // Try to preserve integer format if the number is a whole number
-                if n.fract() == 0.0 && n.abs() <= 9007199254740992.0 { // Max safe integer
+                if n.fract() == 0.0 && n.abs() <= i64::MAX as f64 {
+                    // Max safe integer
                     serde_json::Value::Number(serde_json::Number::from(*n as i64))
                 } else {
                     serde_json::Value::Number(serde_json::Number::from_f64(*n).unwrap_or(serde_json::Number::from(0)))
                 }
             }
             RuntimeValue::String(s) => serde_json::Value::String(s.clone()),
-            RuntimeValue::Array(arr) => {
-                serde_json::Value::Array(arr.iter().map(|v| v.to_serde_value()).collect())
-            }
+            RuntimeValue::Array(arr) => serde_json::Value::Array(arr.iter().map(|v| v.to_serde_value()).collect()),
             RuntimeValue::Object(obj) => {
                 let mut map = serde_json::Map::new();
                 for (key, value) in obj {
@@ -319,9 +324,7 @@ impl RuntimeValue {
                 serde_json::Value::Number(serde_json::Number::from_f64(*n).unwrap_or(serde_json::Number::from(0)))
             }
             RuntimeValue::String(s) => serde_json::Value::String(s.clone()),
-            RuntimeValue::Array(arr) => {
-                serde_json::Value::Array(arr.iter().map(|v| v.to_serde_value_as_float()).collect())
-            }
+            RuntimeValue::Array(arr) => serde_json::Value::Array(arr.iter().map(|v| v.to_serde_value_as_float()).collect()),
             RuntimeValue::Object(obj) => {
                 let mut map = serde_json::Map::new();
                 for (key, value) in obj {
@@ -346,9 +349,7 @@ impl RuntimeValue {
 
         match (self, other) {
             (RuntimeValue::Boolean(a), RuntimeValue::Boolean(b)) => Ok(a.cmp(b)),
-            (RuntimeValue::Number(a), RuntimeValue::Number(b)) => {
-                a.partial_cmp(b).ok_or_else(|| "Invalid number comparison".to_string())
-            }
+            (RuntimeValue::Number(a), RuntimeValue::Number(b)) => a.partial_cmp(b).ok_or_else(|| "Invalid number comparison".to_string()),
             (RuntimeValue::String(a), RuntimeValue::String(b)) => Ok(a.cmp(b)),
             _ => Err(format!("Cannot compare MistQL values of type {}", self.get_type())),
         }
@@ -466,9 +467,7 @@ impl RuntimeValue {
     /// Access object property
     pub fn access(&self, key: &str) -> RuntimeValue {
         match self {
-            RuntimeValue::Object(obj) => {
-                obj.get(key).cloned().unwrap_or(RuntimeValue::Null)
-            }
+            RuntimeValue::Object(obj) => obj.get(key).cloned().unwrap_or(RuntimeValue::Null),
             _ => RuntimeValue::Null,
         }
     }
@@ -711,10 +710,7 @@ mod basic_types {
 
     #[test]
     fn test_array_type() {
-        let non_empty_arr = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::String("test".to_string())
-        ]);
+        let non_empty_arr = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
         let empty_arr = RuntimeValue::Array(vec![]);
 
         assert_eq!(non_empty_arr.get_type(), RuntimeValueType::Array);
@@ -737,9 +733,7 @@ mod basic_types {
 
     #[test]
     fn test_regex_type() {
-        let regex = RuntimeValue::Regex(
-            MistQLRegex::new("test", "").unwrap()
-        );
+        let regex = RuntimeValue::Regex(MistQLRegex::new("test", "").unwrap());
 
         assert_eq!(regex.get_type(), RuntimeValueType::Regex);
         assert!(regex.truthy());
@@ -812,20 +806,11 @@ mod equality_tests {
 
     #[test]
     fn test_array_equality() {
-        let arr1 = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::String("test".to_string())
-        ]);
+        let arr1 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
 
-        let arr2 = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::String("test".to_string())
-        ]);
+        let arr2 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
 
-        let arr3 = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::String("different".to_string())
-        ]);
+        let arr3 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("different".to_string())]);
 
         assert_eq!(arr1, arr2);
         assert_ne!(arr1, arr3);
@@ -1204,10 +1189,7 @@ mod type_conversion_tests {
             map
         });
 
-        let arr = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::String("test".to_string())
-        ]);
+        let arr = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
 
         // These should serialize to JSON
         let obj_str = obj.to_string();
@@ -1385,7 +1367,7 @@ mod edge_case_tests {
         let nested_empty = RuntimeValue::Array(vec![
             RuntimeValue::Array(vec![]),
             RuntimeValue::Object(HashMap::new()),
-            RuntimeValue::String("".to_string())
+            RuntimeValue::String("".to_string()),
         ]);
 
         // The array itself is truthy because it's not empty

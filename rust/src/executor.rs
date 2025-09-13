@@ -3,9 +3,9 @@
 //! This module implements the core execution engine for MistQL expressions,
 //! including contextualized expressions, function calls, and pipeline processing.
 
-use crate::types::RuntimeValue;
-use crate::parser::{Expression, UnaryOperator, BinaryOperator};
 use crate::builtins::execute_builtin;
+use crate::parser::{BinaryOperator, Expression, UnaryOperator};
+use crate::types::RuntimeValue;
 use std::collections::HashMap;
 
 /// A single frame in the execution stack containing variable bindings.
@@ -36,7 +36,11 @@ impl std::fmt::Display for ExecutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ExecutionError::VariableNotFound(name) => write!(f, "Could not find referenced variable: {}", name),
-            ExecutionError::NotCallable(actual_type) => write!(f, "Attempted to call a variable of type \"{}\". Only functions are callable", actual_type),
+            ExecutionError::NotCallable(actual_type) => write!(
+                f,
+                "Attempted to call a variable of type \"{}\". Only functions are callable",
+                actual_type
+            ),
             ExecutionError::TypeMismatch(msg) => write!(f, "Type mismatch: {}", msg),
             ExecutionError::DivisionByZero => write!(f, "Division by zero"),
             ExecutionError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
@@ -132,7 +136,8 @@ impl ExecutionContext {
     }
 
     pub fn get_builtin(&self, name: &str) -> Result<&RuntimeValue, ExecutionError> {
-        self.builtins.get(name)
+        self.builtins
+            .get(name)
             .ok_or_else(|| ExecutionError::VariableNotFound(name.to_string()))
     }
 
@@ -198,7 +203,10 @@ fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result
     Ok(RuntimeValue::Array(result))
 }
 
-fn execute_object(entries: &std::collections::HashMap<String, Expression>, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_object(
+    entries: &std::collections::HashMap<String, Expression>,
+    context: &mut ExecutionContext,
+) -> Result<RuntimeValue, ExecutionError> {
     let mut result = std::collections::HashMap::new();
     for (key, expr) in entries {
         let value = execute_expression(expr, context)?;
@@ -207,14 +215,16 @@ fn execute_object(entries: &std::collections::HashMap<String, Expression>, conte
     Ok(RuntimeValue::Object(result))
 }
 
-fn execute_function_call(function: &Expression, arguments: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_function_call(
+    function: &Expression,
+    arguments: &[Expression],
+    context: &mut ExecutionContext,
+) -> Result<RuntimeValue, ExecutionError> {
     let func_value = execute_expression(function, context)?;
 
     match func_value {
-        RuntimeValue::Function(func_name) => {
-            execute_builtin(&func_name, arguments, context)
-        }
-        _ => Err(ExecutionError::NotCallable(func_value.get_type().to_string()))
+        RuntimeValue::Function(func_name) => execute_builtin(&func_name, arguments, context),
+        _ => Err(ExecutionError::NotCallable(func_value.get_type().to_string())),
     }
 }
 
@@ -298,16 +308,19 @@ fn execute_unary(operator: UnaryOperator, operand: &Expression, context: &mut Ex
 
     match operator {
         UnaryOperator::Not => Ok(RuntimeValue::Boolean(!value.truthy())),
-        UnaryOperator::Negate => {
-            match value {
-                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(-n)),
-                _ => Err(ExecutionError::TypeMismatch(format!("Cannot negate {}", value.get_type())))
-            }
-        }
+        UnaryOperator::Negate => match value {
+            RuntimeValue::Number(n) => Ok(RuntimeValue::Number(-n)),
+            _ => Err(ExecutionError::TypeMismatch(format!("Cannot negate {}", value.get_type()))),
+        },
     }
 }
 
-fn execute_binary(operator: BinaryOperator, left: &Expression, right: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_binary(
+    operator: BinaryOperator,
+    left: &Expression,
+    right: &Expression,
+    context: &mut ExecutionContext,
+) -> Result<RuntimeValue, ExecutionError> {
     let left_val = execute_expression(left, context)?;
     let right_val = execute_expression(right, context)?;
 
@@ -333,16 +346,16 @@ fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionC
     let obj_value = execute_expression(object, context)?;
 
     match obj_value {
-        RuntimeValue::Object(obj) => {
-            Ok(obj.get(field).cloned().unwrap_or(RuntimeValue::Null))
-        }
+        RuntimeValue::Object(obj) => Ok(obj.get(field).cloned().unwrap_or(RuntimeValue::Null)),
         RuntimeValue::Null => {
             // Null coalescing: property access on null returns null.
             Ok(RuntimeValue::Null)
         }
-        _ => {
-            Err(ExecutionError::TypeMismatch(format!("Cannot access property '{}' on type {}", field, obj_value.get_type())))
-        }
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot access property '{}' on type {}",
+            field,
+            obj_value.get_type()
+        ))),
     }
 }
 
@@ -377,15 +390,23 @@ fn execute_indexing(target: &Expression, index: &Expression, context: &mut Execu
             let idx = *idx as isize;
             if idx < 0 {
                 let idx = (s.len() as isize + idx) as usize;
-                Ok(s.chars().nth(idx).map(|c| RuntimeValue::String(c.to_string())).unwrap_or(RuntimeValue::Null))
+                Ok(s.chars()
+                    .nth(idx)
+                    .map(|c| RuntimeValue::String(c.to_string()))
+                    .unwrap_or(RuntimeValue::Null))
             } else {
-                Ok(s.chars().nth(idx as usize).map(|c| RuntimeValue::String(c.to_string())).unwrap_or(RuntimeValue::Null))
+                Ok(s.chars()
+                    .nth(idx as usize)
+                    .map(|c| RuntimeValue::String(c.to_string()))
+                    .unwrap_or(RuntimeValue::Null))
             }
         }
-        (RuntimeValue::Object(obj), RuntimeValue::String(key)) => {
-            Ok(obj.get(key).cloned().unwrap_or(RuntimeValue::Null))
-        }
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot index {:?} with {:?}", target_value.get_type(), index_value.get_type())))
+        (RuntimeValue::Object(obj), RuntimeValue::String(key)) => Ok(obj.get(key).cloned().unwrap_or(RuntimeValue::Null)),
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot index {:?} with {:?}",
+            target_value.get_type(),
+            index_value.get_type()
+        ))),
     }
 }
 
@@ -396,13 +417,23 @@ fn execute_slicing(target: &RuntimeValue, start: &RuntimeValue, end: &RuntimeVal
             let start_idx = match start {
                 RuntimeValue::Number(n) => *n as isize,
                 RuntimeValue::Null => 0,
-                _ => return Err(ExecutionError::TypeMismatch(format!("Slice start must be number or null, got {:?}", start.get_type())))
+                _ => {
+                    return Err(ExecutionError::TypeMismatch(format!(
+                        "Slice start must be number or null, got {:?}",
+                        start.get_type()
+                    )))
+                }
             };
 
             let end_idx = match end {
                 RuntimeValue::Number(n) => *n as isize,
                 RuntimeValue::Null => arr.len() as isize,
-                _ => return Err(ExecutionError::TypeMismatch(format!("Slice end must be number or null, got {:?}", end.get_type())))
+                _ => {
+                    return Err(ExecutionError::TypeMismatch(format!(
+                        "Slice end must be number or null, got {:?}",
+                        end.get_type()
+                    )))
+                }
             };
 
             let len = arr.len() as isize;
@@ -422,13 +453,23 @@ fn execute_slicing(target: &RuntimeValue, start: &RuntimeValue, end: &RuntimeVal
             let start_idx = match start {
                 RuntimeValue::Number(n) => *n as isize,
                 RuntimeValue::Null => 0,
-                _ => return Err(ExecutionError::TypeMismatch(format!("Slice start must be number or null, got {:?}", start.get_type())))
+                _ => {
+                    return Err(ExecutionError::TypeMismatch(format!(
+                        "Slice start must be number or null, got {:?}",
+                        start.get_type()
+                    )))
+                }
             };
 
             let end_idx = match end {
                 RuntimeValue::Number(n) => *n as isize,
                 RuntimeValue::Null => s.len() as isize,
-                _ => return Err(ExecutionError::TypeMismatch(format!("Slice end must be number or null, got {:?}", end.get_type())))
+                _ => {
+                    return Err(ExecutionError::TypeMismatch(format!(
+                        "Slice end must be number or null, got {:?}",
+                        end.get_type()
+                    )))
+                }
             };
 
             let len = s.len() as isize;
@@ -450,7 +491,7 @@ fn execute_slicing(target: &RuntimeValue, start: &RuntimeValue, end: &RuntimeVal
                 }
             }
         }
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot slice {:?}", target.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!("Cannot slice {:?}", target.get_type()))),
     }
 }
 
@@ -463,21 +504,33 @@ fn execute_plus(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValu
             result.extend(b.clone());
             Ok(RuntimeValue::Array(result))
         }
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot add {:?} and {:?}", left.get_type(), right.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot add {:?} and {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
     }
 }
 
 fn execute_minus(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
     match (left, right) {
         (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a - b)),
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot subtract {:?} from {:?}", right.get_type(), left.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot subtract {:?} from {:?}",
+            right.get_type(),
+            left.get_type()
+        ))),
     }
 }
 
 fn execute_multiply(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
     match (left, right) {
         (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a * b)),
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot multiply {:?} and {:?}", left.get_type(), right.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot multiply {:?} and {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
     }
 }
 
@@ -490,7 +543,11 @@ fn execute_divide(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeVa
                 Ok(RuntimeValue::Number(a / b))
             }
         }
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot divide {:?} by {:?}", left.get_type(), right.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot divide {:?} by {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
     }
 }
 
@@ -503,23 +560,29 @@ fn execute_modulo(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeVa
                 Ok(RuntimeValue::Number(a % b))
             }
         }
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot compute {:?} modulo {:?}", left.get_type(), right.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot compute {:?} modulo {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
     }
 }
 
 fn execute_regex_match(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
     match (left, right) {
-        (RuntimeValue::String(s), RuntimeValue::Regex(regex)) => {
-            Ok(RuntimeValue::Boolean(regex.as_regex().is_match(s)))
-        }
+        (RuntimeValue::String(s), RuntimeValue::Regex(regex)) => Ok(RuntimeValue::Boolean(regex.as_regex().is_match(s))),
         (RuntimeValue::String(s), RuntimeValue::String(pattern)) => {
             // Treat string as regex pattern
             match regex::Regex::new(pattern) {
                 Ok(regex) => Ok(RuntimeValue::Boolean(regex.is_match(s))),
-                Err(_) => Err(ExecutionError::TypeMismatch(format!("Invalid regex pattern: {}", pattern)))
+                Err(_) => Err(ExecutionError::TypeMismatch(format!("Invalid regex pattern: {}", pattern))),
             }
         }
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot match {:?} with {:?}", left.get_type(), right.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot match {:?} with {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
     }
 }
 
@@ -527,7 +590,7 @@ fn execute_greater_than(left: &RuntimeValue, right: &RuntimeValue) -> Result<Run
     match left.compare(right) {
         Ok(std::cmp::Ordering::Greater) => Ok(RuntimeValue::Boolean(true)),
         Ok(_) => Ok(RuntimeValue::Boolean(false)),
-        Err(e) => Err(ExecutionError::TypeMismatch(e))
+        Err(e) => Err(ExecutionError::TypeMismatch(e)),
     }
 }
 
@@ -535,7 +598,7 @@ fn execute_less_than(left: &RuntimeValue, right: &RuntimeValue) -> Result<Runtim
     match left.compare(right) {
         Ok(std::cmp::Ordering::Less) => Ok(RuntimeValue::Boolean(true)),
         Ok(_) => Ok(RuntimeValue::Boolean(false)),
-        Err(e) => Err(ExecutionError::TypeMismatch(e))
+        Err(e) => Err(ExecutionError::TypeMismatch(e)),
     }
 }
 
@@ -543,7 +606,7 @@ fn execute_greater_equal(left: &RuntimeValue, right: &RuntimeValue) -> Result<Ru
     match left.compare(right) {
         Ok(std::cmp::Ordering::Greater) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
         Ok(_) => Ok(RuntimeValue::Boolean(false)),
-        Err(e) => Err(ExecutionError::TypeMismatch(e))
+        Err(e) => Err(ExecutionError::TypeMismatch(e)),
     }
 }
 
@@ -551,7 +614,7 @@ fn execute_less_equal(left: &RuntimeValue, right: &RuntimeValue) -> Result<Runti
     match left.compare(right) {
         Ok(std::cmp::Ordering::Less) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
         Ok(_) => Ok(RuntimeValue::Boolean(false)),
-        Err(e) => Err(ExecutionError::TypeMismatch(e))
+        Err(e) => Err(ExecutionError::TypeMismatch(e)),
     }
 }
 
@@ -712,7 +775,10 @@ mod tests {
         assert_eq!(format!("{}", error), "Could not find referenced variable: test");
 
         let error = ExecutionError::NotCallable("string".to_string());
-        assert_eq!(format!("{}", error), "Attempted to call a variable of type \"string\". Only functions are callable");
+        assert_eq!(
+            format!("{}", error),
+            "Attempted to call a variable of type \"string\". Only functions are callable"
+        );
 
         let error = ExecutionError::DivisionByZero;
         assert_eq!(format!("{}", error), "Division by zero");
@@ -722,8 +788,8 @@ mod tests {
 #[cfg(test)]
 mod execution_tests {
     use super::*;
+    use crate::parser::{BinaryOperator, Expression, UnaryOperator};
     use crate::types::RuntimeValue;
-    use crate::parser::{Expression, UnaryOperator, BinaryOperator};
     use std::collections::HashMap;
 
     fn create_test_context() -> ExecutionContext {
@@ -731,11 +797,14 @@ mod execution_tests {
             let mut map = HashMap::new();
             map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
             map.insert("age".to_string(), RuntimeValue::Number(30.0));
-            map.insert("scores".to_string(), RuntimeValue::Array(vec![
-                RuntimeValue::Number(85.0),
-                RuntimeValue::Number(92.0),
-                RuntimeValue::Number(78.0),
-            ]));
+            map.insert(
+                "scores".to_string(),
+                RuntimeValue::Array(vec![
+                    RuntimeValue::Number(85.0),
+                    RuntimeValue::Number(92.0),
+                    RuntimeValue::Number(78.0),
+                ]),
+            );
             map
         });
 
@@ -747,7 +816,7 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let expr = Expression::ValueExpression {
-            value: RuntimeValue::String("hello".to_string())
+            value: RuntimeValue::String("hello".to_string()),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -760,7 +829,7 @@ mod execution_tests {
 
         let expr = Expression::RefExpression {
             name: "name".to_string(),
-            absolute: false
+            absolute: false,
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -773,10 +842,16 @@ mod execution_tests {
 
         let expr = Expression::ArrayExpression {
             items: vec![
-                Expression::ValueExpression { value: RuntimeValue::Number(1.0) },
-                Expression::ValueExpression { value: RuntimeValue::Number(2.0) },
-                Expression::ValueExpression { value: RuntimeValue::Number(3.0) },
-            ]
+                Expression::ValueExpression {
+                    value: RuntimeValue::Number(1.0),
+                },
+                Expression::ValueExpression {
+                    value: RuntimeValue::Number(2.0),
+                },
+                Expression::ValueExpression {
+                    value: RuntimeValue::Number(3.0),
+                },
+            ],
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -793,8 +868,18 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let mut entries = HashMap::new();
-        entries.insert("key1".to_string(), Expression::ValueExpression { value: RuntimeValue::String("value1".to_string()) });
-        entries.insert("key2".to_string(), Expression::ValueExpression { value: RuntimeValue::Number(42.0) });
+        entries.insert(
+            "key1".to_string(),
+            Expression::ValueExpression {
+                value: RuntimeValue::String("value1".to_string()),
+            },
+        );
+        entries.insert(
+            "key2".to_string(),
+            Expression::ValueExpression {
+                value: RuntimeValue::Number(42.0),
+            },
+        );
 
         let expr = Expression::ObjectExpression { entries };
 
@@ -814,8 +899,8 @@ mod execution_tests {
 
         let expr = Expression::ParentheticalExpression {
             expression: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(42.0)
-            })
+                value: RuntimeValue::Number(42.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -829,8 +914,8 @@ mod execution_tests {
         let expr = Expression::UnaryExpression {
             operator: UnaryOperator::Not,
             operand: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Boolean(true)
-            })
+                value: RuntimeValue::Boolean(true),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -844,8 +929,8 @@ mod execution_tests {
         let expr = Expression::UnaryExpression {
             operator: UnaryOperator::Negate,
             operand: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(42.0)
-            })
+                value: RuntimeValue::Number(42.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -859,8 +944,12 @@ mod execution_tests {
         // Test addition
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Plus,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(10.0) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(5.0) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(10.0),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(5.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -869,8 +958,12 @@ mod execution_tests {
         // Test multiplication
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Mul,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(3.0) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(4.0) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(3.0),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(4.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -884,8 +977,12 @@ mod execution_tests {
         // Test equality
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Eq,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(5.0) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(5.0) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(5.0),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(5.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -894,8 +991,12 @@ mod execution_tests {
         // Test greater than
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Gt,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(10.0) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(5.0) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(10.0),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(5.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -909,8 +1010,12 @@ mod execution_tests {
         // Test logical AND (short-circuiting)
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::And,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::Boolean(false) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Boolean(true) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Boolean(false),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Boolean(true),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -919,8 +1024,12 @@ mod execution_tests {
         // Test logical OR (short-circuiting)
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Or,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::Boolean(true) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Boolean(false) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Boolean(true),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Boolean(false),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -934,9 +1043,9 @@ mod execution_tests {
         let expr = Expression::DotAccessExpression {
             object: Box::new(Expression::RefExpression {
                 name: "@".to_string(),
-                absolute: false
+                absolute: false,
             }),
-            field: "name".to_string()
+            field: "name".to_string(),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -950,9 +1059,9 @@ mod execution_tests {
         let expr = Expression::DotAccessExpression {
             object: Box::new(Expression::RefExpression {
                 name: "@".to_string(),
-                absolute: false
+                absolute: false,
             }),
-            field: "nonexistent".to_string()
+            field: "nonexistent".to_string(),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -966,9 +1075,11 @@ mod execution_tests {
         let expr = Expression::IndexExpression {
             target: Box::new(Expression::RefExpression {
                 name: "scores".to_string(),
-                absolute: false
+                absolute: false,
             }),
-            index: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(0.0) })
+            index: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(0.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -982,9 +1093,11 @@ mod execution_tests {
         let expr = Expression::IndexExpression {
             target: Box::new(Expression::RefExpression {
                 name: "scores".to_string(),
-                absolute: false
+                absolute: false,
             }),
-            index: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(-1.0) })
+            index: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(-1.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -996,8 +1109,12 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let expr = Expression::IndexExpression {
-            target: Box::new(Expression::ValueExpression { value: RuntimeValue::String("hello".to_string()) }),
-            index: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(0.0) })
+            target: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::String("hello".to_string()),
+            }),
+            index: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(0.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -1011,9 +1128,15 @@ mod execution_tests {
         // Simple pipeline: @ | name
         let expr = Expression::PipeExpression {
             stages: vec![
-                Expression::RefExpression { name: "@".to_string(), absolute: false },
-                Expression::RefExpression { name: "name".to_string(), absolute: false },
-            ]
+                Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                },
+                Expression::RefExpression {
+                    name: "name".to_string(),
+                    absolute: false,
+                },
+            ],
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -1025,15 +1148,17 @@ mod execution_tests {
         let mut context = create_test_context();
 
         // Add a function to the context so it can be found
-        context.builtins.insert("count".to_string(), RuntimeValue::Function("count".to_string()));
+        context
+            .builtins
+            .insert("count".to_string(), RuntimeValue::Function("count".to_string()));
         context.stack[0].insert("count".to_string(), RuntimeValue::Function("count".to_string()));
 
         let expr = Expression::FnExpression {
             function: Box::new(Expression::RefExpression {
                 name: "count".to_string(),
-                absolute: false
+                absolute: false,
             }),
-            arguments: vec![]
+            arguments: vec![],
         };
 
         let result = execute_expression(&expr, &mut context);
@@ -1046,9 +1171,9 @@ mod execution_tests {
 
         let expr = Expression::FnExpression {
             function: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::String("not a function".to_string())
+                value: RuntimeValue::String("not a function".to_string()),
             }),
-            arguments: vec![]
+            arguments: vec![],
         };
 
         let result = execute_expression(&expr, &mut context);
@@ -1061,8 +1186,12 @@ mod execution_tests {
 
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Div,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(10.0) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(0.0) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(10.0),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(0.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context);
@@ -1076,8 +1205,12 @@ mod execution_tests {
         // Try to add string and number
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Plus,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::String("hello".to_string()) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(5.0) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::String("hello".to_string()),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(5.0),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context);
@@ -1090,8 +1223,12 @@ mod execution_tests {
 
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Plus,
-            left: Box::new(Expression::ValueExpression { value: RuntimeValue::String("hello ".to_string()) }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::String("world".to_string()) })
+            left: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::String("hello ".to_string()),
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::String("world".to_string()),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -1105,11 +1242,11 @@ mod execution_tests {
         let expr = Expression::BinaryExpression {
             operator: BinaryOperator::Plus,
             left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::Number(2.0)])
+                value: RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::Number(2.0)]),
             }),
             right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![RuntimeValue::Number(3.0), RuntimeValue::Number(4.0)])
-            })
+                value: RuntimeValue::Array(vec![RuntimeValue::Number(3.0), RuntimeValue::Number(4.0)]),
+            }),
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -1146,15 +1283,29 @@ mod execution_tests {
         let condition = Expression::BinaryExpression {
             operator: BinaryOperator::Gt,
             left: Box::new(Expression::DotAccessExpression {
-                object: Box::new(Expression::RefExpression { name: "@".to_string(), absolute: false }),
-                field: "age".to_string()
+                object: Box::new(Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                }),
+                field: "age".to_string(),
             }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(26.0) })
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(26.0),
+            }),
         };
 
         let filter_expr = Expression::FnExpression {
-            function: Box::new(Expression::RefExpression { name: "filter".to_string(), absolute: false }),
-            arguments: vec![condition, Expression::RefExpression { name: "@".to_string(), absolute: false }]
+            function: Box::new(Expression::RefExpression {
+                name: "filter".to_string(),
+                absolute: false,
+            }),
+            arguments: vec![
+                condition,
+                Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                },
+            ],
         };
 
         let result = execute_expression(&filter_expr, &mut context).unwrap();
@@ -1194,13 +1345,25 @@ mod execution_tests {
 
         // Test map with contextualized expressions: map @.name @
         let transformation = Expression::DotAccessExpression {
-            object: Box::new(Expression::RefExpression { name: "@".to_string(), absolute: false }),
-            field: "name".to_string()
+            object: Box::new(Expression::RefExpression {
+                name: "@".to_string(),
+                absolute: false,
+            }),
+            field: "name".to_string(),
         };
 
         let map_expr = Expression::FnExpression {
-            function: Box::new(Expression::RefExpression { name: "map".to_string(), absolute: false }),
-            arguments: vec![transformation, Expression::RefExpression { name: "@".to_string(), absolute: false }]
+            function: Box::new(Expression::RefExpression {
+                name: "map".to_string(),
+                absolute: false,
+            }),
+            arguments: vec![
+                transformation,
+                Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                },
+            ],
         };
 
         let result = execute_expression(&map_expr, &mut context).unwrap();

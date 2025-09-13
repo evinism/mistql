@@ -4,9 +4,9 @@
 //! including array operations, object operations, string operations, mathematical
 //! functions, and utility functions.
 
-use crate::types::RuntimeValue;
+use crate::executor::{execute_expression, ExecutionContext, ExecutionError};
 use crate::parser::Expression;
-use crate::executor::{ExecutionContext, ExecutionError, execute_expression};
+use crate::types::RuntimeValue;
 use std::collections::HashMap;
 
 /// Validate the number of arguments for a builtin function.
@@ -26,7 +26,7 @@ fn validate_args(name: &str, args: &[Expression], min_args: usize, max_args: Opt
 fn assert_number(value: RuntimeValue) -> Result<f64, ExecutionError> {
     match value {
         RuntimeValue::Number(n) => Ok(n),
-        _ => Err(ExecutionError::TypeMismatch(format!("Expected number, got {}", value.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!("Expected number, got {}", value.get_type()))),
     }
 }
 
@@ -34,7 +34,7 @@ fn assert_number(value: RuntimeValue) -> Result<f64, ExecutionError> {
 fn assert_array(value: RuntimeValue) -> Result<Vec<RuntimeValue>, ExecutionError> {
     match value {
         RuntimeValue::Array(arr) => Ok(arr),
-        _ => Err(ExecutionError::TypeMismatch(format!("Expected array, got {}", value.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!("Expected array, got {}", value.get_type()))),
     }
 }
 
@@ -42,7 +42,7 @@ fn assert_array(value: RuntimeValue) -> Result<Vec<RuntimeValue>, ExecutionError
 fn assert_object(value: RuntimeValue) -> Result<HashMap<String, RuntimeValue>, ExecutionError> {
     match value {
         RuntimeValue::Object(obj) => Ok(obj),
-        _ => Err(ExecutionError::TypeMismatch(format!("Expected object, got {}", value.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!("Expected object, got {}", value.get_type()))),
     }
 }
 
@@ -50,7 +50,7 @@ fn assert_object(value: RuntimeValue) -> Result<HashMap<String, RuntimeValue>, E
 fn assert_string(value: RuntimeValue) -> Result<String, ExecutionError> {
     match value {
         RuntimeValue::String(s) => Ok(s),
-        _ => Err(ExecutionError::TypeMismatch(format!("Expected string, got {}", value.get_type())))
+        _ => Err(ExecutionError::TypeMismatch(format!("Expected string, got {}", value.get_type()))),
     }
 }
 
@@ -179,7 +179,12 @@ pub fn flatten(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     for item in array {
         match item {
             RuntimeValue::Array(nested) => result.extend(nested),
-            _ => return Err(ExecutionError::TypeMismatch(format!("flatten: all elements must be arrays, got {}", item.get_type())))
+            _ => {
+                return Err(ExecutionError::TypeMismatch(format!(
+                    "flatten: all elements must be arrays, got {}",
+                    item.get_type()
+                )))
+            }
         }
     }
 
@@ -193,14 +198,19 @@ pub fn sum(args: &[Expression], context: &mut ExecutionContext) -> Result<Runtim
 
     let array = match value {
         RuntimeValue::Array(arr) => arr,
-        _ => return Err(ExecutionError::TypeMismatch(format!("Expected array, got {}", value.get_type())))
+        _ => return Err(ExecutionError::TypeMismatch(format!("Expected array, got {}", value.get_type()))),
     };
 
     let mut total = 0.0;
     for item in array {
         let num = match item {
             RuntimeValue::Number(n) => n,
-            _ => return Err(ExecutionError::TypeMismatch(format!("sum: all elements must be numbers, got {}", item.get_type())))
+            _ => {
+                return Err(ExecutionError::TypeMismatch(format!(
+                    "sum: all elements must be numbers, got {}",
+                    item.get_type()
+                )))
+            }
         };
         total += num;
     }
@@ -220,16 +230,18 @@ pub fn sort(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
     let first_type = array[0].get_type();
     for item in &array {
         if item.get_type() != first_type {
-            return Err(ExecutionError::TypeMismatch(format!("sort: cannot sort non-homogeneous arrays (found {} and {})", first_type, item.get_type())));
+            return Err(ExecutionError::TypeMismatch(format!(
+                "sort: cannot sort non-homogeneous arrays (found {} and {})",
+                first_type,
+                item.get_type()
+            )));
         }
         if !item.comparable() {
             return Err(ExecutionError::Custom("sort: Cannot sort non-comparable values".to_string()));
         }
     }
 
-    array.sort_by(|a, b| {
-        a.compare(b).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    array.sort_by(|a, b| a.compare(b).unwrap_or(std::cmp::Ordering::Equal));
 
     Ok(RuntimeValue::Array(array))
 }
@@ -254,9 +266,7 @@ pub fn sortby(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
         with_key.push((key, item));
     }
 
-    with_key.sort_by(|a, b| {
-        a.0.compare(&b.0).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    with_key.sort_by(|a, b| a.0.compare(&b.0).unwrap_or(std::cmp::Ordering::Equal));
 
     let result: Vec<RuntimeValue> = with_key.into_iter().map(|(_, value)| value).collect();
 
@@ -402,9 +412,7 @@ pub fn keys(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
     let mut sorted_keys: Vec<String> = object.keys().cloned().collect();
     sorted_keys.sort();
 
-    let keys: Vec<RuntimeValue> = sorted_keys.iter()
-        .map(|k| RuntimeValue::String(k.clone()))
-        .collect();
+    let keys: Vec<RuntimeValue> = sorted_keys.iter().map(|k| RuntimeValue::String(k.clone())).collect();
 
     Ok(RuntimeValue::Array(keys))
 }
@@ -418,9 +426,7 @@ pub fn values(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     let mut sorted_keys: Vec<String> = object.keys().cloned().collect();
     sorted_keys.sort();
 
-    let values: Vec<RuntimeValue> = sorted_keys.iter()
-        .map(|key| object[key].clone())
-        .collect();
+    let values: Vec<RuntimeValue> = sorted_keys.iter().map(|key| object[key].clone()).collect();
     Ok(RuntimeValue::Array(values))
 }
 
@@ -436,10 +442,7 @@ pub fn entries(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     let mut result = Vec::new();
     for key in sorted_keys {
         let value = object[&key].clone();
-        let entry = RuntimeValue::Array(vec![
-            RuntimeValue::String(key),
-            value
-        ]);
+        let entry = RuntimeValue::Array(vec![RuntimeValue::String(key), value]);
         result.push(entry);
     }
 
@@ -566,21 +569,18 @@ pub fn split(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
                 // Special case: empty delimiter splits into individual characters.
                 string.chars().map(|c| RuntimeValue::String(c.to_string())).collect()
             } else {
-                string
-                    .split(&delimiter)
-                    .map(|s| RuntimeValue::String(s.to_string()))
-                    .collect()
+                string.split(&delimiter).map(|s| RuntimeValue::String(s.to_string())).collect()
             }
         }
         RuntimeValue::Regex(regex) => {
             let compiled_regex = regex.as_regex();
-            compiled_regex
-                .split(&string)
-                .map(|s| RuntimeValue::String(s.to_string()))
-                .collect()
+            compiled_regex.split(&string).map(|s| RuntimeValue::String(s.to_string())).collect()
         }
         _ => {
-            return Err(ExecutionError::TypeMismatch(format!("Expected string or regex for split delimiter, got {}", delimiter_value.get_type())));
+            return Err(ExecutionError::TypeMismatch(format!(
+                "Expected string or regex for split delimiter, got {}",
+                delimiter_value.get_type()
+            )));
         }
     };
 
@@ -594,10 +594,7 @@ pub fn stringjoin(args: &[Expression], context: &mut ExecutionContext) -> Result
     let delimiter = assert_string(execute_expression(&args[0], context)?)?;
     let array = assert_array(execute_expression(&args[1], context)?)?;
 
-    let strings: Result<Vec<String>, ExecutionError> = array
-        .into_iter()
-        .map(|item| assert_string(item))
-        .collect();
+    let strings: Result<Vec<String>, ExecutionError> = array.into_iter().map(|item| assert_string(item)).collect();
 
     let strings = strings?;
     let result = strings.join(&delimiter);
@@ -636,7 +633,7 @@ pub fn replace(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
             };
             Ok(RuntimeValue::String(result))
         }
-        _ => Err(ExecutionError::TypeMismatch("replace: pattern must be string or regex".to_string()))
+        _ => Err(ExecutionError::TypeMismatch("replace: pattern must be string or regex".to_string())),
     }
 }
 
@@ -652,14 +649,14 @@ pub fn match_function(args: &[Expression], context: &mut ExecutionContext) -> Re
             // String arguments should be treated as regexes.
             match regex::Regex::new(&pattern_str) {
                 Ok(regex) => regex.is_match(&target),
-                Err(_) => return Err(ExecutionError::Custom(format!("Invalid regex pattern: {}", pattern_str)))
+                Err(_) => return Err(ExecutionError::Custom(format!("Invalid regex pattern: {}", pattern_str))),
             }
         }
         RuntimeValue::Regex(regex_obj) => {
             // Regex matching.
             regex_obj.as_regex().is_match(&target)
         }
-        _ => return Err(ExecutionError::TypeMismatch("match: pattern must be string or regex".to_string()))
+        _ => return Err(ExecutionError::TypeMismatch("match: pattern must be string or regex".to_string())),
     };
 
     Ok(RuntimeValue::Boolean(matches))
@@ -676,8 +673,8 @@ pub fn regex(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
         String::new()
     };
 
-    let regex_obj = crate::types::MistQLRegex::new(&pattern, &flags)
-        .map_err(|e| ExecutionError::Custom(format!("Invalid regex: {}", e)))?;
+    let regex_obj =
+        crate::types::MistQLRegex::new(&pattern, &flags).map_err(|e| ExecutionError::Custom(format!("Invalid regex: {}", e)))?;
 
     Ok(RuntimeValue::Regex(regex_obj))
 }
@@ -723,10 +720,17 @@ pub fn range(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
                 if n.fract() == 0.0 {
                     Ok(n as i64)
                 } else {
-                    Err(ExecutionError::TypeMismatch(format!("range: {} must be an integer, got {}", arg_name, n)))
+                    Err(ExecutionError::TypeMismatch(format!(
+                        "range: {} must be an integer, got {}",
+                        arg_name, n
+                    )))
                 }
             }
-            _ => Err(ExecutionError::TypeMismatch(format!("range: {} must be a number, got {}", arg_name, value.get_type())))
+            _ => Err(ExecutionError::TypeMismatch(format!(
+                "range: {} must be a number, got {}",
+                arg_name,
+                value.get_type()
+            ))),
         }
     };
 
@@ -794,13 +798,13 @@ pub fn summarize(args: &[Expression], context: &mut ExecutionContext) -> Result<
         return Err(ExecutionError::Custom("summarize: cannot summarize empty array".to_string()));
     }
 
-    let numbers: Result<Vec<f64>, ExecutionError> = array.iter()
-        .map(|item| assert_number(item.clone()))
-        .collect();
+    let numbers: Result<Vec<f64>, ExecutionError> = array.iter().map(|item| assert_number(item.clone())).collect();
     let numbers = numbers?;
 
     if numbers.len() < 2 {
-        return Err(ExecutionError::Custom("summarize: requires at least 2 numbers for variance calculation".to_string()));
+        return Err(ExecutionError::Custom(
+            "summarize: requires at least 2 numbers for variance calculation".to_string(),
+        ));
     }
 
     // Calculate statistics.
@@ -819,9 +823,7 @@ pub fn summarize(args: &[Expression], context: &mut ExecutionContext) -> Result<
     };
 
     // Calculate variance and standard deviation.
-    let variance = numbers.iter()
-        .map(|&x| (x - mean).powi(2))
-        .sum::<f64>() / (numbers.len() - 1) as f64;
+    let variance = numbers.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / (numbers.len() - 1) as f64;
     let stddev = variance.sqrt();
 
     // Create result object.
@@ -869,11 +871,7 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
             let index_num = index_num as i64;
 
             let len = arr.len() as i64;
-            let actual_index = if index_num < 0 {
-                len + index_num
-            } else {
-                index_num
-            };
+            let actual_index = if index_num < 0 { len + index_num } else { index_num };
 
             if actual_index < 0 || actual_index >= len {
                 Ok(RuntimeValue::Null)
@@ -889,18 +887,12 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
             let index_num = index_num as i64;
 
             let len = s.len() as i64;
-            let actual_index = if index_num < 0 {
-                len + index_num
-            } else {
-                index_num
-            };
+            let actual_index = if index_num < 0 { len + index_num } else { index_num };
 
             if actual_index < 0 || actual_index >= len {
                 Ok(RuntimeValue::Null)
             } else {
-                let ch = s.chars().nth(actual_index as usize)
-                    .map(|c| c.to_string())
-                    .unwrap_or_default();
+                let ch = s.chars().nth(actual_index as usize).map(|c| c.to_string()).unwrap_or_default();
                 Ok(RuntimeValue::String(ch))
             }
         }
@@ -912,10 +904,13 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
             // Indexing null returns null, but only if index is number or string.
             match index {
                 RuntimeValue::Number(_) | RuntimeValue::String(_) => Ok(RuntimeValue::Null),
-                _ => Err(ExecutionError::TypeMismatch(format!("Expected number or string, got {}", index.get_type())))
+                _ => Err(ExecutionError::TypeMismatch(format!(
+                    "Expected number or string, got {}",
+                    index.get_type()
+                ))),
             }
         }
-        _ => Err(ExecutionError::Custom(format!("index: Cannot index {}", operand.get_type())))
+        _ => Err(ExecutionError::Custom(format!("index: Cannot index {}", operand.get_type()))),
     }
 }
 
@@ -997,7 +992,7 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
                 Ok(RuntimeValue::String(result))
             }
         }
-        _ => Err(ExecutionError::Custom(format!("index: Cannot slice {}", operand.get_type())))
+        _ => Err(ExecutionError::Custom(format!("index: Cannot slice {}", operand.get_type()))),
     }
 }
 
@@ -1111,15 +1106,15 @@ pub fn execute_builtin(name: &str, args: &[Expression], context: &mut ExecutionC
         "string" => string(args, context),
         "float" => float(args, context),
 
-        _ => Err(ExecutionError::Custom(format!("Unknown builtin function: {}", name)))
+        _ => Err(ExecutionError::Custom(format!("Unknown builtin function: {}", name))),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{RuntimeValue, RuntimeValueType};
     use crate::parser::Expression;
+    use crate::types::{RuntimeValue, RuntimeValueType};
     use std::collections::HashMap;
 
     fn create_test_context() -> ExecutionContext {
@@ -1143,7 +1138,7 @@ mod tests {
                 RuntimeValue::Number(1.0),
                 RuntimeValue::Number(2.0),
                 RuntimeValue::Number(3.0),
-            ])
+            ]),
         }];
 
         let result = count(&args, &mut context).unwrap();
@@ -1159,10 +1154,17 @@ mod tests {
             operator: crate::parser::BinaryOperator::Eq,
             left: Box::new(Expression::BinaryExpression {
                 operator: crate::parser::BinaryOperator::Mod,
-                left: Box::new(Expression::RefExpression { name: "@".to_string(), absolute: false }),
-                right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(2.0) })
+                left: Box::new(Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                }),
+                right: Box::new(Expression::ValueExpression {
+                    value: RuntimeValue::Number(2.0),
+                }),
             }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(0.0) })
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(0.0),
+            }),
         };
 
         let args = vec![
@@ -1174,8 +1176,8 @@ mod tests {
                     RuntimeValue::Number(3.0),
                     RuntimeValue::Number(4.0),
                     RuntimeValue::Number(5.0),
-                ])
-            }
+                ]),
+            },
         ];
 
         let result = filter(&args, &mut context).unwrap();
@@ -1196,8 +1198,13 @@ mod tests {
         // Map to double: map (@ * 2) [1, 2, 3]
         let transformation = Expression::BinaryExpression {
             operator: crate::parser::BinaryOperator::Mul,
-            left: Box::new(Expression::RefExpression { name: "@".to_string(), absolute: false }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(2.0) })
+            left: Box::new(Expression::RefExpression {
+                name: "@".to_string(),
+                absolute: false,
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(2.0),
+            }),
         };
 
         let args = vec![
@@ -1207,8 +1214,8 @@ mod tests {
                     RuntimeValue::Number(1.0),
                     RuntimeValue::Number(2.0),
                     RuntimeValue::Number(3.0),
-                ])
-            }
+                ]),
+            },
         ];
 
         let result = map(&args, &mut context).unwrap();
@@ -1232,7 +1239,7 @@ mod tests {
                 RuntimeValue::Number(1.0),
                 RuntimeValue::Number(2.0),
                 RuntimeValue::Number(3.0),
-            ])
+            ]),
         }];
 
         let result = sum(&args, &mut context).unwrap();
@@ -1249,7 +1256,7 @@ mod tests {
                 map.insert("a".to_string(), RuntimeValue::Number(1.0));
                 map.insert("b".to_string(), RuntimeValue::Number(2.0));
                 map
-            })
+            }),
         }];
 
         let result = keys(&args, &mut context).unwrap();
@@ -1257,10 +1264,11 @@ mod tests {
         if let RuntimeValue::Array(arr) = result {
             assert_eq!(arr.len(), 2);
             // Keys order is not guaranteed, so we check that both keys are present
-            let keys: Vec<String> = arr.into_iter()
+            let keys: Vec<String> = arr
+                .into_iter()
                 .map(|v| match v {
                     RuntimeValue::String(s) => s,
-                    _ => panic!("Expected string key")
+                    _ => panic!("Expected string key"),
                 })
                 .collect();
             assert!(keys.contains(&"a".to_string()));
@@ -1275,7 +1283,7 @@ mod tests {
         let mut context = create_test_context();
 
         let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Number(42.0)
+            value: RuntimeValue::Number(42.0),
         }];
 
         let result = string(&args, &mut context).unwrap();
@@ -1287,9 +1295,15 @@ mod tests {
         let mut context = create_test_context();
 
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::Boolean(true) },
-            Expression::ValueExpression { value: RuntimeValue::String("yes".to_string()) },
-            Expression::ValueExpression { value: RuntimeValue::String("no".to_string()) },
+            Expression::ValueExpression {
+                value: RuntimeValue::Boolean(true),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("yes".to_string()),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("no".to_string()),
+            },
         ];
 
         let result = if_function(&args, &mut context).unwrap();
@@ -1297,9 +1311,15 @@ mod tests {
 
         // Test false condition
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::Boolean(false) },
-            Expression::ValueExpression { value: RuntimeValue::String("yes".to_string()) },
-            Expression::ValueExpression { value: RuntimeValue::String("no".to_string()) },
+            Expression::ValueExpression {
+                value: RuntimeValue::Boolean(false),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("yes".to_string()),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("no".to_string()),
+            },
         ];
 
         let result = if_function(&args, &mut context).unwrap();
@@ -1315,7 +1335,7 @@ mod tests {
                 RuntimeValue::Number(3.0),
                 RuntimeValue::Number(1.0),
                 RuntimeValue::Number(2.0),
-            ])
+            ]),
         }];
 
         let result = sort(&args, &mut context).unwrap();
@@ -1336,8 +1356,13 @@ mod tests {
         // Sort by modulo 4: [3, 1, 2, 8] -> [8, 1, 2, 3] (sorted by @ % 4)
         let transformation = Expression::BinaryExpression {
             operator: crate::parser::BinaryOperator::Mod,
-            left: Box::new(Expression::RefExpression { name: "@".to_string(), absolute: false }),
-            right: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(4.0) })
+            left: Box::new(Expression::RefExpression {
+                name: "@".to_string(),
+                absolute: false,
+            }),
+            right: Box::new(Expression::ValueExpression {
+                value: RuntimeValue::Number(4.0),
+            }),
         };
 
         let args = vec![
@@ -1348,8 +1373,8 @@ mod tests {
                     RuntimeValue::Number(1.0),
                     RuntimeValue::Number(2.0),
                     RuntimeValue::Number(8.0),
-                ])
-            }
+                ]),
+            },
         ];
 
         let result = sortby(&args, &mut context).unwrap();
@@ -1372,25 +1397,37 @@ mod tests {
         let reducer = Expression::BinaryExpression {
             operator: crate::parser::BinaryOperator::Plus,
             left: Box::new(Expression::IndexExpression {
-                target: Box::new(Expression::RefExpression { name: "@".to_string(), absolute: false }),
-                index: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(0.0) })
+                target: Box::new(Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                }),
+                index: Box::new(Expression::ValueExpression {
+                    value: RuntimeValue::Number(0.0),
+                }),
             }),
             right: Box::new(Expression::IndexExpression {
-                target: Box::new(Expression::RefExpression { name: "@".to_string(), absolute: false }),
-                index: Box::new(Expression::ValueExpression { value: RuntimeValue::Number(1.0) })
-            })
+                target: Box::new(Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                }),
+                index: Box::new(Expression::ValueExpression {
+                    value: RuntimeValue::Number(1.0),
+                }),
+            }),
         };
 
         let args = vec![
             reducer,
-            Expression::ValueExpression { value: RuntimeValue::Number(0.0) }, // initial
+            Expression::ValueExpression {
+                value: RuntimeValue::Number(0.0),
+            }, // initial
             Expression::ValueExpression {
                 value: RuntimeValue::Array(vec![
                     RuntimeValue::Number(1.0),
                     RuntimeValue::Number(2.0),
                     RuntimeValue::Number(3.0),
-                ])
-            }
+                ]),
+            },
         ];
 
         let result = reduce(&args, &mut context).unwrap();
@@ -1402,7 +1439,10 @@ mod tests {
         let mut context = create_test_context();
 
         // Group by gender
-        let key_expr = Expression::RefExpression { name: "gender".to_string(), absolute: false };
+        let key_expr = Expression::RefExpression {
+            name: "gender".to_string(),
+            absolute: false,
+        };
 
         let args = vec![
             key_expr,
@@ -1426,8 +1466,8 @@ mod tests {
                         map.insert("name".to_string(), RuntimeValue::String("emily".to_string()));
                         map
                     }),
-                ])
-            }
+                ]),
+            },
         ];
 
         let result = groupby(&args, &mut context).unwrap();
@@ -1457,7 +1497,7 @@ mod tests {
                 RuntimeValue::String("a".to_string()),
                 RuntimeValue::String("b".to_string()),
                 RuntimeValue::String("c".to_string()),
-            ])
+            ]),
         }];
 
         let result = withindices(&args, &mut context).unwrap();
@@ -1496,7 +1536,7 @@ mod tests {
                 map.insert("foo".to_string(), RuntimeValue::String("bar".to_string()));
                 map.insert("baz".to_string(), RuntimeValue::Number(42.0));
                 map
-            })
+            }),
         }];
 
         let result = entries(&args, &mut context).unwrap();
@@ -1525,13 +1565,10 @@ mod tests {
             value: RuntimeValue::Array(vec![
                 RuntimeValue::Array(vec![
                     RuntimeValue::String("foo".to_string()),
-                    RuntimeValue::String("bar".to_string())
+                    RuntimeValue::String("bar".to_string()),
                 ]),
-                RuntimeValue::Array(vec![
-                    RuntimeValue::String("baz".to_string()),
-                    RuntimeValue::Number(42.0)
-                ])
-            ])
+                RuntimeValue::Array(vec![RuntimeValue::String("baz".to_string()), RuntimeValue::Number(42.0)]),
+            ]),
         }];
 
         let result = fromentries(&args, &mut context).unwrap();
@@ -1550,7 +1587,7 @@ mod tests {
 
         // Test range(5) -> [0, 1, 2, 3, 4]
         let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Number(5.0)
+            value: RuntimeValue::Number(5.0),
         }];
 
         let result = range(&args, &mut context).unwrap();
@@ -1567,8 +1604,12 @@ mod tests {
 
         // Test range(3, 8) -> [3, 4, 5, 6, 7]
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::Number(3.0) },
-            Expression::ValueExpression { value: RuntimeValue::Number(8.0) }
+            Expression::ValueExpression {
+                value: RuntimeValue::Number(3.0),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::Number(8.0),
+            },
         ];
 
         let result = range(&args, &mut context).unwrap();
@@ -1593,7 +1634,7 @@ mod tests {
                 RuntimeValue::Number(4.0),
                 RuntimeValue::Number(5.0),
                 RuntimeValue::Number(6.0),
-            ])
+            ]),
         }];
 
         let result = summarize(&args, &mut context).unwrap();
@@ -1616,14 +1657,16 @@ mod tests {
 
         // Test array indexing: index 1 [1, 2, 3] -> 2
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::Number(1.0) },
+            Expression::ValueExpression {
+                value: RuntimeValue::Number(1.0),
+            },
             Expression::ValueExpression {
                 value: RuntimeValue::Array(vec![
                     RuntimeValue::Number(1.0),
                     RuntimeValue::Number(2.0),
                     RuntimeValue::Number(3.0),
-                ])
-            }
+                ]),
+            },
         ];
 
         let result = index(&args, &mut context).unwrap();
@@ -1631,14 +1674,16 @@ mod tests {
 
         // Test object indexing: index "key" {key: "value"} -> "value"
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::String("key".to_string()) },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("key".to_string()),
+            },
             Expression::ValueExpression {
                 value: RuntimeValue::Object({
                     let mut map = HashMap::new();
                     map.insert("key".to_string(), RuntimeValue::String("value".to_string()));
                     map
-                })
-            }
+                }),
+            },
         ];
 
         let result = index(&args, &mut context).unwrap();
@@ -1646,8 +1691,12 @@ mod tests {
 
         // Test slicing: index 1 3 [1, 2, 3, 4, 5] -> [2, 3]
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::Number(1.0) },
-            Expression::ValueExpression { value: RuntimeValue::Number(3.0) },
+            Expression::ValueExpression {
+                value: RuntimeValue::Number(1.0),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::Number(3.0),
+            },
             Expression::ValueExpression {
                 value: RuntimeValue::Array(vec![
                     RuntimeValue::Number(1.0),
@@ -1655,8 +1704,8 @@ mod tests {
                     RuntimeValue::Number(3.0),
                     RuntimeValue::Number(4.0),
                     RuntimeValue::Number(5.0),
-                ])
-            }
+                ]),
+            },
         ];
 
         let result = index(&args, &mut context).unwrap();
@@ -1675,9 +1724,15 @@ mod tests {
 
         // Test string replacement
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::String("haha".to_string()) },
-            Expression::ValueExpression { value: RuntimeValue::String("z".to_string()) },
-            Expression::ValueExpression { value: RuntimeValue::String("haha".to_string()) }
+            Expression::ValueExpression {
+                value: RuntimeValue::String("haha".to_string()),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("z".to_string()),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("haha".to_string()),
+            },
         ];
 
         let result = replace(&args, &mut context).unwrap();
@@ -1690,8 +1745,12 @@ mod tests {
 
         // Test string matching
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::String("test".to_string()) },
-            Expression::ValueExpression { value: RuntimeValue::String("this is a test".to_string()) }
+            Expression::ValueExpression {
+                value: RuntimeValue::String("test".to_string()),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("this is a test".to_string()),
+            },
         ];
 
         let result = match_function(&args, &mut context).unwrap();
@@ -1699,8 +1758,12 @@ mod tests {
 
         // Test non-matching
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::String("xyz".to_string()) },
-            Expression::ValueExpression { value: RuntimeValue::String("this is a test".to_string()) }
+            Expression::ValueExpression {
+                value: RuntimeValue::String("xyz".to_string()),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("this is a test".to_string()),
+            },
         ];
 
         let result = match_function(&args, &mut context).unwrap();
@@ -1713,8 +1776,12 @@ mod tests {
 
         // Test regex creation
         let args = vec![
-            Expression::ValueExpression { value: RuntimeValue::String("test".to_string()) },
-            Expression::ValueExpression { value: RuntimeValue::String("i".to_string()) }
+            Expression::ValueExpression {
+                value: RuntimeValue::String("test".to_string()),
+            },
+            Expression::ValueExpression {
+                value: RuntimeValue::String("i".to_string()),
+            },
         ];
 
         let result = regex(&args, &mut context).unwrap();

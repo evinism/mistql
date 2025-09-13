@@ -66,29 +66,29 @@ pub enum TokenType {
 
     // Identifiers and references
     Identifier,
-    At,        // @
-    Dollar,    // $
+    At,     // @
+    Dollar, // $
 
     // Operators
-    Plus,      // +
-    Minus,     // -
-    Multiply,  // *
-    Divide,    // /
-    Modulo,    // %
+    Plus,     // +
+    Minus,    // -
+    Multiply, // *
+    Divide,   // /
+    Modulo,   // %
 
     // Comparison operators
-    Equal,     // ==
-    NotEqual,  // !=
-    Less,      // <
-    Greater,   // >
-    LessEqual, // <=
+    Equal,        // ==
+    NotEqual,     // !=
+    Less,         // <
+    Greater,      // >
+    LessEqual,    // <=
     GreaterEqual, // >=
-    Match,     // =~
+    Match,        // =~
 
     // Logical operators
-    And,       // &&
-    Or,        // ||
-    Not,       // !
+    And, // &&
+    Or,  // ||
+    Not, // !
 
     // Punctuation
     LeftParen,    // (
@@ -494,7 +494,6 @@ impl<'a> Lexer<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -512,8 +511,6 @@ mod tests {
         // After initialization, current_pos is at the second character due to read_char() calls
         assert_eq!(lexer.current_pos, Position::new(1, 2, 1));
     }
-
-
 
     #[test]
     fn test_position_tracking() {

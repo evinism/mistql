@@ -4,7 +4,6 @@
 //! It converts MistQL syntax into an Abstract Syntax Tree (AST) that can be executed.
 
 use crate::types::RuntimeValue;
-use std::collections::HashMap;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -14,6 +13,7 @@ use nom::{
     sequence::{delimited, pair, separated_pair},
     IResult,
 };
+use std::collections::HashMap;
 
 /// AST expression types for MistQL
 #[derive(Debug, Clone, PartialEq)]
@@ -24,35 +24,19 @@ pub enum Expression {
         arguments: Vec<Expression>,
     },
     /// Reference expression: `@` (context), `$` (builtins), or `variable_name`
-    RefExpression {
-        name: String,
-        absolute: bool,
-    },
+    RefExpression { name: String, absolute: bool },
     /// Literal value: `42`, `"hello"`, `true`, `null`
-    ValueExpression {
-        value: RuntimeValue,
-    },
+    ValueExpression { value: RuntimeValue },
     /// Array literal: `[1, 2, 3]`
-    ArrayExpression {
-        items: Vec<Expression>,
-    },
+    ArrayExpression { items: Vec<Expression> },
     /// Object literal: `{"key": "value"}`
-    ObjectExpression {
-        entries: HashMap<String, Expression>,
-    },
+    ObjectExpression { entries: HashMap<String, Expression> },
     /// Pipeline: `data | filter condition | map field`
-    PipeExpression {
-        stages: Vec<Expression>,
-    },
+    PipeExpression { stages: Vec<Expression> },
     /// Parenthetical expression: `(expression)`
-    ParentheticalExpression {
-        expression: Box<Expression>,
-    },
+    ParentheticalExpression { expression: Box<Expression> },
     /// Unary operation: `!expression`, `-expression`
-    UnaryExpression {
-        operator: UnaryOperator,
-        operand: Box<Expression>,
-    },
+    UnaryExpression { operator: UnaryOperator, operand: Box<Expression> },
     /// Binary operation: `left operator right`
     BinaryExpression {
         operator: BinaryOperator,
@@ -60,15 +44,9 @@ pub enum Expression {
         right: Box<Expression>,
     },
     /// Dot access: `object.field`
-    DotAccessExpression {
-        object: Box<Expression>,
-        field: String,
-    },
+    DotAccessExpression { object: Box<Expression>, field: String },
     /// Indexing: `array[index]` or `string[index]`
-    IndexExpression {
-        target: Box<Expression>,
-        index: Box<Expression>,
-    },
+    IndexExpression { target: Box<Expression>, index: Box<Expression> },
 }
 
 /// Unary operators in MistQL
@@ -188,15 +166,9 @@ fn parse_float(input: &str) -> IResult<&str, &str> {
             char('.'),
             pair(
                 opt(digit1),
-                opt(pair(
-                    alt((char('e'), char('E'))),
-                    pair(
-                        opt(alt((char('+'), char('-')))),
-                        digit1
-                    )
-                ))
-            )
-        )
+                opt(pair(alt((char('e'), char('E'))), pair(opt(alt((char('+'), char('-')))), digit1))),
+            ),
+        ),
     ))(input)
 }
 
@@ -204,29 +176,15 @@ fn parse_float(input: &str) -> IResult<&str, &str> {
 fn parse_integer(input: &str) -> IResult<&str, &str> {
     recognize(pair(
         digit1,
-        opt(pair(
-            alt((char('e'), char('E'))),
-            pair(
-                opt(alt((char('+'), char('-')))),
-                digit1
-            )
-        ))
+        opt(pair(alt((char('e'), char('E'))), pair(opt(alt((char('+'), char('-')))), digit1))),
     ))(input)
 }
 
 /// Parse a number (integer or float)
 fn parse_number(input: &str) -> IResult<&str, RuntimeValue> {
-    map(
-        recognize(pair(
-            opt(char('-')),
-            alt((parse_float, parse_integer)),
-        )),
-        |s: &str| {
-            s.parse::<f64>()
-                .map(RuntimeValue::Number)
-                .unwrap_or(RuntimeValue::Number(0.0))
-        },
-    )(input)
+    map(recognize(pair(opt(char('-')), alt((parse_float, parse_integer)))), |s: &str| {
+        s.parse::<f64>().map(RuntimeValue::Number).unwrap_or(RuntimeValue::Number(0.0))
+    })(input)
 }
 
 /// Parse a string literal with proper escape handling
@@ -261,26 +219,17 @@ fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
                                 if let Some(hex_char) = chars.next() {
                                     unicode_str.push(hex_char);
                                 } else {
-                                    return Err(nom::Err::Error(nom::error::Error::new(
-                                        input,
-                                        nom::error::ErrorKind::Tag,
-                                    )));
+                                    return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
                                 }
                             }
                             if let Ok(unicode_value) = u32::from_str_radix(&unicode_str, 16) {
                                 if let Some(unicode_char) = char::from_u32(unicode_value) {
                                     result.push(unicode_char);
                                 } else {
-                                    return Err(nom::Err::Error(nom::error::Error::new(
-                                        input,
-                                        nom::error::ErrorKind::Tag,
-                                    )));
+                                    return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
                                 }
                             } else {
-                                return Err(nom::Err::Error(nom::error::Error::new(
-                                    input,
-                                    nom::error::ErrorKind::Tag,
-                                )));
+                                return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
                             }
                         }
                         _ => {
@@ -289,10 +238,7 @@ fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
                         }
                     }
                 } else {
-                    return Err(nom::Err::Error(nom::error::Error::new(
-                        input,
-                        nom::error::ErrorKind::Tag,
-                    )));
+                    return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
                 }
             }
             _ => {
@@ -302,10 +248,7 @@ fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
     }
 
     // Unterminated string
-    Err(nom::Err::Error(nom::error::Error::new(
-        input,
-        nom::error::ErrorKind::Tag,
-    )))
+    Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)))
 }
 
 /// Parse boolean literals
@@ -323,23 +266,12 @@ fn parse_null(input: &str) -> IResult<&str, RuntimeValue> {
 
 /// Parse a literal value
 fn parse_literal(input: &str) -> IResult<&str, Expression> {
-    map(
-        alt((
-            parse_number,
-            parse_string,
-            parse_boolean,
-            parse_null,
-        )),
-        Expression::value,
-    )(input)
+    map(alt((parse_number, parse_string, parse_boolean, parse_null)), Expression::value)(input)
 }
 
 /// Parse a variable name (identifier)
 fn parse_identifier(input: &str) -> IResult<&str, &str> {
-    recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0(alt((alphanumeric1, tag("_")))),
-    ))(input)
+    recognize(pair(alt((alpha1, tag("_"))), many0(alt((alphanumeric1, tag("_"))))))(input)
 }
 
 /// Parse a reference (@, $, or variable name)
@@ -356,10 +288,7 @@ fn parse_array(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(
             pair(char('['), multispace0),
-            separated_list0(
-                pair(multispace0, char(',')),
-                pair(multispace0, parse_expression),
-            ),
+            separated_list0(pair(multispace0, char(',')), pair(multispace0, parse_expression)),
             pair(multispace0, char(']')),
         ),
         |items| Expression::array(items.into_iter().map(|(_, expr)| expr).collect()),
@@ -371,10 +300,7 @@ fn parse_object(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(
             pair(char('{'), multispace0),
-            separated_list0(
-                pair(multispace0, char(',')),
-                pair(multispace0, parse_object_entry),
-            ),
+            separated_list0(pair(multispace0, char(',')), pair(multispace0, parse_object_entry)),
             pair(multispace0, char('}')),
         ),
         |entries| {
@@ -405,15 +331,10 @@ fn parse_object_entry(input: &str) -> IResult<&str, (String, Expression)> {
 /// Parse a parenthetical expression
 fn parse_parenthetical(input: &str) -> IResult<&str, Expression> {
     map(
-        delimited(
-            pair(char('('), multispace0),
-            parse_pipeline,
-            pair(multispace0, char(')')),
-        ),
+        delimited(pair(char('('), multispace0), parse_pipeline, pair(multispace0, char(')'))),
         Expression::parenthetical,
     )(input)
 }
-
 
 /// Parse a pipeline expression (top level: |)
 /// piped_expression: simple_expression | simple_expression ("|" fncall)+
@@ -422,10 +343,7 @@ fn parse_pipeline(input: &str) -> IResult<&str, Expression> {
     let (remaining, first) = parse_simple_expression(input)?;
 
     // Then try to parse pipeline stages
-    let (remaining, stages) = many0(pair(
-        pair(multispace0, char('|')),
-        pair(multispace0, parse_function_call)
-    ))(remaining)?;
+    let (remaining, stages) = many0(pair(pair(multispace0, char('|')), pair(multispace0, parse_function_call)))(remaining)?;
 
     if stages.is_empty() {
         Ok((remaining, first))
@@ -441,10 +359,7 @@ fn parse_pipeline(input: &str) -> IResult<&str, Expression> {
 /// Parse a simple expression (op_a or fncall)
 /// simple_expression: _wslr{op_a} | _wslr{fncall}
 fn parse_simple_expression(input: &str) -> IResult<&str, Expression> {
-    alt((
-        parse_function_call,
-        parse_op_a,
-    ))(input)
+    alt((parse_function_call, parse_op_a))(input)
 }
 
 /// Parse a function call
@@ -468,19 +383,17 @@ fn parse_function_call(input: &str) -> IResult<&str, Expression> {
 /// op_a: op_b | op_a "||" op_b
 fn parse_op_a(input: &str) -> IResult<&str, Expression> {
     map(
-        separated_list1(
-            pair(multispace0, tag("||")),
-            pair(multispace0, parse_op_b),
-        ),
+        separated_list1(pair(multispace0, tag("||")), pair(multispace0, parse_op_b)),
         |operands| {
             let operands: Vec<Expression> = operands.into_iter().map(|(_, operand)| operand).collect();
             if operands.len() == 1 {
                 operands.into_iter().next().unwrap()
             } else {
                 // Left-associative: a || b || c = (a || b) || c
-                operands.into_iter().reduce(|left, right| {
-                    Expression::binary(BinaryOperator::Or, left, right)
-                }).unwrap()
+                operands
+                    .into_iter()
+                    .reduce(|left, right| Expression::binary(BinaryOperator::Or, left, right))
+                    .unwrap()
             }
         },
     )(input)
@@ -490,19 +403,17 @@ fn parse_op_a(input: &str) -> IResult<&str, Expression> {
 /// op_b: op_c | op_b "&&" op_c
 fn parse_op_b(input: &str) -> IResult<&str, Expression> {
     map(
-        separated_list1(
-            pair(multispace0, tag("&&")),
-            pair(multispace0, parse_op_c),
-        ),
+        separated_list1(pair(multispace0, tag("&&")), pair(multispace0, parse_op_c)),
         |operands| {
             let operands: Vec<Expression> = operands.into_iter().map(|(_, operand)| operand).collect();
             if operands.len() == 1 {
                 operands.into_iter().next().unwrap()
             } else {
                 // Left-associative: a && b && c = (a && b) && c
-                operands.into_iter().reduce(|left, right| {
-                    Expression::binary(BinaryOperator::And, left, right)
-                }).unwrap()
+                operands
+                    .into_iter()
+                    .reduce(|left, right| Expression::binary(BinaryOperator::And, left, right))
+                    .unwrap()
             }
         },
     )(input)
@@ -515,18 +426,20 @@ fn parse_op_c(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_d,
             many0(pair(
-                pair(multispace0, alt((
-                    map(tag("=="), |_| BinaryOperator::Eq),
-                    map(tag("!="), |_| BinaryOperator::Neq),
-                    map(tag("=~"), |_| BinaryOperator::Match),
-                ))),
+                pair(
+                    multispace0,
+                    alt((
+                        map(tag("=="), |_| BinaryOperator::Eq),
+                        map(tag("!="), |_| BinaryOperator::Neq),
+                        map(tag("=~"), |_| BinaryOperator::Match),
+                    )),
+                ),
                 pair(multispace0, parse_op_d),
             )),
         ),
         |(left, rest)| {
-            rest.into_iter().fold(left, |left, ((_, operator), (_, right))| {
-                Expression::binary(operator, left, right)
-            })
+            rest.into_iter()
+                .fold(left, |left, ((_, operator), (_, right))| Expression::binary(operator, left, right))
         },
     )(input)
 }
@@ -538,19 +451,21 @@ fn parse_op_d(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_e,
             many0(pair(
-                pair(multispace0, alt((
-                    map(tag(">="), |_| BinaryOperator::Gte),
-                    map(tag("<="), |_| BinaryOperator::Lte),
-                    map(tag(">"), |_| BinaryOperator::Gt),
-                    map(tag("<"), |_| BinaryOperator::Lt),
-                ))),
+                pair(
+                    multispace0,
+                    alt((
+                        map(tag(">="), |_| BinaryOperator::Gte),
+                        map(tag("<="), |_| BinaryOperator::Lte),
+                        map(tag(">"), |_| BinaryOperator::Gt),
+                        map(tag("<"), |_| BinaryOperator::Lt),
+                    )),
+                ),
                 pair(multispace0, parse_op_e),
             )),
         ),
         |(left, rest)| {
-            rest.into_iter().fold(left, |left, ((_, operator), (_, right))| {
-                Expression::binary(operator, left, right)
-            })
+            rest.into_iter()
+                .fold(left, |left, ((_, operator), (_, right))| Expression::binary(operator, left, right))
         },
     )(input)
 }
@@ -562,17 +477,16 @@ fn parse_op_e(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_f,
             many0(pair(
-                pair(multispace0, alt((
-                    map(tag("+"), |_| BinaryOperator::Plus),
-                    map(tag("-"), |_| BinaryOperator::Minus),
-                ))),
+                pair(
+                    multispace0,
+                    alt((map(tag("+"), |_| BinaryOperator::Plus), map(tag("-"), |_| BinaryOperator::Minus))),
+                ),
                 pair(multispace0, parse_op_f),
             )),
         ),
         |(left, rest)| {
-            rest.into_iter().fold(left, |left, ((_, operator), (_, right))| {
-                Expression::binary(operator, left, right)
-            })
+            rest.into_iter()
+                .fold(left, |left, ((_, operator), (_, right))| Expression::binary(operator, left, right))
         },
     )(input)
 }
@@ -584,18 +498,20 @@ fn parse_op_f(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_g,
             many0(pair(
-                pair(multispace0, alt((
-                    map(tag("*"), |_| BinaryOperator::Mul),
-                    map(tag("/"), |_| BinaryOperator::Div),
-                    map(tag("%"), |_| BinaryOperator::Mod),
-                ))),
+                pair(
+                    multispace0,
+                    alt((
+                        map(tag("*"), |_| BinaryOperator::Mul),
+                        map(tag("/"), |_| BinaryOperator::Div),
+                        map(tag("%"), |_| BinaryOperator::Mod),
+                    )),
+                ),
                 pair(multispace0, parse_op_g),
             )),
         ),
         |(left, rest)| {
-            rest.into_iter().fold(left, |left, ((_, operator), (_, right))| {
-                Expression::binary(operator, left, right)
-            })
+            rest.into_iter()
+                .fold(left, |left, ((_, operator), (_, right))| Expression::binary(operator, left, right))
         },
     )(input)
 }
@@ -635,18 +551,12 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
     let (remaining, operations) = many0(alt((
         // Dot access: .reference
         map(
-            pair(
-                pair(multispace0, char('.')),
-                pair(multispace0, parse_reference),
-            ),
+            pair(pair(multispace0, char('.')), pair(multispace0, parse_reference)),
             |(_, (_, reference))| ("dot", reference),
         ),
         // Indexing: [expression]
         map(
-            pair(
-                char('['),
-                pair(multispace0, parse_indexing_innards),
-            ),
+            pair(char('['), pair(multispace0, parse_indexing_innards)),
             |(_, (_, index_expr))| ("index", index_expr),
         ),
     )))(remaining)?;
@@ -682,10 +592,7 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
         map(
             pair(
                 opt(pair(multispace0, parse_pipeline)),
-                pair(
-                    pair(multispace0, char(':')),
-                    opt(pair(multispace0, parse_pipeline))
-                )
+                pair(pair(multispace0, char(':')), opt(pair(multispace0, parse_pipeline))),
             ),
             |(start_opt, (_, end_opt))| {
                 let start = start_opt.map(|(_, expr)| expr);
@@ -696,21 +603,16 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
                     Expression::reference("index", false),
                     vec![
                         start.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),
-                        end.unwrap_or_else(|| Expression::value(RuntimeValue::Null))
-                    ]
+                        end.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),
+                    ],
                 )
-            }
+            },
         ),
         // Single index: just an expression
-        map(
-            opt(parse_pipeline),
-            |expr_opt| {
-                match expr_opt {
-                    Some(expr) => expr,
-                    None => Expression::value(RuntimeValue::Null),
-                }
-            }
-        )
+        map(opt(parse_pipeline), |expr_opt| match expr_opt {
+            Some(expr) => expr,
+            None => Expression::value(RuntimeValue::Null),
+        }),
     ))(input)?;
 
     let (remaining, _) = pair(multispace0, char(']'))(remaining)?;
@@ -725,13 +627,7 @@ fn parse_expression(input: &str) -> IResult<&str, Expression> {
 /// Parse a simplevalue (literal, reference, or parenthetical expression)
 /// simplevalue: literal | reference | "(" piped_expression ")"
 fn parse_simplevalue(input: &str) -> IResult<&str, Expression> {
-    alt((
-        parse_literal,
-        parse_reference,
-        parse_array,
-        parse_object,
-        parse_parenthetical,
-    ))(input)
+    alt((parse_literal, parse_reference, parse_array, parse_object, parse_parenthetical))(input)
 }
 
 /// Parser for MistQL expressions
@@ -740,8 +636,7 @@ pub struct Parser;
 impl Parser {
     /// Parse a MistQL expression string into an AST
     pub fn parse(input: &str) -> Result<Expression, String> {
-        let (remaining, result) = parse_expression(input)
-            .map_err(|e| format!("Parse error: {:?}", e))?;
+        let (remaining, result) = parse_expression(input).map_err(|e| format!("Parse error: {:?}", e))?;
 
         if !remaining.trim().is_empty() {
             return Err(format!("Unexpected input after expression: '{}'", remaining));
@@ -759,20 +654,11 @@ mod tests {
     #[test]
     fn test_parse_literals() {
         // Test numbers
-        assert_eq!(
-            Parser::parse("42").unwrap(),
-            Expression::value(RuntimeValue::Number(42.0))
-        );
-        assert_eq!(
-            Parser::parse("3.14").unwrap(),
-            Expression::value(RuntimeValue::Number(3.14))
-        );
+        assert_eq!(Parser::parse("42").unwrap(), Expression::value(RuntimeValue::Number(42.0)));
+        assert_eq!(Parser::parse("3.14").unwrap(), Expression::value(RuntimeValue::Number(3.14)));
         assert_eq!(
             Parser::parse("-10").unwrap(),
-            Expression::unary(
-                UnaryOperator::Negate,
-                Expression::value(RuntimeValue::Number(10.0))
-            )
+            Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(10.0)))
         );
 
         // Test strings
@@ -782,35 +668,20 @@ mod tests {
         );
 
         // Test booleans
-        assert_eq!(
-            Parser::parse("true").unwrap(),
-            Expression::value(RuntimeValue::Boolean(true))
-        );
-        assert_eq!(
-            Parser::parse("false").unwrap(),
-            Expression::value(RuntimeValue::Boolean(false))
-        );
+        assert_eq!(Parser::parse("true").unwrap(), Expression::value(RuntimeValue::Boolean(true)));
+        assert_eq!(Parser::parse("false").unwrap(), Expression::value(RuntimeValue::Boolean(false)));
 
         // Test null
-        assert_eq!(
-            Parser::parse("null").unwrap(),
-            Expression::value(RuntimeValue::Null)
-        );
+        assert_eq!(Parser::parse("null").unwrap(), Expression::value(RuntimeValue::Null));
     }
 
     #[test]
     fn test_parse_references() {
         // Test @ reference (context)
-        assert_eq!(
-            Parser::parse("@").unwrap(),
-            Expression::reference("@", false)
-        );
+        assert_eq!(Parser::parse("@").unwrap(), Expression::reference("@", false));
 
         // Test $ reference (builtins)
-        assert_eq!(
-            Parser::parse("$").unwrap(),
-            Expression::reference("$", true)
-        );
+        assert_eq!(Parser::parse("$").unwrap(), Expression::reference("$", true));
 
         // Test variable name reference
         assert_eq!(
@@ -819,19 +690,13 @@ mod tests {
         );
 
         // Test identifier with underscores
-        assert_eq!(
-            Parser::parse("_private_var").unwrap(),
-            Expression::reference("_private_var", false)
-        );
+        assert_eq!(Parser::parse("_private_var").unwrap(), Expression::reference("_private_var", false));
     }
 
     #[test]
     fn test_parse_arrays() {
         // Test empty array
-        assert_eq!(
-            Parser::parse("[]").unwrap(),
-            Expression::array(vec![])
-        );
+        assert_eq!(Parser::parse("[]").unwrap(), Expression::array(vec![]));
 
         // Test array with elements
         let expected = Expression::array(vec![
@@ -839,19 +704,13 @@ mod tests {
             Expression::value(RuntimeValue::Number(2.0)),
             Expression::value(RuntimeValue::Number(3.0)),
         ]);
-        assert_eq!(
-            Parser::parse("[1, 2, 3]").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("[1, 2, 3]").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_objects() {
         // Test empty object
-        assert_eq!(
-            Parser::parse("{}").unwrap(),
-            Expression::object(HashMap::new())
-        );
+        assert_eq!(Parser::parse("{}").unwrap(), Expression::object(HashMap::new()));
 
         // Test object with entries
         let mut expected_map = HashMap::new();
@@ -859,30 +718,21 @@ mod tests {
         expected_map.insert("age".to_string(), Expression::value(RuntimeValue::Number(30.0)));
         let expected = Expression::object(expected_map);
 
-        assert_eq!(
-            Parser::parse("{\"name\": \"John\", \"age\": 30}").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("{\"name\": \"John\", \"age\": 30}").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_function_calls() {
         // Test bare identifier (should be a reference, not a function call)
         let expected = Expression::reference("count", false);
-        assert_eq!(
-            Parser::parse("count").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("count").unwrap(), expected);
 
         // Test function call with arguments
         let expected = Expression::function_call(
             Expression::reference("filter", false),
-            vec![Expression::reference("condition", false)]
+            vec![Expression::reference("condition", false)],
         );
-        assert_eq!(
-            Parser::parse("filter condition").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("filter condition").unwrap(), expected);
     }
 
     #[test]
@@ -892,10 +742,7 @@ mod tests {
         println!("count [] parsed as: {:#?}", result);
 
         // This should be a function call, not an indexing operation
-        let expected = Expression::function_call(
-            Expression::reference("count", false),
-            vec![Expression::array(vec![])]
-        );
+        let expected = Expression::function_call(Expression::reference("count", false), vec![Expression::array(vec![])]);
         assert_eq!(result.unwrap(), expected);
     }
 
@@ -917,90 +764,46 @@ mod tests {
             Expression::reference("data", false),
             Expression::function_call(
                 Expression::reference("filter", false),
-                vec![Expression::reference("condition", false)]
+                vec![Expression::reference("condition", false)],
             ),
         ]);
-        assert_eq!(
-            Parser::parse("data | filter condition").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("data | filter condition").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_parenthetical() {
-        let expected = Expression::parenthetical(
-            Expression::value(RuntimeValue::Number(42.0))
-        );
-        assert_eq!(
-            Parser::parse("(42)").unwrap(),
-            expected
-        );
+        let expected = Expression::parenthetical(Expression::value(RuntimeValue::Number(42.0)));
+        assert_eq!(Parser::parse("(42)").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_unary_not() {
         // Test logical NOT with boolean
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::value(RuntimeValue::Boolean(true))
-        );
-        assert_eq!(
-            Parser::parse("!true").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Boolean(true)));
+        assert_eq!(Parser::parse("!true").unwrap(), expected);
 
         // Test logical NOT with number
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::value(RuntimeValue::Number(42.0))
-        );
-        assert_eq!(
-            Parser::parse("!42").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Number(42.0)));
+        assert_eq!(Parser::parse("!42").unwrap(), expected);
 
         // Test logical NOT with reference (bare identifier)
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::reference("condition", false)
-        );
-        assert_eq!(
-            Parser::parse("!condition").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Not, Expression::reference("condition", false));
+        assert_eq!(Parser::parse("!condition").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_unary_negate() {
         // Test unary minus with number
-        let expected = Expression::unary(
-            UnaryOperator::Negate,
-            Expression::value(RuntimeValue::Number(42.0))
-        );
-        assert_eq!(
-            Parser::parse("-42").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(42.0)));
+        assert_eq!(Parser::parse("-42").unwrap(), expected);
 
         // Test unary minus with float
-        let expected = Expression::unary(
-            UnaryOperator::Negate,
-            Expression::value(RuntimeValue::Number(3.14))
-        );
-        assert_eq!(
-            Parser::parse("-3.14").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(3.14)));
+        assert_eq!(Parser::parse("-3.14").unwrap(), expected);
 
         // Test unary minus with reference (bare identifier)
-        let expected = Expression::unary(
-            UnaryOperator::Negate,
-            Expression::reference("value", false)
-        );
-        assert_eq!(
-            Parser::parse("-value").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Negate, Expression::reference("value", false));
+        assert_eq!(Parser::parse("-value").unwrap(), expected);
     }
 
     #[test]
@@ -1008,63 +811,33 @@ mod tests {
         // Test double negation
         let expected = Expression::unary(
             UnaryOperator::Not,
-            Expression::unary(
-                UnaryOperator::Not,
-                Expression::value(RuntimeValue::Boolean(true))
-            )
+            Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Boolean(true))),
         );
-        assert_eq!(
-            Parser::parse("!!true").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("!!true").unwrap(), expected);
 
         // Test NOT with negate
         let expected = Expression::unary(
             UnaryOperator::Not,
-            Expression::unary(
-                UnaryOperator::Negate,
-                Expression::value(RuntimeValue::Number(42.0))
-            )
+            Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(42.0))),
         );
-        assert_eq!(
-            Parser::parse("!-42").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("!-42").unwrap(), expected);
 
         // Test negate with NOT
         let expected = Expression::unary(
             UnaryOperator::Negate,
-            Expression::unary(
-                UnaryOperator::Not,
-                Expression::value(RuntimeValue::Boolean(false))
-            )
+            Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Boolean(false))),
         );
-        assert_eq!(
-            Parser::parse("-!false").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("-!false").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_unary_with_whitespace() {
         // Test with spaces around operators
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::value(RuntimeValue::Boolean(true))
-        );
-        assert_eq!(
-            Parser::parse("! true").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Boolean(true)));
+        assert_eq!(Parser::parse("! true").unwrap(), expected);
 
-        let expected = Expression::unary(
-            UnaryOperator::Negate,
-            Expression::value(RuntimeValue::Number(42.0))
-        );
-        assert_eq!(
-            Parser::parse("- 42").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(42.0)));
+        assert_eq!(Parser::parse("- 42").unwrap(), expected);
     }
 
     #[test]
@@ -1072,81 +845,48 @@ mod tests {
         // Test unary operator with parenthetical expression
         let expected = Expression::unary(
             UnaryOperator::Not,
-            Expression::parenthetical(
-                Expression::value(RuntimeValue::Number(42.0))
-            )
+            Expression::parenthetical(Expression::value(RuntimeValue::Number(42.0))),
         );
-        assert_eq!(
-            Parser::parse("!(42)").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("!(42)").unwrap(), expected);
 
         let expected = Expression::unary(
             UnaryOperator::Negate,
-            Expression::parenthetical(
-                Expression::value(RuntimeValue::Number(10.0))
-            )
+            Expression::parenthetical(Expression::value(RuntimeValue::Number(10.0))),
         );
-        assert_eq!(
-            Parser::parse("-(10)").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("-(10)").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_unary_with_function_calls() {
         // Test unary operator with reference
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::reference("count", false)
-        );
-        assert_eq!(
-            Parser::parse("!count").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Not, Expression::reference("count", false));
+        assert_eq!(Parser::parse("!count").unwrap(), expected);
 
         // Test unary operator with function call that has arguments
         // This should parse as (-sum) 1 (function call with unary minus as the function)
         let expected = Expression::function_call(
-            Expression::unary(
-                UnaryOperator::Negate,
-                Expression::reference("sum", false)
-            ),
-            vec![Expression::value(RuntimeValue::Number(1.0))]
+            Expression::unary(UnaryOperator::Negate, Expression::reference("sum", false)),
+            vec![Expression::value(RuntimeValue::Number(1.0))],
         );
-        assert_eq!(
-            Parser::parse("-sum 1").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("-sum 1").unwrap(), expected);
 
         // Test unary operator with parenthetical function call (this should work)
         let expected = Expression::unary(
             UnaryOperator::Negate,
-            Expression::parenthetical(
-                Expression::function_call(
-                    Expression::reference("sum", false),
-                    vec![Expression::value(RuntimeValue::Number(1.0))]
-                )
-            )
+            Expression::parenthetical(Expression::function_call(
+                Expression::reference("sum", false),
+                vec![Expression::value(RuntimeValue::Number(1.0))],
+            )),
         );
-        assert_eq!(
-            Parser::parse("-(sum 1)").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("-(sum 1)").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_unary_precedence() {
         // Test that unary operators have higher precedence than references
         // This should parse as: !(count) not (!count)()
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::reference("count", false)
-        );
-        assert_eq!(
-            Parser::parse("!count").unwrap(),
-            expected
-        );
+        let expected = Expression::unary(UnaryOperator::Not, Expression::reference("count", false));
+        assert_eq!(Parser::parse("!count").unwrap(), expected);
     }
 
     #[test]
@@ -1155,34 +895,25 @@ mod tests {
         let expected = Expression::binary(
             BinaryOperator::Plus,
             Expression::value(RuntimeValue::Number(1.0)),
-            Expression::value(RuntimeValue::Number(2.0))
+            Expression::value(RuntimeValue::Number(2.0)),
         );
-        assert_eq!(
-            Parser::parse("1 + 2").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("1 + 2").unwrap(), expected);
 
         // Test multiplication
         let expected = Expression::binary(
             BinaryOperator::Mul,
             Expression::value(RuntimeValue::Number(3.0)),
-            Expression::value(RuntimeValue::Number(4.0))
+            Expression::value(RuntimeValue::Number(4.0)),
         );
-        assert_eq!(
-            Parser::parse("3 * 4").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("3 * 4").unwrap(), expected);
 
         // Test equality
         let expected = Expression::binary(
             BinaryOperator::Eq,
             Expression::value(RuntimeValue::Number(5.0)),
-            Expression::value(RuntimeValue::Number(5.0))
+            Expression::value(RuntimeValue::Number(5.0)),
         );
-        assert_eq!(
-            Parser::parse("5 == 5").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("5 == 5").unwrap(), expected);
     }
 
     #[test]
@@ -1195,13 +926,10 @@ mod tests {
             Expression::binary(
                 BinaryOperator::Mul,
                 Expression::value(RuntimeValue::Number(2.0)),
-                Expression::value(RuntimeValue::Number(3.0))
-            )
+                Expression::value(RuntimeValue::Number(3.0)),
+            ),
         );
-        assert_eq!(
-            Parser::parse("1 + 2 * 3").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("1 + 2 * 3").unwrap(), expected);
 
         // Test that comparison has higher precedence than logical operators
         // a > b && c < d should parse as (a > b) && (c < d)
@@ -1210,18 +938,15 @@ mod tests {
             Expression::binary(
                 BinaryOperator::Gt,
                 Expression::reference("a", false),
-                Expression::reference("b", false)
+                Expression::reference("b", false),
             ),
             Expression::binary(
                 BinaryOperator::Lt,
                 Expression::reference("c", false),
-                Expression::reference("d", false)
-            )
+                Expression::reference("d", false),
+            ),
         );
-        assert_eq!(
-            Parser::parse("a > b && c < d").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("a > b && c < d").unwrap(), expected);
     }
 
     #[test]
@@ -1233,14 +958,11 @@ mod tests {
             Expression::binary(
                 BinaryOperator::Plus,
                 Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Number(2.0))
+                Expression::value(RuntimeValue::Number(2.0)),
             ),
-            Expression::value(RuntimeValue::Number(3.0))
+            Expression::value(RuntimeValue::Number(3.0)),
         );
-        assert_eq!(
-            Parser::parse("1 + 2 + 3").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("1 + 2 + 3").unwrap(), expected);
 
         // Test left associativity of logical AND
         // a && b && c should parse as (a && b) && c
@@ -1249,14 +971,11 @@ mod tests {
             Expression::binary(
                 BinaryOperator::And,
                 Expression::reference("a", false),
-                Expression::reference("b", false)
+                Expression::reference("b", false),
             ),
-            Expression::reference("c", false)
+            Expression::reference("c", false),
         );
-        assert_eq!(
-            Parser::parse("a && b && c").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("a && b && c").unwrap(), expected);
     }
 
     #[test]
@@ -1273,21 +992,18 @@ mod tests {
                     Expression::binary(
                         BinaryOperator::Mul,
                         Expression::value(RuntimeValue::Number(2.0)),
-                        Expression::value(RuntimeValue::Number(3.0))
-                    )
+                        Expression::value(RuntimeValue::Number(3.0)),
+                    ),
                 ),
-                Expression::value(RuntimeValue::Number(4.0))
+                Expression::value(RuntimeValue::Number(4.0)),
             ),
             Expression::binary(
                 BinaryOperator::Eq,
                 Expression::value(RuntimeValue::Number(5.0)),
-                Expression::value(RuntimeValue::Number(6.0))
-            )
+                Expression::value(RuntimeValue::Number(6.0)),
+            ),
         );
-        assert_eq!(
-            Parser::parse("1 + 2 * 3 > 4 && 5 == 6").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("1 + 2 * 3 > 4 && 5 == 6").unwrap(), expected);
     }
 
     #[test]
@@ -1300,23 +1016,18 @@ mod tests {
         let expected_object = Expression::object(expected_map);
 
         let expected = Expression::function_call(
-            Expression::parenthetical(
-                Expression::function_call(
-                    Expression::reference("if", false),
-                    vec![
-                        Expression::reference("toggle", false),
-                        Expression::reference("keys", false),
-                        Expression::reference("values", false),
-                    ]
-                )
-            ),
-            vec![expected_object]
+            Expression::parenthetical(Expression::function_call(
+                Expression::reference("if", false),
+                vec![
+                    Expression::reference("toggle", false),
+                    Expression::reference("keys", false),
+                    Expression::reference("values", false),
+                ],
+            )),
+            vec![expected_object],
         );
 
-        assert_eq!(
-            Parser::parse("(if toggle keys values) {one: \"two\"}").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("(if toggle keys values) {one: \"two\"}").unwrap(), expected);
     }
 
     #[test]
@@ -1330,17 +1041,15 @@ mod tests {
         let expected = Expression::pipeline(vec![
             Expression::reference("data", false),
             Expression::function_call(
-                Expression::parenthetical(
-                    Expression::function_call(
-                        Expression::reference("if", false),
-                        vec![
-                            Expression::reference("toggle", false),
-                            Expression::reference("keys", false),
-                            Expression::reference("values", false),
-                        ]
-                    )
-                ),
-                vec![expected_object]
+                Expression::parenthetical(Expression::function_call(
+                    Expression::reference("if", false),
+                    vec![
+                        Expression::reference("toggle", false),
+                        Expression::reference("keys", false),
+                        Expression::reference("values", false),
+                    ],
+                )),
+                vec![expected_object],
             ),
             Expression::reference("count", false),
         ]);
@@ -1355,21 +1064,16 @@ mod tests {
     fn test_parse_parenthetical_without_object() {
         // Test that regular parenthetical expressions still work
         // (if toggle keys values) should just be a parenthetical expression
-        let expected = Expression::parenthetical(
-            Expression::function_call(
-                Expression::reference("if", false),
-                vec![
-                    Expression::reference("toggle", false),
-                    Expression::reference("keys", false),
-                    Expression::reference("values", false),
-                ]
-            )
-        );
+        let expected = Expression::parenthetical(Expression::function_call(
+            Expression::reference("if", false),
+            vec![
+                Expression::reference("toggle", false),
+                Expression::reference("keys", false),
+                Expression::reference("values", false),
+            ],
+        ));
 
-        assert_eq!(
-            Parser::parse("(if toggle keys values)").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("(if toggle keys values)").unwrap(), expected);
     }
 
     #[test]
@@ -1378,25 +1082,18 @@ mod tests {
         // This should parse as a function call where the function is (if toggle keys values)
         // and the argument is (events)
         let expected = Expression::function_call(
-            Expression::parenthetical(
-                Expression::function_call(
-                    Expression::reference("if", false),
-                    vec![
-                        Expression::reference("toggle", false),
-                        Expression::reference("keys", false),
-                        Expression::reference("values", false),
-                    ]
-                )
-            ),
-            vec![Expression::parenthetical(
-                Expression::reference("events", false)
-            )]
+            Expression::parenthetical(Expression::function_call(
+                Expression::reference("if", false),
+                vec![
+                    Expression::reference("toggle", false),
+                    Expression::reference("keys", false),
+                    Expression::reference("values", false),
+                ],
+            )),
+            vec![Expression::parenthetical(Expression::reference("events", false))],
         );
 
-        assert_eq!(
-            Parser::parse("(if toggle keys values) (events)").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("(if toggle keys values) (events)").unwrap(), expected);
     }
 
     #[test]
@@ -1405,114 +1102,64 @@ mod tests {
         // This should parse as a function call where the function is (if toggle keys values)
         // and the argument is events
         let expected = Expression::function_call(
-            Expression::parenthetical(
-                Expression::function_call(
-                    Expression::reference("if", false),
-                    vec![
-                        Expression::reference("toggle", false),
-                        Expression::reference("keys", false),
-                        Expression::reference("values", false),
-                    ]
-                )
-            ),
-            vec![Expression::reference("events", false)]
+            Expression::parenthetical(Expression::function_call(
+                Expression::reference("if", false),
+                vec![
+                    Expression::reference("toggle", false),
+                    Expression::reference("keys", false),
+                    Expression::reference("values", false),
+                ],
+            )),
+            vec![Expression::reference("events", false)],
         );
 
-        assert_eq!(
-            Parser::parse("(if toggle keys values) events").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("(if toggle keys values) events").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_dot_access() {
         // Test dot access: object.field
-        let expected = Expression::dot_access(
-            Expression::reference("object", false),
-            "field"
-        );
-        assert_eq!(
-            Parser::parse("object.field").unwrap(),
-            expected
-        );
+        let expected = Expression::dot_access(Expression::reference("object", false), "field");
+        assert_eq!(Parser::parse("object.field").unwrap(), expected);
 
         // Test chained dot access: object.field.subfield
-        let expected = Expression::dot_access(
-            Expression::dot_access(
-                Expression::reference("object", false),
-                "field"
-            ),
-            "subfield"
-        );
-        assert_eq!(
-            Parser::parse("object.field.subfield").unwrap(),
-            expected
-        );
+        let expected = Expression::dot_access(Expression::dot_access(Expression::reference("object", false), "field"), "subfield");
+        assert_eq!(Parser::parse("object.field.subfield").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_indexing() {
         // Test array indexing: array[0]
-        let expected = Expression::index(
-            Expression::reference("array", false),
-            Expression::value(RuntimeValue::Number(0.0))
-        );
-        assert_eq!(
-            Parser::parse("array[0]").unwrap(),
-            expected
-        );
+        let expected = Expression::index(Expression::reference("array", false), Expression::value(RuntimeValue::Number(0.0)));
+        assert_eq!(Parser::parse("array[0]").unwrap(), expected);
 
         // Test string indexing: string[1]
-        let expected = Expression::index(
-            Expression::reference("string", false),
-            Expression::value(RuntimeValue::Number(1.0))
-        );
-        assert_eq!(
-            Parser::parse("string[1]").unwrap(),
-            expected
-        );
+        let expected = Expression::index(Expression::reference("string", false), Expression::value(RuntimeValue::Number(1.0)));
+        assert_eq!(Parser::parse("string[1]").unwrap(), expected);
 
         // Test chained indexing: array[0][1]
         let expected = Expression::index(
-            Expression::index(
-                Expression::reference("array", false),
-                Expression::value(RuntimeValue::Number(0.0))
-            ),
-            Expression::value(RuntimeValue::Number(1.0))
+            Expression::index(Expression::reference("array", false), Expression::value(RuntimeValue::Number(0.0))),
+            Expression::value(RuntimeValue::Number(1.0)),
         );
-        assert_eq!(
-            Parser::parse("array[0][1]").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("array[0][1]").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_mixed_dot_and_index() {
         // Test mixed dot access and indexing: object.field[0]
         let expected = Expression::index(
-            Expression::dot_access(
-                Expression::reference("object", false),
-                "field"
-            ),
-            Expression::value(RuntimeValue::Number(0.0))
+            Expression::dot_access(Expression::reference("object", false), "field"),
+            Expression::value(RuntimeValue::Number(0.0)),
         );
-        assert_eq!(
-            Parser::parse("object.field[0]").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("object.field[0]").unwrap(), expected);
 
         // Test the reverse: object[0].field
         let expected = Expression::dot_access(
-            Expression::index(
-                Expression::reference("object", false),
-                Expression::value(RuntimeValue::Number(0.0))
-            ),
-            "field"
+            Expression::index(Expression::reference("object", false), Expression::value(RuntimeValue::Number(0.0))),
+            "field",
         );
-        assert_eq!(
-            Parser::parse("object[0].field").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("object[0].field").unwrap(), expected);
     }
 
     #[test]
@@ -1528,23 +1175,23 @@ mod tests {
         // Test the correct case: map (-cost) (should be unary minus in parentheses)
         let expected_correct = Expression::function_call(
             Expression::reference("map", false),
-            vec![Expression::parenthetical(
-                Expression::unary(
-                    UnaryOperator::Negate,
-                    Expression::reference("cost", false)
-                )
-            )]
+            vec![Expression::parenthetical(Expression::unary(
+                UnaryOperator::Negate,
+                Expression::reference("cost", false),
+            ))],
         );
-        assert_eq!(
-            Parser::parse("map (-cost)").unwrap(),
-            expected_correct
-        );
+        assert_eq!(Parser::parse("map (-cost)").unwrap(), expected_correct);
 
         // Test that the gotcha exists: map -cost parses as binary minus
         let gotcha_result = Parser::parse("map -cost").unwrap();
         // This demonstrates the gotcha - it's parsed as binary minus (map - cost)
         // when users might expect it to be parsed as unary minus (map (-cost))
-        if let Expression::BinaryExpression { operator: BinaryOperator::Minus, left, right } = gotcha_result {
+        if let Expression::BinaryExpression {
+            operator: BinaryOperator::Minus,
+            left,
+            right,
+        } = gotcha_result
+        {
             // This confirms the gotcha - it's parsed as binary minus
             assert_eq!(*left, Expression::reference("map", false));
             assert_eq!(*right, Expression::reference("cost", false));
@@ -1566,12 +1213,9 @@ mod tests {
                 Expression::value(RuntimeValue::Number(2.0)),
                 Expression::value(RuntimeValue::Number(3.0)),
             ]),
-            Expression::value(RuntimeValue::Number(0.0))
+            Expression::value(RuntimeValue::Number(0.0)),
         );
-        assert_eq!(
-            Parser::parse("[1, 2, 3][0]").unwrap(),
-            expected
-        );
+        assert_eq!(Parser::parse("[1, 2, 3][0]").unwrap(), expected);
 
         // Test that spaced version fails to parse as indexing
         // This should parse as a function call: count [1] [2]
@@ -1586,20 +1230,11 @@ mod tests {
         // This is more about execution than parsing, but we can test the syntax
 
         // Test @.bar syntax (recommended)
-        let expected = Expression::dot_access(
-            Expression::reference("@", false),
-            "bar"
-        );
-        assert_eq!(
-            Parser::parse("@.bar").unwrap(),
-            expected
-        );
+        let expected = Expression::dot_access(Expression::reference("@", false), "bar");
+        assert_eq!(Parser::parse("@.bar").unwrap(), expected);
 
         // Test bare bar syntax (problematic)
         let expected_bare = Expression::reference("bar", false);
-        assert_eq!(
-            Parser::parse("bar").unwrap(),
-            expected_bare
-        );
+        assert_eq!(Parser::parse("bar").unwrap(), expected_bare);
     }
 }

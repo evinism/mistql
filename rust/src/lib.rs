@@ -5,12 +5,12 @@
 
 use crate::types::{RuntimeValue, ToRuntimeValue};
 
-pub mod types;
+pub mod builtins;
+pub mod executor;
+pub mod instance;
 pub mod lexer;
 pub mod parser;
-pub mod executor;
-pub mod builtins;
-pub mod instance;
+pub mod types;
 
 // Shared test modules.
 #[cfg(test)]
@@ -42,13 +42,12 @@ pub enum MistQLError {
 /// let data = serde_json::json!([{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]);
 /// let result = query("filter age > 26 | map name", &data).unwrap();
 /// ```
-pub fn query <T: ToRuntimeValue>(query_str: &str, data: &T) -> Result<RuntimeValue, MistQLError> {
-    use crate::parser::Parser;
+pub fn query<T: ToRuntimeValue>(query_str: &str, data: &T) -> Result<RuntimeValue, MistQLError> {
     use crate::executor::{execute_expression, ExecutionContext};
+    use crate::parser::Parser;
 
     // Parse the query string into an expression
-    let expr = Parser::parse(query_str)
-        .map_err(|e| MistQLError::Parser(e))?;
+    let expr = Parser::parse(query_str).map_err(|e| MistQLError::Parser(e))?;
 
     let runtime_data = data.to_runtime_value();
 
@@ -56,8 +55,7 @@ pub fn query <T: ToRuntimeValue>(query_str: &str, data: &T) -> Result<RuntimeVal
     let mut context = ExecutionContext::with_builtins(runtime_data);
 
     // Execute the expression
-    let result = execute_expression(&expr, &mut context)
-        .map_err(|e| MistQLError::Runtime(e.to_string()))?;
+    let result = execute_expression(&expr, &mut context).map_err(|e| MistQLError::Runtime(e.to_string()))?;
 
     Ok(result)
 }
