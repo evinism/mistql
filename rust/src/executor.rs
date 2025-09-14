@@ -4,7 +4,7 @@
 //! including contextualized expressions, function calls, and pipeline processing.
 
 use crate::builtins::execute_builtin;
-use crate::parser::{BinaryOperator, Expression, UnaryOperator};
+use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
 
@@ -187,8 +187,6 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> 
         Expression::ObjectExpression { entries } => execute_object(entries, context),
         Expression::PipeExpression { stages } => execute_pipeline(stages, context),
         Expression::ParentheticalExpression { expression } => execute_expression(expression, context),
-        Expression::UnaryExpression { operator, operand } => execute_unary(*operator, operand, context),
-        Expression::BinaryExpression { operator, left, right } => execute_binary(*operator, left, right, context),
         Expression::DotAccessExpression { object, field } => execute_dot_access(object, field, context),
         Expression::IndexExpression { target, index } => execute_indexing(target, index, context),
     }
@@ -301,45 +299,6 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
     }
 
     Ok(data)
-}
-
-fn execute_unary(operator: UnaryOperator, operand: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
-    let value = execute_expression(operand, context)?;
-
-    match operator {
-        UnaryOperator::Not => Ok(RuntimeValue::Boolean(!value.truthy())),
-        UnaryOperator::Negate => match value {
-            RuntimeValue::Number(n) => Ok(RuntimeValue::Number(-n)),
-            _ => Err(ExecutionError::TypeMismatch(format!("Cannot negate {}", value.get_type()))),
-        },
-    }
-}
-
-fn execute_binary(
-    operator: BinaryOperator,
-    left: &Expression,
-    right: &Expression,
-    context: &mut ExecutionContext,
-) -> Result<RuntimeValue, ExecutionError> {
-    let left_val = execute_expression(left, context)?;
-    let right_val = execute_expression(right, context)?;
-
-    match operator {
-        BinaryOperator::Plus => execute_plus(&left_val, &right_val),
-        BinaryOperator::Minus => execute_minus(&left_val, &right_val),
-        BinaryOperator::Mul => execute_multiply(&left_val, &right_val),
-        BinaryOperator::Div => execute_divide(&left_val, &right_val),
-        BinaryOperator::Mod => execute_modulo(&left_val, &right_val),
-        BinaryOperator::Eq => Ok(RuntimeValue::Boolean(left_val == right_val)),
-        BinaryOperator::Neq => Ok(RuntimeValue::Boolean(left_val != right_val)),
-        BinaryOperator::Match => execute_regex_match(&left_val, &right_val),
-        BinaryOperator::Gt => execute_greater_than(&left_val, &right_val),
-        BinaryOperator::Lt => execute_less_than(&left_val, &right_val),
-        BinaryOperator::Gte => execute_greater_equal(&left_val, &right_val),
-        BinaryOperator::Lte => execute_less_equal(&left_val, &right_val),
-        BinaryOperator::And => execute_logical_and(&left_val, &right_val),
-        BinaryOperator::Or => execute_logical_or(&left_val, &right_val),
-    }
 }
 
 fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
@@ -492,145 +451,6 @@ fn execute_slicing(target: &RuntimeValue, start: &RuntimeValue, end: &RuntimeVal
             }
         }
         _ => Err(ExecutionError::TypeMismatch(format!("Cannot slice {:?}", target.get_type()))),
-    }
-}
-
-fn execute_plus(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match (left, right) {
-        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a + b)),
-        (RuntimeValue::String(a), RuntimeValue::String(b)) => Ok(RuntimeValue::String(format!("{}{}", a, b))),
-        (RuntimeValue::Array(a), RuntimeValue::Array(b)) => {
-            let mut result = a.clone();
-            result.extend(b.clone());
-            Ok(RuntimeValue::Array(result))
-        }
-        _ => Err(ExecutionError::TypeMismatch(format!(
-            "Cannot add {:?} and {:?}",
-            left.get_type(),
-            right.get_type()
-        ))),
-    }
-}
-
-fn execute_minus(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match (left, right) {
-        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a - b)),
-        _ => Err(ExecutionError::TypeMismatch(format!(
-            "Cannot subtract {:?} from {:?}",
-            right.get_type(),
-            left.get_type()
-        ))),
-    }
-}
-
-fn execute_multiply(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match (left, right) {
-        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a * b)),
-        _ => Err(ExecutionError::TypeMismatch(format!(
-            "Cannot multiply {:?} and {:?}",
-            left.get_type(),
-            right.get_type()
-        ))),
-    }
-}
-
-fn execute_divide(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match (left, right) {
-        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => {
-            if *b == 0.0 {
-                Err(ExecutionError::DivisionByZero)
-            } else {
-                Ok(RuntimeValue::Number(a / b))
-            }
-        }
-        _ => Err(ExecutionError::TypeMismatch(format!(
-            "Cannot divide {:?} by {:?}",
-            left.get_type(),
-            right.get_type()
-        ))),
-    }
-}
-
-fn execute_modulo(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match (left, right) {
-        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => {
-            if *b == 0.0 {
-                Err(ExecutionError::DivisionByZero)
-            } else {
-                Ok(RuntimeValue::Number(a % b))
-            }
-        }
-        _ => Err(ExecutionError::TypeMismatch(format!(
-            "Cannot compute {:?} modulo {:?}",
-            left.get_type(),
-            right.get_type()
-        ))),
-    }
-}
-
-fn execute_regex_match(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match (left, right) {
-        (RuntimeValue::String(s), RuntimeValue::Regex(regex)) => Ok(RuntimeValue::Boolean(regex.as_regex().is_match(s))),
-        (RuntimeValue::String(s), RuntimeValue::String(pattern)) => {
-            // Treat string as regex pattern
-            match regex::Regex::new(pattern) {
-                Ok(regex) => Ok(RuntimeValue::Boolean(regex.is_match(s))),
-                Err(_) => Err(ExecutionError::TypeMismatch(format!("Invalid regex pattern: {}", pattern))),
-            }
-        }
-        _ => Err(ExecutionError::TypeMismatch(format!(
-            "Cannot match {:?} with {:?}",
-            left.get_type(),
-            right.get_type()
-        ))),
-    }
-}
-
-fn execute_greater_than(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match left.compare(right) {
-        Ok(std::cmp::Ordering::Greater) => Ok(RuntimeValue::Boolean(true)),
-        Ok(_) => Ok(RuntimeValue::Boolean(false)),
-        Err(e) => Err(ExecutionError::TypeMismatch(e)),
-    }
-}
-
-fn execute_less_than(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match left.compare(right) {
-        Ok(std::cmp::Ordering::Less) => Ok(RuntimeValue::Boolean(true)),
-        Ok(_) => Ok(RuntimeValue::Boolean(false)),
-        Err(e) => Err(ExecutionError::TypeMismatch(e)),
-    }
-}
-
-fn execute_greater_equal(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match left.compare(right) {
-        Ok(std::cmp::Ordering::Greater) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
-        Ok(_) => Ok(RuntimeValue::Boolean(false)),
-        Err(e) => Err(ExecutionError::TypeMismatch(e)),
-    }
-}
-
-fn execute_less_equal(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match left.compare(right) {
-        Ok(std::cmp::Ordering::Less) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
-        Ok(_) => Ok(RuntimeValue::Boolean(false)),
-        Err(e) => Err(ExecutionError::TypeMismatch(e)),
-    }
-}
-
-fn execute_logical_and(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    if left.truthy() {
-        Ok(right.clone())
-    } else {
-        Ok(left.clone())
-    }
-}
-
-fn execute_logical_or(left: &RuntimeValue, right: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    if left.truthy() {
-        Ok(left.clone())
-    } else {
-        Ok(right.clone())
     }
 }
 
@@ -788,7 +608,7 @@ mod tests {
 #[cfg(test)]
 mod execution_tests {
     use super::*;
-    use crate::parser::{BinaryOperator, Expression, UnaryOperator};
+    use crate::parser::Expression;
     use crate::types::RuntimeValue;
     use std::collections::HashMap;
 
@@ -911,12 +731,10 @@ mod execution_tests {
     fn test_execute_unary_not() {
         let mut context = create_test_context();
 
-        let expr = Expression::UnaryExpression {
-            operator: UnaryOperator::Not,
-            operand: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Boolean(true),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("!/unary", true),
+            vec![Expression::value(RuntimeValue::Boolean(true))],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Boolean(false));
@@ -926,12 +744,10 @@ mod execution_tests {
     fn test_execute_unary_negate() {
         let mut context = create_test_context();
 
-        let expr = Expression::UnaryExpression {
-            operator: UnaryOperator::Negate,
-            operand: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(42.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("-/unary", false),
+            vec![Expression::value(RuntimeValue::Number(42.0))],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Number(-42.0));
@@ -942,29 +758,25 @@ mod execution_tests {
         let mut context = create_test_context();
 
         // Test addition
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Plus,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(10.0),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(5.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("+", false),
+            vec![
+                Expression::value(RuntimeValue::Number(10.0)),
+                Expression::value(RuntimeValue::Number(5.0)),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Number(15.0));
 
         // Test multiplication
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Mul,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(3.0),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(4.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("*", false),
+            vec![
+                Expression::value(RuntimeValue::Number(3.0)),
+                Expression::value(RuntimeValue::Number(4.0)),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Number(12.0));
@@ -975,29 +787,25 @@ mod execution_tests {
         let mut context = create_test_context();
 
         // Test equality
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Eq,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(5.0),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(5.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("==", false),
+            vec![
+                Expression::value(RuntimeValue::Number(5.0)),
+                Expression::value(RuntimeValue::Number(5.0)),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Boolean(true));
 
         // Test greater than
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Gt,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(10.0),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(5.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference(">", false),
+            vec![
+                Expression::value(RuntimeValue::Number(10.0)),
+                Expression::value(RuntimeValue::Number(5.0)),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Boolean(true));
@@ -1008,29 +816,25 @@ mod execution_tests {
         let mut context = create_test_context();
 
         // Test logical AND (short-circuiting)
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::And,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Boolean(false),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Boolean(true),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("&&", false),
+            vec![
+                Expression::value(RuntimeValue::Boolean(false)),
+                Expression::value(RuntimeValue::Boolean(true)),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Boolean(false));
 
         // Test logical OR (short-circuiting)
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Or,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Boolean(true),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Boolean(false),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("||", false),
+            vec![
+                Expression::value(RuntimeValue::Boolean(true)),
+                Expression::value(RuntimeValue::Boolean(false)),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Boolean(true));
@@ -1184,15 +988,13 @@ mod execution_tests {
     fn test_execute_division_by_zero() {
         let mut context = create_test_context();
 
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Div,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(10.0),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(0.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("/", false),
+            vec![
+                Expression::value(RuntimeValue::Number(10.0)),
+                Expression::value(RuntimeValue::Number(0.0)),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context);
         assert!(matches!(result, Err(ExecutionError::DivisionByZero)));
@@ -1203,15 +1005,13 @@ mod execution_tests {
         let mut context = create_test_context();
 
         // Try to add string and number
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Plus,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::String("hello".to_string()),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(5.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("+", false),
+            vec![
+                Expression::value(RuntimeValue::String("hello".to_string())),
+                Expression::value(RuntimeValue::Number(5.0)),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context);
         assert!(matches!(result, Err(ExecutionError::TypeMismatch(_))));
@@ -1221,15 +1021,13 @@ mod execution_tests {
     fn test_execute_string_concatenation() {
         let mut context = create_test_context();
 
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Plus,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::String("hello ".to_string()),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::String("world".to_string()),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("+", false),
+            vec![
+                Expression::value(RuntimeValue::String("hello ".to_string())),
+                Expression::value(RuntimeValue::String("world".to_string())),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::String("hello world".to_string()));
@@ -1239,15 +1037,13 @@ mod execution_tests {
     fn test_execute_array_concatenation() {
         let mut context = create_test_context();
 
-        let expr = Expression::BinaryExpression {
-            operator: BinaryOperator::Plus,
-            left: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::Number(2.0)]),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![RuntimeValue::Number(3.0), RuntimeValue::Number(4.0)]),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("+", false),
+            vec![
+                Expression::value(RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::Number(2.0)])),
+                Expression::value(RuntimeValue::Array(vec![RuntimeValue::Number(3.0), RuntimeValue::Number(4.0)])),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         let expected = RuntimeValue::Array(vec![
@@ -1280,33 +1076,30 @@ mod execution_tests {
         let mut context = ExecutionContext::with_builtins(data);
 
         // Test filter with contextualized expressions: filter (@.age > 26) @
-        let condition = Expression::BinaryExpression {
-            operator: BinaryOperator::Gt,
-            left: Box::new(Expression::DotAccessExpression {
-                object: Box::new(Expression::RefExpression {
-                    name: "@".to_string(),
-                    absolute: false,
-                }),
-                field: "age".to_string(),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(26.0),
-            }),
-        };
+        let condition = Expression::function_call(
+            Expression::reference(">", false),
+            vec![
+                Expression::DotAccessExpression {
+                    object: Box::new(Expression::RefExpression {
+                        name: "@".to_string(),
+                        absolute: false,
+                    }),
+                    field: "age".to_string(),
+                },
+                Expression::value(RuntimeValue::Number(26.0)),
+            ],
+        );
 
-        let filter_expr = Expression::FnExpression {
-            function: Box::new(Expression::RefExpression {
-                name: "filter".to_string(),
-                absolute: false,
-            }),
-            arguments: vec![
+        let filter_expr = Expression::function_call(
+            Expression::reference("filter", false),
+            vec![
                 condition,
                 Expression::RefExpression {
                     name: "@".to_string(),
                     absolute: false,
                 },
             ],
-        };
+        );
 
         let result = execute_expression(&filter_expr, &mut context).unwrap();
 
