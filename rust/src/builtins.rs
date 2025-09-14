@@ -1004,6 +1004,26 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
 pub fn get_builtins() -> HashMap<String, RuntimeValue> {
     let mut builtins = HashMap::new();
 
+    // Unary operators.
+    builtins.insert("!/unary".to_string(), RuntimeValue::Function("!/unary".to_string()));
+    builtins.insert("-/unary".to_string(), RuntimeValue::Function("-/unary".to_string()));
+
+    // Binary operators.
+    builtins.insert("||".to_string(), RuntimeValue::Function("||".to_string()));
+    builtins.insert("&&".to_string(), RuntimeValue::Function("&&".to_string()));
+    builtins.insert("==".to_string(), RuntimeValue::Function("==".to_string()));
+    builtins.insert("!=".to_string(), RuntimeValue::Function("!=".to_string()));
+    builtins.insert(">".to_string(), RuntimeValue::Function(">".to_string()));
+    builtins.insert("<".to_string(), RuntimeValue::Function("<".to_string()));
+    builtins.insert(">=".to_string(), RuntimeValue::Function(">=".to_string()));
+    builtins.insert("<=".to_string(), RuntimeValue::Function("<=".to_string()));
+    builtins.insert("=~".to_string(), RuntimeValue::Function("=~".to_string()));
+    builtins.insert("+".to_string(), RuntimeValue::Function("+".to_string()));
+    builtins.insert("-".to_string(), RuntimeValue::Function("-".to_string()));
+    builtins.insert("*".to_string(), RuntimeValue::Function("*".to_string()));
+    builtins.insert("/".to_string(), RuntimeValue::Function("/".to_string()));
+    builtins.insert("%".to_string(), RuntimeValue::Function("%".to_string()));
+
     // Utility functions.
     builtins.insert("log".to_string(), RuntimeValue::Function("log".to_string()));
     builtins.insert("if".to_string(), RuntimeValue::Function("if".to_string()));
@@ -1058,6 +1078,201 @@ pub fn get_builtins() -> HashMap<String, RuntimeValue> {
 /// Execute a built-in function by name.
 pub fn execute_builtin(name: &str, args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     match name {
+        // Unary operators.
+        "!/unary" => {
+            validate_args("!/unary", args, 1, Some(1))?;
+            let value = execute_expression(&args[0], context)?;
+            Ok(RuntimeValue::Boolean(!value.truthy()))
+        }
+        "-/unary" => {
+            validate_args("-/unary", args, 1, Some(1))?;
+            let value = execute_expression(&args[0], context)?;
+            match value {
+                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(-n)),
+                _ => Err(ExecutionError::TypeMismatch(format!("Cannot negate {}", value.get_type()))),
+            }
+        }
+
+        // Binary operators.
+        "||" => {
+            validate_args("||", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            if left.truthy() {
+                Ok(left.clone())
+            } else {
+                Ok(right.clone())
+            }
+        }
+        "&&" => {
+            validate_args("&&", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            if left.truthy() {
+                Ok(right.clone())
+            } else {
+                Ok(left.clone())
+            }
+        }
+        "==" => {
+            validate_args("==", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            Ok(RuntimeValue::Boolean(left == right))
+        }
+        "!=" => {
+            validate_args("!=", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            Ok(RuntimeValue::Boolean(left != right))
+        }
+        "=~" => {
+            // TODO: Join with match_function?
+            validate_args("/", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match (&left, &right) {
+                (RuntimeValue::String(s), RuntimeValue::Regex(regex)) => Ok(RuntimeValue::Boolean(regex.as_regex().is_match(s))),
+                (RuntimeValue::String(s), RuntimeValue::String(pattern)) => {
+                    // Treat string as regex pattern
+                    match regex::Regex::new(pattern) {
+                        Ok(regex) => Ok(RuntimeValue::Boolean(regex.is_match(s))),
+                        Err(_) => Err(ExecutionError::TypeMismatch(format!("Invalid regex pattern: {}", pattern))),
+                    }
+                }
+                _ => Err(ExecutionError::TypeMismatch(format!(
+                    "Cannot match {:?} with {:?}",
+                    left.get_type(),
+                    right.get_type()
+                ))),
+            }
+        }
+        ">" => {
+            validate_args(">", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match left.compare(&right) {
+                Ok(std::cmp::Ordering::Greater) => Ok(RuntimeValue::Boolean(true)),
+                Ok(_) => Ok(RuntimeValue::Boolean(false)),
+                Err(e) => Err(ExecutionError::TypeMismatch(e)),
+            }
+        }
+        "<" => {
+            validate_args("<", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match left.compare(&right) {
+                Ok(std::cmp::Ordering::Less) => Ok(RuntimeValue::Boolean(true)),
+                Ok(_) => Ok(RuntimeValue::Boolean(false)),
+                Err(e) => Err(ExecutionError::TypeMismatch(e)),
+            }
+        }
+        ">=" => {
+            validate_args(">=", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match left.compare(&right) {
+                Ok(std::cmp::Ordering::Greater) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
+                Ok(_) => Ok(RuntimeValue::Boolean(false)),
+                Err(e) => Err(ExecutionError::TypeMismatch(e)),
+            }
+        }
+        "<=" => {
+            validate_args("<=", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match left.compare(&right) {
+                Ok(std::cmp::Ordering::Less) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
+                Ok(_) => Ok(RuntimeValue::Boolean(false)),
+                Err(e) => Err(ExecutionError::TypeMismatch(e)),
+            }
+        }
+        "+" => {
+            validate_args("+", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match (&left, &right) {
+                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a + b)),
+                (RuntimeValue::String(a), RuntimeValue::String(b)) => Ok(RuntimeValue::String(format!("{}{}", a, b))),
+                (RuntimeValue::Array(a), RuntimeValue::Array(b)) => {
+                    let mut result = a.clone();
+                    result.extend(b.clone());
+                    Ok(RuntimeValue::Array(result))
+                }
+                _ => Err(ExecutionError::TypeMismatch(format!(
+                    "Cannot add {:?} and {:?}",
+                    left.get_type(),
+                    right.get_type()
+                ))),
+            }
+        }
+        "-" => {
+            validate_args("-", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match (&left, &right) {
+                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a - b)),
+                _ => Err(ExecutionError::TypeMismatch(format!(
+                    "Cannot subtract {:?} from {:?}",
+                    right.get_type(),
+                    left.get_type()
+                ))),
+            }
+        }
+        "*" => {
+            validate_args("*", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match (&left, &right) {
+                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a * b)),
+                _ => Err(ExecutionError::TypeMismatch(format!(
+                    "Cannot multiply {:?} and {:?}",
+                    left.get_type(),
+                    right.get_type()
+                ))),
+            }
+        }
+        "/" => {
+            validate_args("/", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match (&left, &right) {
+                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => {
+                    if *b == 0.0 {
+                        Err(ExecutionError::DivisionByZero)
+                    } else {
+                        Ok(RuntimeValue::Number(a / b))
+                    }
+                }
+                _ => Err(ExecutionError::TypeMismatch(format!(
+                    "Cannot divide {:?} by {:?}",
+                    left.get_type(),
+                    right.get_type()
+                ))),
+            }
+        }
+        "%" => {
+            validate_args("%", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match (&left, &right) {
+                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a % b)),
+                _ => Err(ExecutionError::TypeMismatch(format!(
+                    "Cannot modulo {:?} by {:?}",
+                    left.get_type(),
+                    right.get_type()
+                ))),
+            }
+        }
+        "." => {
+            validate_args(".", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+            match (&left, &right) {
+                _ => Err(ExecutionError::Custom("Not implemented".to_string())),
+            }
+        }
+
         // Utility functions.
         "log" => log(args, context),
         "if" => if_function(args, context),
@@ -1150,22 +1365,26 @@ mod tests {
         let mut context = create_test_context();
 
         // Filter even numbers: filter (@ % 2 == 0) [1, 2, 3, 4, 5]
-        let condition = Expression::BinaryExpression {
-            operator: crate::parser::BinaryOperator::Eq,
-            left: Box::new(Expression::BinaryExpression {
-                operator: crate::parser::BinaryOperator::Mod,
-                left: Box::new(Expression::RefExpression {
-                    name: "@".to_string(),
-                    absolute: false,
-                }),
-                right: Box::new(Expression::ValueExpression {
-                    value: RuntimeValue::Number(2.0),
-                }),
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(0.0),
-            }),
-        };
+        let condition = Expression::function_call(
+            Expression::reference("==", false),
+            vec![
+                Expression::function_call(
+                    Expression::reference("%", false),
+                    vec![
+                        Expression::RefExpression {
+                            name: "@".to_string(),
+                            absolute: false,
+                        },
+                        Expression::ValueExpression {
+                            value: RuntimeValue::Number(2.0),
+                        },
+                    ],
+                ),
+                Expression::ValueExpression {
+                    value: RuntimeValue::Number(0.0),
+                },
+            ],
+        );
 
         let args = vec![
             condition,
@@ -1196,16 +1415,18 @@ mod tests {
         let mut context = create_test_context();
 
         // Map to double: map (@ * 2) [1, 2, 3]
-        let transformation = Expression::BinaryExpression {
-            operator: crate::parser::BinaryOperator::Mul,
-            left: Box::new(Expression::RefExpression {
-                name: "@".to_string(),
-                absolute: false,
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(2.0),
-            }),
-        };
+        let transformation = Expression::function_call(
+            Expression::reference("*", false),
+            vec![
+                Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                },
+                Expression::ValueExpression {
+                    value: RuntimeValue::Number(2.0),
+                },
+            ],
+        );
 
         let args = vec![
             transformation,
@@ -1354,16 +1575,18 @@ mod tests {
         let mut context = create_test_context();
 
         // Sort by modulo 4: [3, 1, 2, 8] -> [8, 1, 2, 3] (sorted by @ % 4)
-        let transformation = Expression::BinaryExpression {
-            operator: crate::parser::BinaryOperator::Mod,
-            left: Box::new(Expression::RefExpression {
-                name: "@".to_string(),
-                absolute: false,
-            }),
-            right: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(4.0),
-            }),
-        };
+        let transformation = Expression::function_call(
+            Expression::reference("%", false),
+            vec![
+                Expression::RefExpression {
+                    name: "@".to_string(),
+                    absolute: false,
+                },
+                Expression::ValueExpression {
+                    value: RuntimeValue::Number(4.0),
+                },
+            ],
+        );
 
         let args = vec![
             transformation,
@@ -1394,27 +1617,29 @@ mod tests {
         let mut context = create_test_context();
 
         // Reduce to sum: reduce (@[0] + @[1]) 0 [1, 2, 3]
-        let reducer = Expression::BinaryExpression {
-            operator: crate::parser::BinaryOperator::Plus,
-            left: Box::new(Expression::IndexExpression {
-                target: Box::new(Expression::RefExpression {
-                    name: "@".to_string(),
-                    absolute: false,
-                }),
-                index: Box::new(Expression::ValueExpression {
-                    value: RuntimeValue::Number(0.0),
-                }),
-            }),
-            right: Box::new(Expression::IndexExpression {
-                target: Box::new(Expression::RefExpression {
-                    name: "@".to_string(),
-                    absolute: false,
-                }),
-                index: Box::new(Expression::ValueExpression {
-                    value: RuntimeValue::Number(1.0),
-                }),
-            }),
-        };
+        let reducer = Expression::function_call(
+            Expression::reference("+", false),
+            vec![
+                Expression::IndexExpression {
+                    target: Box::new(Expression::RefExpression {
+                        name: "@".to_string(),
+                        absolute: false,
+                    }),
+                    index: Box::new(Expression::ValueExpression {
+                        value: RuntimeValue::Number(0.0),
+                    }),
+                },
+                Expression::IndexExpression {
+                    target: Box::new(Expression::RefExpression {
+                        name: "@".to_string(),
+                        absolute: false,
+                    }),
+                    index: Box::new(Expression::ValueExpression {
+                        value: RuntimeValue::Number(1.0),
+                    }),
+                },
+            ],
+        );
 
         let args = vec![
             reducer,

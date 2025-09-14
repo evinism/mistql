@@ -35,60 +35,10 @@ pub enum Expression {
     PipeExpression { stages: Vec<Expression> },
     /// Parenthetical expression: `(expression)`
     ParentheticalExpression { expression: Box<Expression> },
-    /// Unary operation: `!expression`, `-expression`
-    UnaryExpression { operator: UnaryOperator, operand: Box<Expression> },
-    /// Binary operation: `left operator right`
-    BinaryExpression {
-        operator: BinaryOperator,
-        left: Box<Expression>,
-        right: Box<Expression>,
-    },
     /// Dot access: `object.field`
     DotAccessExpression { object: Box<Expression>, field: String },
     /// Indexing: `array[index]` or `string[index]`
     IndexExpression { target: Box<Expression>, index: Box<Expression> },
-}
-
-/// Unary operators in MistQL
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum UnaryOperator {
-    /// Logical NOT: `!`
-    Not,
-    /// Unary minus: `-`
-    Negate,
-}
-
-/// Binary operators in MistQL
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum BinaryOperator {
-    /// Logical OR: `||`
-    Or,
-    /// Logical AND: `&&`
-    And,
-    /// Equality: `==`
-    Eq,
-    /// Inequality: `!=`
-    Neq,
-    /// Regex match: `=~`
-    Match,
-    /// Greater than: `>`
-    Gt,
-    /// Less than: `<`
-    Lt,
-    /// Greater than or equal: `>=`
-    Gte,
-    /// Less than or equal: `<=`
-    Lte,
-    /// Addition: `+`
-    Plus,
-    /// Subtraction: `-`
-    Minus,
-    /// Multiplication: `*`
-    Mul,
-    /// Division: `/`
-    Div,
-    /// Modulo: `%`
-    Mod,
 }
 
 impl Expression {
@@ -125,21 +75,6 @@ impl Expression {
     pub fn parenthetical(expression: Expression) -> Self {
         Expression::ParentheticalExpression {
             expression: Box::new(expression),
-        }
-    }
-
-    pub fn unary(operator: UnaryOperator, operand: Expression) -> Self {
-        Expression::UnaryExpression {
-            operator,
-            operand: Box::new(operand),
-        }
-    }
-
-    pub fn binary(operator: BinaryOperator, left: Expression, right: Expression) -> Self {
-        Expression::BinaryExpression {
-            operator,
-            left: Box::new(left),
-            right: Box::new(right),
         }
     }
 
@@ -251,7 +186,6 @@ fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
     Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)))
 }
 
-/// Parse boolean literals
 fn parse_boolean(input: &str) -> IResult<&str, RuntimeValue> {
     alt((
         value(RuntimeValue::Boolean(true), tag("true")),
@@ -259,17 +193,14 @@ fn parse_boolean(input: &str) -> IResult<&str, RuntimeValue> {
     ))(input)
 }
 
-/// Parse null literal
 fn parse_null(input: &str) -> IResult<&str, RuntimeValue> {
     value(RuntimeValue::Null, tag("null"))(input)
 }
 
-/// Parse a literal value
 fn parse_literal(input: &str) -> IResult<&str, Expression> {
     map(alt((parse_number, parse_string, parse_boolean, parse_null)), Expression::value)(input)
 }
 
-/// Parse a variable name (identifier)
 fn parse_identifier(input: &str) -> IResult<&str, &str> {
     recognize(pair(alt((alpha1, tag("_"))), many0(alt((alphanumeric1, tag("_"))))))(input)
 }
@@ -283,7 +214,6 @@ fn parse_reference(input: &str) -> IResult<&str, Expression> {
     ))(input)
 }
 
-/// Parse an array literal
 fn parse_array(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(
@@ -295,7 +225,6 @@ fn parse_array(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse an object literal
 fn parse_object(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(
@@ -313,7 +242,6 @@ fn parse_object(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse an object entry (key: value)
 fn parse_object_entry(input: &str) -> IResult<&str, (String, Expression)> {
     separated_pair(
         alt((
@@ -328,7 +256,6 @@ fn parse_object_entry(input: &str) -> IResult<&str, (String, Expression)> {
     )(input)
 }
 
-/// Parse a parenthetical expression
 fn parse_parenthetical(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(pair(char('('), multispace0), parse_pipeline, pair(multispace0, char(')'))),
@@ -392,7 +319,7 @@ fn parse_op_a(input: &str) -> IResult<&str, Expression> {
                 // Left-associative: a || b || c = (a || b) || c
                 operands
                     .into_iter()
-                    .reduce(|left, right| Expression::binary(BinaryOperator::Or, left, right))
+                    .reduce(|left, right| Expression::function_call(Expression::reference("||", false), vec![left, right]))
                     .unwrap()
             }
         },
@@ -412,7 +339,7 @@ fn parse_op_b(input: &str) -> IResult<&str, Expression> {
                 // Left-associative: a && b && c = (a && b) && c
                 operands
                     .into_iter()
-                    .reduce(|left, right| Expression::binary(BinaryOperator::And, left, right))
+                    .reduce(|left, right| Expression::function_call(Expression::reference("&&", false), vec![left, right]))
                     .unwrap()
             }
         },
@@ -429,17 +356,18 @@ fn parse_op_c(input: &str) -> IResult<&str, Expression> {
                 pair(
                     multispace0,
                     alt((
-                        map(tag("=="), |_| BinaryOperator::Eq),
-                        map(tag("!="), |_| BinaryOperator::Neq),
-                        map(tag("=~"), |_| BinaryOperator::Match),
+                        map(tag("=="), |_| "=="),
+                        map(tag("!="), |_| "!="),
+                        map(tag("=~"), |_| "=~"),
                     )),
                 ),
                 pair(multispace0, parse_op_d),
             )),
         ),
         |(left, rest)| {
-            rest.into_iter()
-                .fold(left, |left, ((_, operator), (_, right))| Expression::binary(operator, left, right))
+            rest.into_iter().fold(left, |left, ((_, operator), (_, right))| {
+                Expression::function_call(Expression::reference(operator, false), vec![left, right])
+            })
         },
     )(input)
 }
@@ -454,18 +382,19 @@ fn parse_op_d(input: &str) -> IResult<&str, Expression> {
                 pair(
                     multispace0,
                     alt((
-                        map(tag(">="), |_| BinaryOperator::Gte),
-                        map(tag("<="), |_| BinaryOperator::Lte),
-                        map(tag(">"), |_| BinaryOperator::Gt),
-                        map(tag("<"), |_| BinaryOperator::Lt),
+                        map(tag(">="), |_| ">="),
+                        map(tag("<="), |_| "<="),
+                        map(tag(">"), |_| ">"),
+                        map(tag("<"), |_| "<"),
                     )),
                 ),
                 pair(multispace0, parse_op_e),
             )),
         ),
         |(left, rest)| {
-            rest.into_iter()
-                .fold(left, |left, ((_, operator), (_, right))| Expression::binary(operator, left, right))
+            rest.into_iter().fold(left, |left, ((_, operator), (_, right))| {
+                Expression::function_call(Expression::reference(operator, false), vec![left, right])
+            })
         },
     )(input)
 }
@@ -477,16 +406,14 @@ fn parse_op_e(input: &str) -> IResult<&str, Expression> {
         pair(
             parse_op_f,
             many0(pair(
-                pair(
-                    multispace0,
-                    alt((map(tag("+"), |_| BinaryOperator::Plus), map(tag("-"), |_| BinaryOperator::Minus))),
-                ),
+                pair(multispace0, alt((map(tag("+"), |_| "+"), map(tag("-"), |_| "-")))),
                 pair(multispace0, parse_op_f),
             )),
         ),
         |(left, rest)| {
-            rest.into_iter()
-                .fold(left, |left, ((_, operator), (_, right))| Expression::binary(operator, left, right))
+            rest.into_iter().fold(left, |left, ((_, operator), (_, right))| {
+                Expression::function_call(Expression::reference(operator, false), vec![left, right])
+            })
         },
     )(input)
 }
@@ -500,18 +427,15 @@ fn parse_op_f(input: &str) -> IResult<&str, Expression> {
             many0(pair(
                 pair(
                     multispace0,
-                    alt((
-                        map(tag("*"), |_| BinaryOperator::Mul),
-                        map(tag("/"), |_| BinaryOperator::Div),
-                        map(tag("%"), |_| BinaryOperator::Mod),
-                    )),
+                    alt((map(tag("*"), |_| "*"), map(tag("/"), |_| "/"), map(tag("%"), |_| "%"))),
                 ),
                 pair(multispace0, parse_op_g),
             )),
         ),
         |(left, rest)| {
-            rest.into_iter()
-                .fold(left, |left, ((_, operator), (_, right))| Expression::binary(operator, left, right))
+            rest.into_iter().fold(left, |left, ((_, operator), (_, right))| {
+                Expression::function_call(Expression::reference(operator, false), vec![left, right])
+            })
         },
     )(input)
 }
@@ -526,7 +450,7 @@ fn parse_op_g(input: &str) -> IResult<&str, Expression> {
                 char('!'),
                 pair(multispace0, parse_op_g), // Recursive to handle multiple unary operators
             ),
-            |(_, (_, operand))| Expression::unary(UnaryOperator::Not, operand),
+            |(_, (_, operand))| Expression::function_call(Expression::reference("!/unary", true), vec![operand]),
         ),
         // Parse unary minus: -expression
         map(
@@ -534,7 +458,7 @@ fn parse_op_g(input: &str) -> IResult<&str, Expression> {
                 char('-'),
                 pair(multispace0, parse_op_g), // Recursive to handle multiple unary operators
             ),
-            |(_, (_, operand))| Expression::unary(UnaryOperator::Negate, operand),
+            |(_, (_, operand))| Expression::function_call(Expression::reference("-/unary", false), vec![operand]),
         ),
         // Fall back to op_h
         parse_op_h,
@@ -658,7 +582,10 @@ mod tests {
         assert_eq!(Parser::parse("3.14").unwrap(), Expression::value(RuntimeValue::Number(3.14)));
         assert_eq!(
             Parser::parse("-10").unwrap(),
-            Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(10.0)))
+            Expression::function_call(
+                Expression::reference("-/unary", false),
+                vec![Expression::value(RuntimeValue::Number(10.0))]
+            )
         );
 
         // Test strings
@@ -779,53 +706,77 @@ mod tests {
     #[test]
     fn test_parse_unary_not() {
         // Test logical NOT with boolean
-        let expected = Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Boolean(true)));
+        let expected = Expression::function_call(
+            Expression::reference("!/unary", true),
+            vec![Expression::value(RuntimeValue::Boolean(true))],
+        );
         assert_eq!(Parser::parse("!true").unwrap(), expected);
 
         // Test logical NOT with number
-        let expected = Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Number(42.0)));
+        let expected = Expression::function_call(
+            Expression::reference("!/unary", true),
+            vec![Expression::value(RuntimeValue::Number(42.0))],
+        );
         assert_eq!(Parser::parse("!42").unwrap(), expected);
 
         // Test logical NOT with reference (bare identifier)
-        let expected = Expression::unary(UnaryOperator::Not, Expression::reference("condition", false));
+        let expected = Expression::function_call(
+            Expression::reference("!/unary", true),
+            vec![Expression::reference("condition", false)],
+        );
         assert_eq!(Parser::parse("!condition").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_unary_negate() {
         // Test unary minus with number
-        let expected = Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(42.0)));
+        let expected = Expression::function_call(
+            Expression::reference("-/unary", false),
+            vec![Expression::value(RuntimeValue::Number(42.0))],
+        );
         assert_eq!(Parser::parse("-42").unwrap(), expected);
 
         // Test unary minus with float
-        let expected = Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(3.14)));
+        let expected = Expression::function_call(
+            Expression::reference("-/unary", false),
+            vec![Expression::value(RuntimeValue::Number(3.14))],
+        );
         assert_eq!(Parser::parse("-3.14").unwrap(), expected);
 
         // Test unary minus with reference (bare identifier)
-        let expected = Expression::unary(UnaryOperator::Negate, Expression::reference("value", false));
+        let expected = Expression::function_call(Expression::reference("-/unary", false), vec![Expression::reference("value", false)]);
         assert_eq!(Parser::parse("-value").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_multiple_unary_operators() {
         // Test double negation
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Boolean(true))),
+        let expected = Expression::function_call(
+            Expression::reference("!/unary", true),
+            vec![Expression::function_call(
+                Expression::reference("!/unary", true),
+                vec![Expression::value(RuntimeValue::Boolean(true))],
+            )],
         );
         assert_eq!(Parser::parse("!!true").unwrap(), expected);
 
         // Test NOT with negate
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(42.0))),
+        let expected = Expression::function_call(
+            Expression::reference("!/unary", true),
+            vec![Expression::function_call(
+                Expression::reference("-/unary", false),
+                vec![Expression::value(RuntimeValue::Number(42.0))],
+            )],
         );
         assert_eq!(Parser::parse("!-42").unwrap(), expected);
 
         // Test negate with NOT
-        let expected = Expression::unary(
-            UnaryOperator::Negate,
-            Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Boolean(false))),
+        let expected = Expression::function_call(
+            Expression::reference("-/unary", false),
+            vec![Expression::function_call(
+                Expression::reference("!/unary", true),
+                vec![Expression::value(RuntimeValue::Boolean(false))],
+            )],
         );
         assert_eq!(Parser::parse("-!false").unwrap(), expected);
     }
@@ -833,25 +784,31 @@ mod tests {
     #[test]
     fn test_parse_unary_with_whitespace() {
         // Test with spaces around operators
-        let expected = Expression::unary(UnaryOperator::Not, Expression::value(RuntimeValue::Boolean(true)));
+        let expected = Expression::function_call(
+            Expression::reference("!/unary", true),
+            vec![Expression::value(RuntimeValue::Boolean(true))],
+        );
         assert_eq!(Parser::parse("! true").unwrap(), expected);
 
-        let expected = Expression::unary(UnaryOperator::Negate, Expression::value(RuntimeValue::Number(42.0)));
+        let expected = Expression::function_call(
+            Expression::reference("-/unary", false),
+            vec![Expression::value(RuntimeValue::Number(42.0))],
+        );
         assert_eq!(Parser::parse("- 42").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_unary_with_parentheses() {
         // Test unary operator with parenthetical expression
-        let expected = Expression::unary(
-            UnaryOperator::Not,
-            Expression::parenthetical(Expression::value(RuntimeValue::Number(42.0))),
+        let expected = Expression::function_call(
+            Expression::reference("!/unary", true),
+            vec![Expression::parenthetical(Expression::value(RuntimeValue::Number(42.0)))],
         );
         assert_eq!(Parser::parse("!(42)").unwrap(), expected);
 
-        let expected = Expression::unary(
-            UnaryOperator::Negate,
-            Expression::parenthetical(Expression::value(RuntimeValue::Number(10.0))),
+        let expected = Expression::function_call(
+            Expression::reference("-/unary", false),
+            vec![Expression::parenthetical(Expression::value(RuntimeValue::Number(10.0)))],
         );
         assert_eq!(Parser::parse("-(10)").unwrap(), expected);
     }
@@ -859,24 +816,24 @@ mod tests {
     #[test]
     fn test_parse_unary_with_function_calls() {
         // Test unary operator with reference
-        let expected = Expression::unary(UnaryOperator::Not, Expression::reference("count", false));
+        let expected = Expression::function_call(Expression::reference("!/unary", true), vec![Expression::reference("count", false)]);
         assert_eq!(Parser::parse("!count").unwrap(), expected);
 
         // Test unary operator with function call that has arguments
         // This should parse as (-sum) 1 (function call with unary minus as the function)
         let expected = Expression::function_call(
-            Expression::unary(UnaryOperator::Negate, Expression::reference("sum", false)),
+            Expression::function_call(Expression::reference("-/unary", false), vec![Expression::reference("sum", false)]),
             vec![Expression::value(RuntimeValue::Number(1.0))],
         );
         assert_eq!(Parser::parse("-sum 1").unwrap(), expected);
 
         // Test unary operator with parenthetical function call (this should work)
-        let expected = Expression::unary(
-            UnaryOperator::Negate,
-            Expression::parenthetical(Expression::function_call(
+        let expected = Expression::function_call(
+            Expression::reference("-/unary", false),
+            vec![Expression::parenthetical(Expression::function_call(
                 Expression::reference("sum", false),
                 vec![Expression::value(RuntimeValue::Number(1.0))],
-            )),
+            ))],
         );
         assert_eq!(Parser::parse("-(sum 1)").unwrap(), expected);
     }
@@ -885,33 +842,39 @@ mod tests {
     fn test_parse_unary_precedence() {
         // Test that unary operators have higher precedence than references
         // This should parse as: !(count) not (!count)()
-        let expected = Expression::unary(UnaryOperator::Not, Expression::reference("count", false));
+        let expected = Expression::function_call(Expression::reference("!/unary", true), vec![Expression::reference("count", false)]);
         assert_eq!(Parser::parse("!count").unwrap(), expected);
     }
 
     #[test]
     fn test_parse_binary_operators() {
         // Test addition
-        let expected = Expression::binary(
-            BinaryOperator::Plus,
-            Expression::value(RuntimeValue::Number(1.0)),
-            Expression::value(RuntimeValue::Number(2.0)),
+        let expected = Expression::function_call(
+            Expression::reference("+", false),
+            vec![
+                Expression::value(RuntimeValue::Number(1.0)),
+                Expression::value(RuntimeValue::Number(2.0)),
+            ],
         );
         assert_eq!(Parser::parse("1 + 2").unwrap(), expected);
 
         // Test multiplication
-        let expected = Expression::binary(
-            BinaryOperator::Mul,
-            Expression::value(RuntimeValue::Number(3.0)),
-            Expression::value(RuntimeValue::Number(4.0)),
+        let expected = Expression::function_call(
+            Expression::reference("*", false),
+            vec![
+                Expression::value(RuntimeValue::Number(3.0)),
+                Expression::value(RuntimeValue::Number(4.0)),
+            ],
         );
         assert_eq!(Parser::parse("3 * 4").unwrap(), expected);
 
         // Test equality
-        let expected = Expression::binary(
-            BinaryOperator::Eq,
-            Expression::value(RuntimeValue::Number(5.0)),
-            Expression::value(RuntimeValue::Number(5.0)),
+        let expected = Expression::function_call(
+            Expression::reference("==", false),
+            vec![
+                Expression::value(RuntimeValue::Number(5.0)),
+                Expression::value(RuntimeValue::Number(5.0)),
+            ],
         );
         assert_eq!(Parser::parse("5 == 5").unwrap(), expected);
     }
@@ -920,31 +883,36 @@ mod tests {
     fn test_parse_operator_precedence() {
         // Test that multiplication has higher precedence than addition
         // 1 + 2 * 3 should parse as 1 + (2 * 3)
-        let expected = Expression::binary(
-            BinaryOperator::Plus,
-            Expression::value(RuntimeValue::Number(1.0)),
-            Expression::binary(
-                BinaryOperator::Mul,
-                Expression::value(RuntimeValue::Number(2.0)),
-                Expression::value(RuntimeValue::Number(3.0)),
-            ),
+        let expected = Expression::function_call(
+            Expression::reference("+", false),
+            vec![
+                Expression::value(RuntimeValue::Number(1.0)),
+                Expression::function_call(
+                    Expression::reference("*", false),
+                    vec![
+                        Expression::value(RuntimeValue::Number(2.0)),
+                        Expression::value(RuntimeValue::Number(3.0)),
+                    ],
+                ),
+            ],
         );
+        assert_eq!(Parser::parse("1 + 2 * 3").unwrap(), expected);
         assert_eq!(Parser::parse("1 + 2 * 3").unwrap(), expected);
 
         // Test that comparison has higher precedence than logical operators
         // a > b && c < d should parse as (a > b) && (c < d)
-        let expected = Expression::binary(
-            BinaryOperator::And,
-            Expression::binary(
-                BinaryOperator::Gt,
-                Expression::reference("a", false),
-                Expression::reference("b", false),
-            ),
-            Expression::binary(
-                BinaryOperator::Lt,
-                Expression::reference("c", false),
-                Expression::reference("d", false),
-            ),
+        let expected = Expression::function_call(
+            Expression::reference("&&", false),
+            vec![
+                Expression::function_call(
+                    Expression::reference(">", false),
+                    vec![Expression::reference("a", false), Expression::reference("b", false)],
+                ),
+                Expression::function_call(
+                    Expression::reference("<", false),
+                    vec![Expression::reference("c", false), Expression::reference("d", false)],
+                ),
+            ],
         );
         assert_eq!(Parser::parse("a > b && c < d").unwrap(), expected);
     }
@@ -953,27 +921,32 @@ mod tests {
     fn test_parse_associativity() {
         // Test left associativity of addition
         // 1 + 2 + 3 should parse as (1 + 2) + 3
-        let expected = Expression::binary(
-            BinaryOperator::Plus,
-            Expression::binary(
-                BinaryOperator::Plus,
-                Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Number(2.0)),
-            ),
-            Expression::value(RuntimeValue::Number(3.0)),
+        let expected = Expression::function_call(
+            Expression::reference("+", false),
+            vec![
+                Expression::function_call(
+                    Expression::reference("+", false),
+                    vec![
+                        Expression::value(RuntimeValue::Number(1.0)),
+                        Expression::value(RuntimeValue::Number(2.0)),
+                    ],
+                ),
+                Expression::value(RuntimeValue::Number(3.0)),
+            ],
         );
         assert_eq!(Parser::parse("1 + 2 + 3").unwrap(), expected);
 
         // Test left associativity of logical AND
         // a && b && c should parse as (a && b) && c
-        let expected = Expression::binary(
-            BinaryOperator::And,
-            Expression::binary(
-                BinaryOperator::And,
-                Expression::reference("a", false),
-                Expression::reference("b", false),
-            ),
-            Expression::reference("c", false),
+        let expected = Expression::function_call(
+            Expression::reference("&&", false),
+            vec![
+                Expression::function_call(
+                    Expression::reference("&&", false),
+                    vec![Expression::reference("a", false), Expression::reference("b", false)],
+                ),
+                Expression::reference("c", false),
+            ],
         );
         assert_eq!(Parser::parse("a && b && c").unwrap(), expected);
     }
@@ -982,26 +955,36 @@ mod tests {
     fn test_parse_complex_expression() {
         // Test a more complex expression with multiple precedence levels
         // 1 + 2 * 3 > 4 && 5 == 6 should parse as ((1 + (2 * 3)) > 4) && (5 == 6)
-        let expected = Expression::binary(
-            BinaryOperator::And,
-            Expression::binary(
-                BinaryOperator::Gt,
-                Expression::binary(
-                    BinaryOperator::Plus,
-                    Expression::value(RuntimeValue::Number(1.0)),
-                    Expression::binary(
-                        BinaryOperator::Mul,
-                        Expression::value(RuntimeValue::Number(2.0)),
-                        Expression::value(RuntimeValue::Number(3.0)),
-                    ),
+        let expected = Expression::function_call(
+            Expression::reference("&&", false),
+            vec![
+                Expression::function_call(
+                    Expression::reference(">", false),
+                    vec![
+                        Expression::function_call(
+                            Expression::reference("+", false),
+                            vec![
+                                Expression::value(RuntimeValue::Number(1.0)),
+                                Expression::function_call(
+                                    Expression::reference("*", false),
+                                    vec![
+                                        Expression::value(RuntimeValue::Number(2.0)),
+                                        Expression::value(RuntimeValue::Number(3.0)),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        Expression::value(RuntimeValue::Number(4.0)),
+                    ],
                 ),
-                Expression::value(RuntimeValue::Number(4.0)),
-            ),
-            Expression::binary(
-                BinaryOperator::Eq,
-                Expression::value(RuntimeValue::Number(5.0)),
-                Expression::value(RuntimeValue::Number(6.0)),
-            ),
+                Expression::function_call(
+                    Expression::reference("==", false),
+                    vec![
+                        Expression::value(RuntimeValue::Number(5.0)),
+                        Expression::value(RuntimeValue::Number(6.0)),
+                    ],
+                ),
+            ],
         );
         assert_eq!(Parser::parse("1 + 2 * 3 > 4 && 5 == 6").unwrap(), expected);
     }
@@ -1175,9 +1158,9 @@ mod tests {
         // Test the correct case: map (-cost) (should be unary minus in parentheses)
         let expected_correct = Expression::function_call(
             Expression::reference("map", false),
-            vec![Expression::parenthetical(Expression::unary(
-                UnaryOperator::Negate,
-                Expression::reference("cost", false),
+            vec![Expression::parenthetical(Expression::function_call(
+                Expression::reference("-/unary", false),
+                vec![Expression::reference("cost", false)],
             ))],
         );
         assert_eq!(Parser::parse("map (-cost)").unwrap(), expected_correct);
@@ -1186,15 +1169,13 @@ mod tests {
         let gotcha_result = Parser::parse("map -cost").unwrap();
         // This demonstrates the gotcha - it's parsed as binary minus (map - cost)
         // when users might expect it to be parsed as unary minus (map (-cost))
-        if let Expression::BinaryExpression {
-            operator: BinaryOperator::Minus,
-            left,
-            right,
-        } = gotcha_result
-        {
+        if let Expression::FnExpression { function, arguments } = gotcha_result {
             // This confirms the gotcha - it's parsed as binary minus
-            assert_eq!(*left, Expression::reference("map", false));
-            assert_eq!(*right, Expression::reference("cost", false));
+            assert_eq!(*function, Expression::reference("-", false));
+            assert_eq!(
+                *arguments,
+                vec![Expression::reference("map", false), Expression::reference("cost", false)]
+            );
         } else {
             panic!("Expected binary minus expression");
         }
