@@ -842,7 +842,6 @@ pub fn summarize(args: &[Expression], context: &mut ExecutionContext) -> Result<
 // INDEXING FUNCTION
 // ============================================================================
 
-/// Perform indexing and slicing operations.
 pub fn index(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     if args.len() == 2 {
         // Single index: index(index, array/object/string)
@@ -856,45 +855,46 @@ pub fn index(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
         let operand = execute_expression(&args[2], context)?;
         index_double(start_val, end_val, operand)
     } else {
-        Err(ExecutionError::Custom("index takes 2 or 3 arguments".to_string()))
+        Err(ExecutionError::Custom("index: takes 2 or 3 arguments".to_string()))
     }
 }
 
-/// Single index operation.
+// Single index operation: index(index, array/object/string)
 fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
     match operand {
         RuntimeValue::Array(ref arr) => {
             let index_num = assert_number(index)?;
             if index_num.fract() != 0.0 {
                 return Err(ExecutionError::Custom("index: Non-integers cannot be used on arrays".to_string()));
-            }
-            let index_num = index_num as i64;
+            };
 
-            let len = arr.len() as i64;
-            let actual_index = if index_num < 0 { len + index_num } else { index_num };
-
-            if actual_index < 0 || actual_index >= len {
-                Ok(RuntimeValue::Null)
+            let len = arr.len() as isize;
+            let actual_index: isize;
+            // Handle negative indices.
+            if index_num < 0.0 {
+                actual_index = len + index_num as isize;
             } else {
-                Ok(arr[actual_index as usize].clone())
+                actual_index = index_num as isize;
             }
+
+            // Handle regular and out of bounds.
+            Ok(arr.get(actual_index as usize).cloned().unwrap_or(RuntimeValue::Null))
         }
         RuntimeValue::String(ref s) => {
             let index_num = assert_number(index)?;
             if index_num.fract() != 0.0 {
                 return Err(ExecutionError::Custom("index: Non-integers cannot be used on strings".to_string()));
             }
-            let index_num = index_num as i64;
 
-            let len = s.len() as i64;
-            let actual_index = if index_num < 0 { len + index_num } else { index_num };
-
-            if actual_index < 0 || actual_index >= len {
-                Ok(RuntimeValue::Null)
+            let len = s.len() as isize;
+            let actual_index: isize;
+            if index_num < 0.0 {
+                actual_index = len + index_num as isize;
             } else {
-                let ch = s.chars().nth(actual_index as usize).map(|c| c.to_string()).unwrap_or_default();
-                Ok(RuntimeValue::String(ch))
+                actual_index = index_num as isize;
             }
+
+            Ok(s.chars().nth(actual_index as usize).map(|c| RuntimeValue::String(c.to_string())).unwrap_or(RuntimeValue::Null))
         }
         RuntimeValue::Object(obj) => {
             let key = assert_string(index)?;
@@ -910,43 +910,42 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
                 ))),
             }
         }
-        _ => Err(ExecutionError::Custom(format!("index: Cannot index {}", operand.get_type()))),
+        _ => Err(ExecutionError::Custom(format!("index: Cannot index {:?} with {:?}", operand.get_type(), index.get_type()))),
     }
 }
 
-/// Double index operation (slicing).
+// Double index operation (slicing): index(start, end, array/string)
 fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
     match operand {
         RuntimeValue::Array(ref arr) => {
-            let start_num = if matches!(start, RuntimeValue::Null) {
-                0.0
-            } else {
-                let num = assert_number(start)?;
-                if num.fract() != 0.0 {
-                    return Err(ExecutionError::Custom("index: Non-integers cannot be used on arrays".to_string()));
+            let start_idx = match start {
+                RuntimeValue::Number(n) => n as isize,
+                RuntimeValue::Null => 0,
+                _ => {
+                    return Err(ExecutionError::TypeMismatch(format!(
+                        "Slice start must be number or null, got {:?}",
+                        start.get_type()
+                    )))
                 }
-                num
             };
 
-            let end_num = if matches!(end, RuntimeValue::Null) {
-                arr.len() as f64
-            } else {
-                let num = assert_number(end)?;
-                if num.fract() != 0.0 {
-                    return Err(ExecutionError::Custom("index: Non-integers cannot be used on arrays".to_string()));
+            let end_idx = match end {
+                RuntimeValue::Number(n) => n as isize,
+                RuntimeValue::Null => arr.len() as isize,
+                _ => {
+                    return Err(ExecutionError::TypeMismatch(format!(
+                        "Slice end must be number or null, got {:?}",
+                        end.get_type()
+                    )))
                 }
-                num
             };
 
-            let start_num = start_num as i64;
-            let end_num = end_num as i64;
+            let len = arr.len() as isize;
+            let start_idx = if start_idx < 0 { len + start_idx } else { start_idx };
+            let end_idx = if end_idx < 0 { len + end_idx } else { end_idx };
 
-            let len = arr.len() as i64;
-            let actual_start = if start_num < 0 { len + start_num } else { start_num };
-            let actual_end = if end_num < 0 { len + end_num } else { end_num };
-
-            let start_idx = actual_start.max(0) as usize;
-            let end_idx = actual_end.min(len) as usize;
+            let start_idx = start_idx.clamp(0, len) as usize;
+            let end_idx = end_idx.clamp(0, len) as usize;
 
             if start_idx >= end_idx {
                 Ok(RuntimeValue::Array(vec![]))
@@ -955,44 +954,48 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
             }
         }
         RuntimeValue::String(ref s) => {
-            let start_num = if matches!(start, RuntimeValue::Null) {
-                0.0
-            } else {
-                let num = assert_number(start)?;
-                if num.fract() != 0.0 {
-                    return Err(ExecutionError::Custom("index: Non-integers cannot be used on strings".to_string()));
+            let start_idx = match start {
+                RuntimeValue::Number(n) => n as isize,
+                RuntimeValue::Null => 0,
+                _ => {
+                    return Err(ExecutionError::TypeMismatch(format!(
+                        "Slice start must be number or null, got {:?}",
+                        start.get_type()
+                    )))
                 }
-                num
             };
 
-            let end_num = if matches!(end, RuntimeValue::Null) {
-                s.len() as f64
-            } else {
-                let num = assert_number(end)?;
-                if num.fract() != 0.0 {
-                    return Err(ExecutionError::Custom("index: Non-integers cannot be used on strings".to_string()));
+            let end_idx = match end {
+                RuntimeValue::Number(n) => n as isize,
+                RuntimeValue::Null => s.len() as isize,
+                _ => {
+                    return Err(ExecutionError::TypeMismatch(format!(
+                        "Slice end must be number or null, got {:?}",
+                        end.get_type()
+                    )))
                 }
-                num
             };
 
-            let start_num = start_num as i64;
-            let end_num = end_num as i64;
+            let len = s.len() as isize;
+            let start_idx = if start_idx < 0 { len + start_idx } else { start_idx };
+            let end_idx = if end_idx < 0 { len + end_idx } else { end_idx };
 
-            let len = s.len() as i64;
-            let actual_start = if start_num < 0 { len + start_num } else { start_num };
-            let actual_end = if end_num < 0 { len + end_num } else { end_num };
-
-            let start_idx = actual_start.max(0) as usize;
-            let end_idx = actual_end.min(len) as usize;
+            let start_idx = start_idx.clamp(0, len) as usize;
+            let end_idx = end_idx.clamp(0, len) as usize;
 
             if start_idx >= end_idx {
                 Ok(RuntimeValue::String(String::new()))
             } else {
-                let result: String = s.chars().skip(start_idx).take(end_idx - start_idx).collect();
-                Ok(RuntimeValue::String(result))
+                // Handle Unicode characters properly
+                let chars: Vec<char> = s.chars().collect();
+                if start_idx >= chars.len() || end_idx > chars.len() {
+                    Ok(RuntimeValue::String(String::new()))
+                } else {
+                    Ok(RuntimeValue::String(chars[start_idx..end_idx].iter().collect()))
+                }
             }
         }
-        _ => Err(ExecutionError::Custom(format!("index: Cannot slice {}", operand.get_type()))),
+        _ => Err(ExecutionError::Custom(format!("index: Cannot slice {:?} with start {:?} and end {:?}", operand.get_type(), start.get_type(), end.get_type()))),
     }
 }
 
@@ -1620,24 +1623,30 @@ mod tests {
         let reducer = Expression::function_call(
             Expression::reference("+", false),
             vec![
-                Expression::IndexExpression {
-                    target: Box::new(Expression::RefExpression {
-                        name: "@".to_string(),
-                        absolute: false,
-                    }),
-                    index: Box::new(Expression::ValueExpression {
-                        value: RuntimeValue::Number(0.0),
-                    }),
-                },
-                Expression::IndexExpression {
-                    target: Box::new(Expression::RefExpression {
-                        name: "@".to_string(),
-                        absolute: false,
-                    }),
-                    index: Box::new(Expression::ValueExpression {
-                        value: RuntimeValue::Number(1.0),
-                    }),
-                },
+                Expression::function_call(
+                    Expression::reference("index", false),
+                    vec![
+                        Expression::ValueExpression {
+                            value: RuntimeValue::Number(0.0),
+                        },
+                        Expression::RefExpression {
+                            name: "@".to_string(),
+                            absolute: false,
+                        },
+                    ],
+                ),
+                Expression::function_call(
+                    Expression::reference("index", false),
+                    vec![
+                        Expression::ValueExpression {
+                            value: RuntimeValue::Number(1.0),
+                        },
+                        Expression::RefExpression {
+                            name: "@".to_string(),
+                            absolute: false,
+                        },
+                    ],
+                ),
             ],
         );
 
