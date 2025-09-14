@@ -188,7 +188,6 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> 
         Expression::PipeExpression { stages } => execute_pipeline(stages, context),
         Expression::ParentheticalExpression { expression } => execute_expression(expression, context),
         Expression::DotAccessExpression { object, field } => execute_dot_access(object, field, context),
-        Expression::IndexExpression { target, index } => execute_indexing(target, index, context),
     }
 }
 
@@ -318,141 +317,6 @@ fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionC
     }
 }
 
-fn execute_indexing(target: &Expression, index: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
-    let target_value = execute_expression(target, context)?;
-
-    if let Expression::FnExpression { function, arguments } = index {
-        if let Expression::RefExpression { name, .. } = function.as_ref() {
-            if name == "index" && arguments.len() == 2 {
-                // This is a slicing operation: [start:end] (index is a function call to "index" with two arguments).
-                let start_value = execute_expression(&arguments[0], context)?;
-                let end_value = execute_expression(&arguments[1], context)?;
-                return execute_slicing(&target_value, &start_value, &end_value);
-            }
-        }
-    }
-
-    // Regular single index access.
-    let index_value = execute_expression(index, context)?;
-
-    match (&target_value, &index_value) {
-        (RuntimeValue::Array(arr), RuntimeValue::Number(idx)) => {
-            let idx = *idx as isize;
-            if idx < 0 {
-                let idx = (arr.len() as isize + idx) as usize;
-                Ok(arr.get(idx).cloned().unwrap_or(RuntimeValue::Null))
-            } else {
-                Ok(arr.get(idx as usize).cloned().unwrap_or(RuntimeValue::Null))
-            }
-        }
-        (RuntimeValue::String(s), RuntimeValue::Number(idx)) => {
-            let idx = *idx as isize;
-            if idx < 0 {
-                let idx = (s.len() as isize + idx) as usize;
-                Ok(s.chars()
-                    .nth(idx)
-                    .map(|c| RuntimeValue::String(c.to_string()))
-                    .unwrap_or(RuntimeValue::Null))
-            } else {
-                Ok(s.chars()
-                    .nth(idx as usize)
-                    .map(|c| RuntimeValue::String(c.to_string()))
-                    .unwrap_or(RuntimeValue::Null))
-            }
-        }
-        (RuntimeValue::Object(obj), RuntimeValue::String(key)) => Ok(obj.get(key).cloned().unwrap_or(RuntimeValue::Null)),
-        _ => Err(ExecutionError::TypeMismatch(format!(
-            "Cannot index {:?} with {:?}",
-            target_value.get_type(),
-            index_value.get_type()
-        ))),
-    }
-}
-
-/// Execute slicing operation: target[start:end].
-fn execute_slicing(target: &RuntimeValue, start: &RuntimeValue, end: &RuntimeValue) -> Result<RuntimeValue, ExecutionError> {
-    match target {
-        RuntimeValue::Array(arr) => {
-            let start_idx = match start {
-                RuntimeValue::Number(n) => *n as isize,
-                RuntimeValue::Null => 0,
-                _ => {
-                    return Err(ExecutionError::TypeMismatch(format!(
-                        "Slice start must be number or null, got {:?}",
-                        start.get_type()
-                    )))
-                }
-            };
-
-            let end_idx = match end {
-                RuntimeValue::Number(n) => *n as isize,
-                RuntimeValue::Null => arr.len() as isize,
-                _ => {
-                    return Err(ExecutionError::TypeMismatch(format!(
-                        "Slice end must be number or null, got {:?}",
-                        end.get_type()
-                    )))
-                }
-            };
-
-            let len = arr.len() as isize;
-            let start_idx = if start_idx < 0 { len + start_idx } else { start_idx };
-            let end_idx = if end_idx < 0 { len + end_idx } else { end_idx };
-
-            let start_idx = start_idx.max(0).min(len) as usize;
-            let end_idx = end_idx.max(0).min(len) as usize;
-
-            if start_idx >= end_idx {
-                Ok(RuntimeValue::Array(vec![]))
-            } else {
-                Ok(RuntimeValue::Array(arr[start_idx..end_idx].to_vec()))
-            }
-        }
-        RuntimeValue::String(s) => {
-            let start_idx = match start {
-                RuntimeValue::Number(n) => *n as isize,
-                RuntimeValue::Null => 0,
-                _ => {
-                    return Err(ExecutionError::TypeMismatch(format!(
-                        "Slice start must be number or null, got {:?}",
-                        start.get_type()
-                    )))
-                }
-            };
-
-            let end_idx = match end {
-                RuntimeValue::Number(n) => *n as isize,
-                RuntimeValue::Null => s.len() as isize,
-                _ => {
-                    return Err(ExecutionError::TypeMismatch(format!(
-                        "Slice end must be number or null, got {:?}",
-                        end.get_type()
-                    )))
-                }
-            };
-
-            let len = s.len() as isize;
-            let start_idx = if start_idx < 0 { len + start_idx } else { start_idx };
-            let end_idx = if end_idx < 0 { len + end_idx } else { end_idx };
-
-            let start_idx = start_idx.max(0).min(len) as usize;
-            let end_idx = end_idx.max(0).min(len) as usize;
-
-            if start_idx >= end_idx {
-                Ok(RuntimeValue::String(String::new()))
-            } else {
-                // Handle Unicode characters properly
-                let chars: Vec<char> = s.chars().collect();
-                if start_idx >= chars.len() || end_idx > chars.len() {
-                    Ok(RuntimeValue::String(String::new()))
-                } else {
-                    Ok(RuntimeValue::String(chars[start_idx..end_idx].iter().collect()))
-                }
-            }
-        }
-        _ => Err(ExecutionError::TypeMismatch(format!("Cannot slice {:?}", target.get_type()))),
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -635,9 +499,7 @@ mod execution_tests {
     fn test_execute_value_expression() {
         let mut context = create_test_context();
 
-        let expr = Expression::ValueExpression {
-            value: RuntimeValue::String("hello".to_string()),
-        };
+        let expr = Expression::value(RuntimeValue::String("hello".to_string()));
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::String("hello".to_string()));
@@ -647,10 +509,7 @@ mod execution_tests {
     fn test_execute_reference_expression() {
         let mut context = create_test_context();
 
-        let expr = Expression::RefExpression {
-            name: "name".to_string(),
-            absolute: false,
-        };
+        let expr = Expression::reference("name", false);
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::String("John".to_string()));
@@ -660,19 +519,11 @@ mod execution_tests {
     fn test_execute_array_expression() {
         let mut context = create_test_context();
 
-        let expr = Expression::ArrayExpression {
-            items: vec![
-                Expression::ValueExpression {
-                    value: RuntimeValue::Number(1.0),
-                },
-                Expression::ValueExpression {
-                    value: RuntimeValue::Number(2.0),
-                },
-                Expression::ValueExpression {
-                    value: RuntimeValue::Number(3.0),
-                },
-            ],
-        };
+        let expr = Expression::array(vec![
+                Expression::value(RuntimeValue::Number(1.0)),
+                Expression::value(RuntimeValue::Number(2.0)),
+                Expression::value(RuntimeValue::Number(3.0)),
+            ]);
 
         let result = execute_expression(&expr, &mut context).unwrap();
         let expected = RuntimeValue::Array(vec![
@@ -690,18 +541,14 @@ mod execution_tests {
         let mut entries = HashMap::new();
         entries.insert(
             "key1".to_string(),
-            Expression::ValueExpression {
-                value: RuntimeValue::String("value1".to_string()),
-            },
+            Expression::value(RuntimeValue::String("value1".to_string())),
         );
         entries.insert(
             "key2".to_string(),
-            Expression::ValueExpression {
-                value: RuntimeValue::Number(42.0),
-            },
+            Expression::value(RuntimeValue::Number(42.0)),
         );
 
-        let expr = Expression::ObjectExpression { entries };
+        let expr = Expression::object(entries);
 
         let result = execute_expression(&expr, &mut context).unwrap();
 
@@ -717,11 +564,7 @@ mod execution_tests {
     fn test_execute_parenthetical_expression() {
         let mut context = create_test_context();
 
-        let expr = Expression::ParentheticalExpression {
-            expression: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(42.0),
-            }),
-        };
+        let expr = Expression::parenthetical(Expression::value(RuntimeValue::Number(42.0)));
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Number(42.0));
@@ -845,10 +688,7 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let expr = Expression::DotAccessExpression {
-            object: Box::new(Expression::RefExpression {
-                name: "@".to_string(),
-                absolute: false,
-            }),
+            object: Box::new(Expression::reference("@", false)),
             field: "name".to_string(),
         };
 
@@ -861,10 +701,7 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let expr = Expression::DotAccessExpression {
-            object: Box::new(Expression::RefExpression {
-                name: "@".to_string(),
-                absolute: false,
-            }),
+            object: Box::new(Expression::reference("@", false)),
             field: "nonexistent".to_string(),
         };
 
@@ -876,15 +713,13 @@ mod execution_tests {
     fn test_execute_array_indexing() {
         let mut context = create_test_context();
 
-        let expr = Expression::IndexExpression {
-            target: Box::new(Expression::RefExpression {
-                name: "scores".to_string(),
-                absolute: false,
-            }),
-            index: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(0.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("index", false),
+            vec![
+                Expression::value(RuntimeValue::Number(0.0)),
+                Expression::reference("scores", false),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Number(85.0));
@@ -894,15 +729,13 @@ mod execution_tests {
     fn test_execute_array_negative_indexing() {
         let mut context = create_test_context();
 
-        let expr = Expression::IndexExpression {
-            target: Box::new(Expression::RefExpression {
-                name: "scores".to_string(),
-                absolute: false,
-            }),
-            index: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(-1.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("index", false),
+            vec![
+                Expression::value(RuntimeValue::Number(-1.0)),
+                Expression::reference("scores", false),
+            ],
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::Number(78.0));
@@ -912,14 +745,13 @@ mod execution_tests {
     fn test_execute_string_indexing() {
         let mut context = create_test_context();
 
-        let expr = Expression::IndexExpression {
-            target: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::String("hello".to_string()),
-            }),
-            index: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::Number(0.0),
-            }),
-        };
+        let expr = Expression::function_call(
+            Expression::reference("index", false),
+            vec![
+                Expression::value(RuntimeValue::Number(0.0)),
+                Expression::value(RuntimeValue::String("hello".to_string())),
+            ],
+            );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::String("h".to_string()));
@@ -932,14 +764,8 @@ mod execution_tests {
         // Simple pipeline: @ | name
         let expr = Expression::PipeExpression {
             stages: vec![
-                Expression::RefExpression {
-                    name: "@".to_string(),
-                    absolute: false,
-                },
-                Expression::RefExpression {
-                    name: "name".to_string(),
-                    absolute: false,
-                },
+                Expression::reference("@", false),
+                Expression::reference("name", false),
             ],
         };
 
@@ -957,13 +783,7 @@ mod execution_tests {
             .insert("count".to_string(), RuntimeValue::Function("count".to_string()));
         context.stack[0].insert("count".to_string(), RuntimeValue::Function("count".to_string()));
 
-        let expr = Expression::FnExpression {
-            function: Box::new(Expression::RefExpression {
-                name: "count".to_string(),
-                absolute: false,
-            }),
-            arguments: vec![],
-        };
+        let expr = Expression::function_call(Expression::reference("count", false), vec![]);
 
         let result = execute_expression(&expr, &mut context);
         assert!(matches!(result, Err(ExecutionError::Custom(_))));
@@ -973,12 +793,7 @@ mod execution_tests {
     fn test_execute_function_call_non_function() {
         let mut context = create_test_context();
 
-        let expr = Expression::FnExpression {
-            function: Box::new(Expression::ValueExpression {
-                value: RuntimeValue::String("not a function".to_string()),
-            }),
-            arguments: vec![],
-        };
+        let expr = Expression::function_call(Expression::value(RuntimeValue::String("not a function".to_string())), vec![]);
 
         let result = execute_expression(&expr, &mut context);
         assert!(matches!(result, Err(ExecutionError::NotCallable(_))));
@@ -1080,10 +895,7 @@ mod execution_tests {
             Expression::reference(">", false),
             vec![
                 Expression::DotAccessExpression {
-                    object: Box::new(Expression::RefExpression {
-                        name: "@".to_string(),
-                        absolute: false,
-                    }),
+                    object: Box::new(Expression::reference("@", false)),
                     field: "age".to_string(),
                 },
                 Expression::value(RuntimeValue::Number(26.0)),
@@ -1094,10 +906,7 @@ mod execution_tests {
             Expression::reference("filter", false),
             vec![
                 condition,
-                Expression::RefExpression {
-                    name: "@".to_string(),
-                    absolute: false,
-                },
+                Expression::reference("@", false),
             ],
         );
 
@@ -1138,26 +947,11 @@ mod execution_tests {
 
         // Test map with contextualized expressions: map @.name @
         let transformation = Expression::DotAccessExpression {
-            object: Box::new(Expression::RefExpression {
-                name: "@".to_string(),
-                absolute: false,
-            }),
+            object: Box::new(Expression::reference("@", false)),
             field: "name".to_string(),
         };
 
-        let map_expr = Expression::FnExpression {
-            function: Box::new(Expression::RefExpression {
-                name: "map".to_string(),
-                absolute: false,
-            }),
-            arguments: vec![
-                transformation,
-                Expression::RefExpression {
-                    name: "@".to_string(),
-                    absolute: false,
-                },
-            ],
-        };
+        let map_expr = Expression::function_call(Expression::reference("map", false), vec![transformation, Expression::reference("@", false)]);
 
         let result = execute_expression(&map_expr, &mut context).unwrap();
 

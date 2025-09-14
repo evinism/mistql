@@ -37,8 +37,6 @@ pub enum Expression {
     ParentheticalExpression { expression: Box<Expression> },
     /// Dot access: `object.field`
     DotAccessExpression { object: Box<Expression>, field: String },
-    /// Indexing: `array[index]` or `string[index]`
-    IndexExpression { target: Box<Expression>, index: Box<Expression> },
 }
 
 impl Expression {
@@ -85,12 +83,14 @@ impl Expression {
         }
     }
 
-    pub fn index(target: Expression, index: Expression) -> Self {
-        Expression::IndexExpression {
-            target: Box::new(target),
-            index: Box::new(index),
-        }
+    pub fn index_single(index: Expression, operand: Expression) -> Self {
+        Expression::function_call(Expression::reference("index", false), vec![index, operand])
     }
+
+    pub fn index_double(start: Expression, end: Expression, operand: Expression) -> Self {
+        Expression::function_call(Expression::reference("index", false), vec![start, end, operand])
+    }
+
 }
 
 /// Parse a float number (with decimal point and optional scientific notation)
@@ -286,6 +286,10 @@ fn parse_pipeline(input: &str) -> IResult<&str, Expression> {
 /// Parse a simple expression (op_a or fncall)
 /// simple_expression: _wslr{op_a} | _wslr{fncall}
 fn parse_simple_expression(input: &str) -> IResult<&str, Expression> {
+    // Try to parse as a function call first (op_a followed by space-separated arguments)
+    // If that fails, fall back to just op_a.
+    // TODO: This seems to differ from the lark grammar, but it works, so I
+    // might be misunderstanding.
     alt((parse_function_call, parse_op_a))(input)
 }
 
@@ -444,6 +448,8 @@ fn parse_op_f(input: &str) -> IResult<&str, Expression> {
 /// op_g: op_h | "!" op_g | "-" op_g
 fn parse_op_g(input: &str) -> IResult<&str, Expression> {
     alt((
+        // Try op_h first (higher precedence)
+        parse_op_h,
         // Parse logical NOT: !expression
         map(
             pair(
@@ -460,8 +466,6 @@ fn parse_op_g(input: &str) -> IResult<&str, Expression> {
             ),
             |(_, (_, operand))| Expression::function_call(Expression::reference("-/unary", false), vec![operand]),
         ),
-        // Fall back to op_h
-        parse_op_h,
     ))(input)
 }
 
@@ -498,7 +502,21 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
                 }
             }
             "index" => {
-                expr = Expression::index(expr, operand);
+                // Handle indexing: add the target as the last argument
+                if let Expression::FnExpression { function, mut arguments } = operand {
+                    // This is a slicing expression with 2 arguments, add target as 3rd
+                    arguments.push(expr);
+                    expr = Expression::FnExpression {
+                        function,
+                        arguments,
+                    };
+                } else {
+                    // This is simple indexing, create: index(operand, expr)
+                    expr = Expression::function_call(
+                        Expression::reference("index", false),
+                        vec![operand, expr],
+                    );
+                }
             }
             _ => unreachable!(),
         }
@@ -510,37 +528,54 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
 /// Parse indexing innards (for array/string indexing and slicing)
 /// index_innards: piped_expression? (WCOLON piped_expression?)*
 fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
-    // Parse slicing syntax: [start:end], [start:], [:end], [:], or [index]
-    let (remaining, result) = alt((
-        // Slice syntax: start:end, start:, :end, or :
-        map(
-            pair(
-                opt(pair(multispace0, parse_pipeline)),
-                pair(pair(multispace0, char(':')), opt(pair(multispace0, parse_pipeline))),
-            ),
-            |(start_opt, (_, end_opt))| {
-                let start = start_opt.map(|(_, expr)| expr);
-                let end = end_opt.map(|(_, expr)| expr);
-                // Create a special expression for slicing
-                // We'll handle this in the executor as a two-argument index call
-                Expression::function_call(
-                    Expression::reference("index", false),
-                    vec![
-                        start.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),
-                        end.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),
-                    ],
-                )
-            },
-        ),
-        // Single index: just an expression
-        map(opt(parse_pipeline), |expr_opt| match expr_opt {
-            Some(expr) => expr,
-            None => Expression::value(RuntimeValue::Null),
-        }),
-    ))(input)?;
+    // First try to parse a single expression (for simple indexing like [0])
+    let (remaining, first_expr) = opt(pair(multispace0, parse_pipeline))(input)?;
 
-    let (remaining, _) = pair(multispace0, char(']'))(remaining)?;
-    Ok((remaining, result))
+    if let Some((_, expr)) = first_expr {
+        // Check if there's a colon after the first expression (for slicing)
+        let (remaining, colon_result) = opt(pair(pair(multispace0, char(':')), opt(pair(multispace0, parse_pipeline))))(remaining)?;
+
+        if let Some((_, end_opt)) = colon_result {
+            // This is slicing syntax: [start:end] or [start:]
+            let end = end_opt.map(|(_, expr)| expr);
+            // For slicing, we need to return a special marker that indicates this is a slice
+            // The op_h parser will handle adding the target as the third argument
+            let result = Expression::function_call(
+                Expression::reference("index", false),
+                vec![
+                    expr,
+                    end.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),
+                ],
+            );
+            let (remaining, _) = pair(multispace0, char(']'))(remaining)?;
+            return Ok((remaining, result));
+        } else {
+            // This is simple indexing: [index]
+            let (remaining, _) = pair(multispace0, char(']'))(remaining)?;
+            return Ok((remaining, expr));
+        }
+    } else {
+        // No first expression, check if there's a colon (for [:end] or [:] syntax)
+        let (remaining, colon_result) = opt(pair(pair(multispace0, char(':')), opt(pair(multispace0, parse_pipeline))))(input)?;
+
+        if let Some((_, end_opt)) = colon_result {
+            // This is slicing syntax: [:end] or [:]
+            let end = end_opt.map(|(_, expr)| expr);
+            let result = Expression::function_call(
+                Expression::reference("index", false),
+                vec![
+                    Expression::value(RuntimeValue::Null),
+                    end.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),
+                ],
+            );
+            let (remaining, _) = pair(multispace0, char(']'))(remaining)?;
+            return Ok((remaining, result));
+        } else {
+            // Empty indexing: []
+            let (remaining, _) = pair(multispace0, char(']'))(input)?;
+            return Ok((remaining, Expression::value(RuntimeValue::Null)));
+        }
+    }
 }
 
 /// Parse a complete expression (top-level entry point)
@@ -582,10 +617,7 @@ mod tests {
         assert_eq!(Parser::parse("3.14").unwrap(), Expression::value(RuntimeValue::Number(3.14)));
         assert_eq!(
             Parser::parse("-10").unwrap(),
-            Expression::function_call(
-                Expression::reference("-/unary", false),
-                vec![Expression::value(RuntimeValue::Number(10.0))]
-            )
+            Expression::value(RuntimeValue::Number(-10.0))
         );
 
         // Test strings
@@ -730,17 +762,11 @@ mod tests {
     #[test]
     fn test_parse_unary_negate() {
         // Test unary minus with number
-        let expected = Expression::function_call(
-            Expression::reference("-/unary", false),
-            vec![Expression::value(RuntimeValue::Number(42.0))],
-        );
+        let expected = Expression::value(RuntimeValue::Number(-42.0));
         assert_eq!(Parser::parse("-42").unwrap(), expected);
 
         // Test unary minus with float
-        let expected = Expression::function_call(
-            Expression::reference("-/unary", false),
-            vec![Expression::value(RuntimeValue::Number(3.14))],
-        );
+        let expected = Expression::value(RuntimeValue::Number(-3.14));
         assert_eq!(Parser::parse("-3.14").unwrap(), expected);
 
         // Test unary minus with reference (bare identifier)
@@ -750,7 +776,7 @@ mod tests {
 
     #[test]
     fn test_parse_multiple_unary_operators() {
-        // Test double negation
+        // !!true
         let expected = Expression::function_call(
             Expression::reference("!/unary", true),
             vec![Expression::function_call(
@@ -763,10 +789,7 @@ mod tests {
         // Test NOT with negate
         let expected = Expression::function_call(
             Expression::reference("!/unary", true),
-            vec![Expression::function_call(
-                Expression::reference("-/unary", false),
-                vec![Expression::value(RuntimeValue::Number(42.0))],
-            )],
+            vec![Expression::value(RuntimeValue::Number(-42.0))],
         );
         assert_eq!(Parser::parse("!-42").unwrap(), expected);
 
@@ -815,19 +838,18 @@ mod tests {
 
     #[test]
     fn test_parse_unary_with_function_calls() {
-        // Test unary operator with reference
+        // !count
         let expected = Expression::function_call(Expression::reference("!/unary", true), vec![Expression::reference("count", false)]);
         assert_eq!(Parser::parse("!count").unwrap(), expected);
 
-        // Test unary operator with function call that has arguments
-        // This should parse as (-sum) 1 (function call with unary minus as the function)
+        // -sum 1 == (-sum) 1
         let expected = Expression::function_call(
             Expression::function_call(Expression::reference("-/unary", false), vec![Expression::reference("sum", false)]),
             vec![Expression::value(RuntimeValue::Number(1.0))],
         );
         assert_eq!(Parser::parse("-sum 1").unwrap(), expected);
 
-        // Test unary operator with parenthetical function call (this should work)
+        // -(sum 1)
         let expected = Expression::function_call(
             Expression::reference("-/unary", false),
             vec![Expression::parenthetical(Expression::function_call(
@@ -1113,17 +1135,33 @@ mod tests {
     #[test]
     fn test_parse_indexing() {
         // Test array indexing: array[0]
-        let expected = Expression::index(Expression::reference("array", false), Expression::value(RuntimeValue::Number(0.0)));
+        let expected = Expression::index_single(
+            Expression::value(RuntimeValue::Number(0.0)),
+            Expression::reference("array", false),
+        );
         assert_eq!(Parser::parse("array[0]").unwrap(), expected);
 
         // Test string indexing: string[1]
-        let expected = Expression::index(Expression::reference("string", false), Expression::value(RuntimeValue::Number(1.0)));
+        let expected = Expression::index_single(
+            Expression::value(RuntimeValue::Number(1.0)),
+            Expression::reference("string", false),
+        );
         assert_eq!(Parser::parse("string[1]").unwrap(), expected);
 
         // Test chained indexing: array[0][1]
-        let expected = Expression::index(
-            Expression::index(Expression::reference("array", false), Expression::value(RuntimeValue::Number(0.0))),
-            Expression::value(RuntimeValue::Number(1.0)),
+        // This should be parsed as: index(1, index(0, array))
+        let expected = Expression::function_call(
+            Expression::reference("index", false),
+            vec![
+                Expression::value(RuntimeValue::Number(1.0)),
+                Expression::function_call(
+                    Expression::reference("index", false),
+                    vec![
+                        Expression::value(RuntimeValue::Number(0.0)),
+                        Expression::reference("array", false),
+                    ],
+                ),
+            ],
         );
         assert_eq!(Parser::parse("array[0][1]").unwrap(), expected);
     }
@@ -1131,15 +1169,24 @@ mod tests {
     #[test]
     fn test_parse_mixed_dot_and_index() {
         // Test mixed dot access and indexing: object.field[0]
-        let expected = Expression::index(
-            Expression::dot_access(Expression::reference("object", false), "field"),
-            Expression::value(RuntimeValue::Number(0.0)),
+        let expected = Expression::function_call(
+            Expression::reference("index", false),
+            vec![
+                Expression::value(RuntimeValue::Number(0.0)),
+                Expression::dot_access(Expression::reference("object", false), "field"),
+            ],
         );
         assert_eq!(Parser::parse("object.field[0]").unwrap(), expected);
 
         // Test the reverse: object[0].field
         let expected = Expression::dot_access(
-            Expression::index(Expression::reference("object", false), Expression::value(RuntimeValue::Number(0.0))),
+            Expression::function_call(
+                Expression::reference("index", false),
+                vec![
+                    Expression::value(RuntimeValue::Number(0.0)),
+                    Expression::reference("object", false),
+                ],
+            ),
             "field",
         );
         assert_eq!(Parser::parse("object[0].field").unwrap(), expected);
@@ -1188,13 +1235,16 @@ mod tests {
         // [1, 2, 3] [0] is invalid (should be parsed as two separate expressions)
 
         // Test valid indexing (no space)
-        let expected = Expression::index(
-            Expression::array(vec![
-                Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Number(2.0)),
-                Expression::value(RuntimeValue::Number(3.0)),
-            ]),
-            Expression::value(RuntimeValue::Number(0.0)),
+        let expected = Expression::function_call(
+            Expression::reference("index", false),
+            vec![
+                Expression::value(RuntimeValue::Number(0.0)),
+                Expression::array(vec![
+                    Expression::value(RuntimeValue::Number(1.0)),
+                    Expression::value(RuntimeValue::Number(2.0)),
+                    Expression::value(RuntimeValue::Number(3.0)),
+                ]),
+            ],
         );
         assert_eq!(Parser::parse("[1, 2, 3][0]").unwrap(), expected);
 
@@ -1218,4 +1268,6 @@ mod tests {
         let expected_bare = Expression::reference("bar", false);
         assert_eq!(Parser::parse("bar").unwrap(), expected_bare);
     }
+
+
 }
