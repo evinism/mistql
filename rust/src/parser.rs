@@ -24,19 +24,35 @@ pub enum Expression {
         arguments: Vec<Expression>,
     },
     // Reference expression: `@` (context), `$` (builtins), or `variable_name`
-    RefExpression { name: String, absolute: bool },
+    RefExpression {
+        name: String,
+        absolute: bool,
+    },
     // Literal value: `42`, `"hello"`, `true`, `null`
-    ValueExpression { value: RuntimeValue },
+    ValueExpression {
+        value: RuntimeValue,
+    },
     // Array literal: `[1, 2, 3]`
-    ArrayExpression { items: Vec<Expression> },
+    ArrayExpression {
+        items: Vec<Expression>,
+    },
     // Object literal: `{"key": "value"}`
-    ObjectExpression { entries: HashMap<String, Expression> },
+    ObjectExpression {
+        entries: HashMap<String, Expression>,
+    },
     // Pipeline: `data | filter condition | map field`
-    PipeExpression { stages: Vec<Expression> },
+    PipeExpression {
+        stages: Vec<Expression>,
+    },
     // Parenthetical expression: `(expression)`
-    ParentheticalExpression { expression: Box<Expression> },
+    ParentheticalExpression {
+        expression: Box<Expression>,
+    },
     // Dot access: `object.field`
-    DotAccessExpression { object: Box<Expression>, field: String },
+    DotAccessExpression {
+        object: Box<Expression>,
+        field: String,
+    },
 }
 
 impl Expression {
@@ -90,7 +106,6 @@ impl Expression {
     pub fn index_double(start: Expression, end: Expression, operand: Expression) -> Self {
         Expression::function_call(Expression::reference("index", false), vec![start, end, operand])
     }
-
 }
 
 // Parse a float number (with decimal point and optional scientific notation)
@@ -359,11 +374,7 @@ fn parse_op_c(input: &str) -> IResult<&str, Expression> {
             many0(pair(
                 pair(
                     multispace0,
-                    alt((
-                        map(tag("=="), |_| "=="),
-                        map(tag("!="), |_| "!="),
-                        map(tag("=~"), |_| "=~"),
-                    )),
+                    alt((map(tag("=="), |_| "=="), map(tag("!="), |_| "!="), map(tag("=~"), |_| "=~"))),
                 ),
                 pair(multispace0, parse_op_d),
             )),
@@ -506,16 +517,10 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
                 if let Expression::FnExpression { function, mut arguments } = operand {
                     // This is a slicing expression with 2 arguments, add target as 3rd
                     arguments.push(expr);
-                    expr = Expression::FnExpression {
-                        function,
-                        arguments,
-                    };
+                    expr = Expression::FnExpression { function, arguments };
                 } else {
                     // This is simple indexing, create: index(operand, expr)
-                    expr = Expression::function_call(
-                        Expression::reference("index", false),
-                        vec![operand, expr],
-                    );
+                    expr = Expression::function_call(Expression::reference("index", false), vec![operand, expr]);
                 }
             }
             _ => unreachable!(),
@@ -542,10 +547,7 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
             // The op_h parser will handle adding the target as the third argument
             let result = Expression::function_call(
                 Expression::reference("index", false),
-                vec![
-                    expr,
-                    end.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),
-                ],
+                vec![expr, end.unwrap_or_else(|| Expression::value(RuntimeValue::Null))],
             );
             let (remaining, _) = pair(multispace0, char(']'))(remaining)?;
             return Ok((remaining, result));
@@ -615,10 +617,7 @@ mod tests {
         // Test numbers
         assert_eq!(Parser::parse("42").unwrap(), Expression::value(RuntimeValue::Number(42.0)));
         assert_eq!(Parser::parse("3.14").unwrap(), Expression::value(RuntimeValue::Number(3.14)));
-        assert_eq!(
-            Parser::parse("-10").unwrap(),
-            Expression::value(RuntimeValue::Number(-10.0))
-        );
+        assert_eq!(Parser::parse("-10").unwrap(), Expression::value(RuntimeValue::Number(-10.0)));
 
         // Test strings
         assert_eq!(
@@ -1135,17 +1134,11 @@ mod tests {
     #[test]
     fn test_parse_indexing() {
         // Test array indexing: array[0]
-        let expected = Expression::index_single(
-            Expression::value(RuntimeValue::Number(0.0)),
-            Expression::reference("array", false),
-        );
+        let expected = Expression::index_single(Expression::value(RuntimeValue::Number(0.0)), Expression::reference("array", false));
         assert_eq!(Parser::parse("array[0]").unwrap(), expected);
 
         // Test string indexing: string[1]
-        let expected = Expression::index_single(
-            Expression::value(RuntimeValue::Number(1.0)),
-            Expression::reference("string", false),
-        );
+        let expected = Expression::index_single(Expression::value(RuntimeValue::Number(1.0)), Expression::reference("string", false));
         assert_eq!(Parser::parse("string[1]").unwrap(), expected);
 
         // Test chained indexing: array[0][1]
@@ -1156,10 +1149,7 @@ mod tests {
                 Expression::value(RuntimeValue::Number(1.0)),
                 Expression::function_call(
                     Expression::reference("index", false),
-                    vec![
-                        Expression::value(RuntimeValue::Number(0.0)),
-                        Expression::reference("array", false),
-                    ],
+                    vec![Expression::value(RuntimeValue::Number(0.0)), Expression::reference("array", false)],
                 ),
             ],
         );
@@ -1182,10 +1172,7 @@ mod tests {
         let expected = Expression::dot_access(
             Expression::function_call(
                 Expression::reference("index", false),
-                vec![
-                    Expression::value(RuntimeValue::Number(0.0)),
-                    Expression::reference("object", false),
-                ],
+                vec![Expression::value(RuntimeValue::Number(0.0)), Expression::reference("object", false)],
             ),
             "field",
         );
@@ -1268,6 +1255,4 @@ mod tests {
         let expected_bare = Expression::reference("bar", false);
         assert_eq!(Parser::parse("bar").unwrap(), expected_bare);
     }
-
-
 }
