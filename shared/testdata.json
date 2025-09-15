@@ -451,6 +451,19 @@
               ]
             },
             {
+              "it": "doesn't overwrite unary operators",
+              "assertions": [
+                {
+                  "query": "!-1",
+                  "data": {
+                    "!/unary": "foo",
+                    "-/unary": "bar"
+                  },
+                  "expected": false
+                }
+              ]
+            },
+            {
               "it": "doesn't overwrite indexing",
               "assertions": [
                 {
@@ -525,6 +538,36 @@
                       "filter": "lp"
                     }
                   ]
+                }
+              ]
+            },
+            {
+              "it": "allows accessing unary and binary operators via the $ key",
+              "assertions": [
+                {
+                  "query": "$[\"+\"] 1 2",
+                  "data": null,
+                  "expected": 3
+                },
+                {
+                  "query": "$[\"==\"] 1 2",
+                  "data": null,
+                  "expected": false
+                },
+                {
+                  "query": "$[\"!=\"] 1 2",
+                  "data": null,
+                  "expected": true
+                },
+                {
+                  "query": "$[\"!/unary\"] 1",
+                  "data": null,
+                  "expected": false
+                },
+                {
+                  "query": "$[\"-/unary\"] 1",
+                  "data": null,
+                  "expected": -1
                 }
               ]
             },
