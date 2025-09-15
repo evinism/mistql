@@ -6,7 +6,7 @@
 use std::fmt;
 use std::str::Chars;
 
-/// Represents the position of a token in the source code
+// Represents the position of a token in the source code
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Position {
     pub line: usize,
@@ -30,7 +30,7 @@ impl fmt::Display for Position {
     }
 }
 
-/// Represents a token in the MistQL language
+// Represents a token in the MistQL language
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub token_type: TokenType,
@@ -54,7 +54,7 @@ impl fmt::Display for Token {
     }
 }
 
-/// All possible token types in MistQL
+// All possible token types in MistQL
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
     // Literals
@@ -149,7 +149,7 @@ impl fmt::Display for TokenType {
     }
 }
 
-/// Lexer error types
+// Lexer error types
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LexerError {
     UnexpectedCharacter(char, Position),
@@ -175,7 +175,7 @@ impl fmt::Display for LexerError {
 
 impl std::error::Error for LexerError {}
 
-/// The main lexer struct
+// The main lexer struct
 pub struct Lexer<'a> {
     _input: &'a str,
     chars: Chars<'a>,
@@ -186,7 +186,7 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    /// Create a new lexer for the given input string
+    // Create a new lexer for the given input string
     pub fn new(input: &'a str) -> Self {
         let mut lexer = Self {
             _input: input,
@@ -204,7 +204,7 @@ impl<'a> Lexer<'a> {
         lexer
     }
 
-    /// Read the next character and advance the position
+    // Read the next character and advance the position
     fn read_char(&mut self) {
         self.current_char = self.peek_char;
         self.current_pos = self.peek_pos.clone();
@@ -219,12 +219,12 @@ impl<'a> Lexer<'a> {
         self.peek_pos.offset += 1;
     }
 
-    /// Peek at the next character without advancing
+    // Peek at the next character without advancing
     fn peek_char(&self) -> Option<char> {
         self.peek_char
     }
 
-    /// Read whitespace characters as a single space token
+    // Read whitespace characters as a single space token
     fn read_whitespace(&mut self) -> String {
         let mut whitespace = String::new();
         while let Some(c) = self.current_char {
@@ -243,7 +243,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Read an identifier or keyword
+    // Read an identifier or keyword
     fn read_identifier(&mut self) -> String {
         let _start_pos = self.current_pos.clone();
         let mut identifier = String::new();
@@ -260,7 +260,7 @@ impl<'a> Lexer<'a> {
         identifier
     }
 
-    /// Read a number (integer or float)
+    // Read a number (integer or float)
     fn read_number(&mut self) -> Result<String, LexerError> {
         let start_pos = self.current_pos.clone();
         let mut number = String::new();
@@ -309,7 +309,7 @@ impl<'a> Lexer<'a> {
         Ok(number)
     }
 
-    /// Read a string literal
+    // Read a string literal
     fn read_string(&mut self) -> Result<String, LexerError> {
         let start_pos = self.current_pos.clone();
         let mut string = String::new();
@@ -352,7 +352,7 @@ impl<'a> Lexer<'a> {
         Err(LexerError::UnterminatedString(start_pos))
     }
 
-    /// Determine if an identifier is a keyword
+    // Determine if an identifier is a keyword
     fn lookup_identifier(identifier: &str) -> TokenType {
         match identifier {
             "true" => TokenType::True,
@@ -362,7 +362,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Get the next token from the input
+    // Get the next token from the input
     pub fn next_token(&mut self) -> Result<Token, LexerError> {
         let token = match self.current_char {
             Some(c) if c.is_whitespace() => {
@@ -461,7 +461,7 @@ impl<'a> Lexer<'a> {
         Ok(token)
     }
 
-    /// Tokenize the entire input and return a vector of tokens
+    // Tokenize the entire input and return a vector of tokens
     pub fn tokenize(&mut self) -> Result<Vec<Token>, LexerError> {
         let mut tokens = Vec::new();
 

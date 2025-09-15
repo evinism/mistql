@@ -15,27 +15,27 @@ use nom::{
 };
 use std::collections::HashMap;
 
-/// AST expression types for MistQL
+// AST expression types for MistQL
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
-    /// Function call: `function arg1 arg2`
+    // Function call: `function arg1 arg2`
     FnExpression {
         function: Box<Expression>,
         arguments: Vec<Expression>,
     },
-    /// Reference expression: `@` (context), `$` (builtins), or `variable_name`
+    // Reference expression: `@` (context), `$` (builtins), or `variable_name`
     RefExpression { name: String, absolute: bool },
-    /// Literal value: `42`, `"hello"`, `true`, `null`
+    // Literal value: `42`, `"hello"`, `true`, `null`
     ValueExpression { value: RuntimeValue },
-    /// Array literal: `[1, 2, 3]`
+    // Array literal: `[1, 2, 3]`
     ArrayExpression { items: Vec<Expression> },
-    /// Object literal: `{"key": "value"}`
+    // Object literal: `{"key": "value"}`
     ObjectExpression { entries: HashMap<String, Expression> },
-    /// Pipeline: `data | filter condition | map field`
+    // Pipeline: `data | filter condition | map field`
     PipeExpression { stages: Vec<Expression> },
-    /// Parenthetical expression: `(expression)`
+    // Parenthetical expression: `(expression)`
     ParentheticalExpression { expression: Box<Expression> },
-    /// Dot access: `object.field`
+    // Dot access: `object.field`
     DotAccessExpression { object: Box<Expression>, field: String },
 }
 
@@ -93,7 +93,7 @@ impl Expression {
 
 }
 
-/// Parse a float number (with decimal point and optional scientific notation)
+// Parse a float number (with decimal point and optional scientific notation)
 fn parse_float(input: &str) -> IResult<&str, &str> {
     recognize(pair(
         digit1,
@@ -107,7 +107,7 @@ fn parse_float(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
-/// Parse an integer number (with optional scientific notation)
+// Parse an integer number (with optional scientific notation)
 fn parse_integer(input: &str) -> IResult<&str, &str> {
     recognize(pair(
         digit1,
@@ -115,14 +115,14 @@ fn parse_integer(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
-/// Parse a number (integer or float)
+// Parse a number (integer or float)
 fn parse_number(input: &str) -> IResult<&str, RuntimeValue> {
     map(recognize(pair(opt(char('-')), alt((parse_float, parse_integer)))), |s: &str| {
         s.parse::<f64>().map(RuntimeValue::Number).unwrap_or(RuntimeValue::Number(0.0))
     })(input)
 }
 
-/// Parse a string literal with proper escape handling
+// Parse a string literal with proper escape handling
 fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
     let (remaining, _) = char('"')(input)?;
 
@@ -205,7 +205,7 @@ fn parse_identifier(input: &str) -> IResult<&str, &str> {
     recognize(pair(alt((alpha1, tag("_"))), many0(alt((alphanumeric1, tag("_"))))))(input)
 }
 
-/// Parse a reference (@, $, or variable name)
+// Parse a reference (@, $, or variable name)
 fn parse_reference(input: &str) -> IResult<&str, Expression> {
     alt((
         map(tag("@"), |_| Expression::reference("@", false)),
@@ -263,8 +263,8 @@ fn parse_parenthetical(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse a pipeline expression (top level: |)
-/// piped_expression: simple_expression | simple_expression ("|" fncall)+
+// Parse a pipeline expression (top level: |)
+// piped_expression: simple_expression | simple_expression ("|" fncall)+
 fn parse_pipeline(input: &str) -> IResult<&str, Expression> {
     // First parse a simple expression
     let (remaining, first) = parse_simple_expression(input)?;
@@ -283,8 +283,8 @@ fn parse_pipeline(input: &str) -> IResult<&str, Expression> {
     }
 }
 
-/// Parse a simple expression (op_a or fncall)
-/// simple_expression: _wslr{op_a} | _wslr{fncall}
+// Parse a simple expression (op_a or fncall)
+// simple_expression: _wslr{op_a} | _wslr{fncall}
 fn parse_simple_expression(input: &str) -> IResult<&str, Expression> {
     // Try to parse as a function call first (op_a followed by space-separated arguments)
     // If that fails, fall back to just op_a.
@@ -293,8 +293,8 @@ fn parse_simple_expression(input: &str) -> IResult<&str, Expression> {
     alt((parse_function_call, parse_op_a))(input)
 }
 
-/// Parse a function call
-/// fncall: op_a (_W op_a)*
+// Parse a function call
+// fncall: op_a (_W op_a)*
 fn parse_function_call(input: &str) -> IResult<&str, Expression> {
     // First parse an op_a expression
     let (remaining, function) = parse_op_a(input)?;
@@ -310,8 +310,8 @@ fn parse_function_call(input: &str) -> IResult<&str, Expression> {
     }
 }
 
-/// Parse op_a expressions (logical OR: ||)
-/// op_a: op_b | op_a "||" op_b
+// Parse op_a expressions (logical OR: ||)
+// op_a: op_b | op_a "||" op_b
 fn parse_op_a(input: &str) -> IResult<&str, Expression> {
     map(
         separated_list1(pair(multispace0, tag("||")), pair(multispace0, parse_op_b)),
@@ -330,8 +330,8 @@ fn parse_op_a(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse op_b expressions (logical AND: &&)
-/// op_b: op_c | op_b "&&" op_c
+// Parse op_b expressions (logical AND: &&)
+// op_b: op_c | op_b "&&" op_c
 fn parse_op_b(input: &str) -> IResult<&str, Expression> {
     map(
         separated_list1(pair(multispace0, tag("&&")), pair(multispace0, parse_op_c)),
@@ -350,8 +350,8 @@ fn parse_op_b(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse op_c expressions (equality: ==, !=, =~)
-/// op_c: op_d | op_c ("==" | "!=" | "=~") op_d
+// Parse op_c expressions (equality: ==, !=, =~)
+// op_c: op_d | op_c ("==" | "!=" | "=~") op_d
 fn parse_op_c(input: &str) -> IResult<&str, Expression> {
     map(
         pair(
@@ -376,8 +376,8 @@ fn parse_op_c(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse op_d expressions (comparison: <, >, <=, >=)
-/// op_d: op_e | op_d (">" | "<" | ">=" | "<=") op_e
+// Parse op_d expressions (comparison: <, >, <=, >=)
+// op_d: op_e | op_d (">" | "<" | ">=" | "<=") op_e
 fn parse_op_d(input: &str) -> IResult<&str, Expression> {
     map(
         pair(
@@ -403,8 +403,8 @@ fn parse_op_d(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse op_e expressions (addition and subtraction: +, -)
-/// op_e: op_f | op_e ("+" | "-") op_f
+// Parse op_e expressions (addition and subtraction: +, -)
+// op_e: op_f | op_e ("+" | "-") op_f
 fn parse_op_e(input: &str) -> IResult<&str, Expression> {
     map(
         pair(
@@ -422,8 +422,8 @@ fn parse_op_e(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse op_f expressions (multiplication, division, modulo: *, /, %)
-/// op_f: op_g | op_f ("*" | "/" | "%") op_g
+// Parse op_f expressions (multiplication, division, modulo: *, /, %)
+// op_f: op_g | op_f ("*" | "/" | "%") op_g
 fn parse_op_f(input: &str) -> IResult<&str, Expression> {
     map(
         pair(
@@ -444,8 +444,8 @@ fn parse_op_f(input: &str) -> IResult<&str, Expression> {
     )(input)
 }
 
-/// Parse op_g expressions (unary operators: !, -)
-/// op_g: op_h | "!" op_g | "-" op_g
+// Parse op_g expressions (unary operators: !, -)
+// op_g: op_h | "!" op_g | "-" op_g
 fn parse_op_g(input: &str) -> IResult<&str, Expression> {
     alt((
         // Try op_h first (higher precedence)
@@ -469,8 +469,8 @@ fn parse_op_g(input: &str) -> IResult<&str, Expression> {
     ))(input)
 }
 
-/// Parse op_h expressions (dot access, indexing, simplevalue)
-/// op_h: simplevalue | op_h "." reference | op_h indexing
+// Parse op_h expressions (dot access, indexing, simplevalue)
+// op_h: simplevalue | op_h "." reference | op_h indexing
 fn parse_op_h(input: &str) -> IResult<&str, Expression> {
     // Start with a simplevalue
     let (remaining, mut expr) = parse_simplevalue(input)?;
@@ -525,8 +525,8 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
     Ok((remaining, expr))
 }
 
-/// Parse indexing innards (for array/string indexing and slicing)
-/// index_innards: piped_expression? (WCOLON piped_expression?)*
+// Parse indexing innards (for array/string indexing and slicing)
+// index_innards: piped_expression? (WCOLON piped_expression?)*
 fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
     // First try to parse a single expression (for simple indexing like [0])
     let (remaining, first_expr) = opt(pair(multispace0, parse_pipeline))(input)?;
@@ -578,22 +578,22 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
     }
 }
 
-/// Parse a complete expression (top-level entry point)
+// Parse a complete expression (top-level entry point)
 fn parse_expression(input: &str) -> IResult<&str, Expression> {
     parse_pipeline(input)
 }
 
-/// Parse a simplevalue (literal, reference, or parenthetical expression)
-/// simplevalue: literal | reference | "(" piped_expression ")"
+// Parse a simplevalue (literal, reference, or parenthetical expression)
+// simplevalue: literal | reference | "(" piped_expression ")"
 fn parse_simplevalue(input: &str) -> IResult<&str, Expression> {
     alt((parse_literal, parse_reference, parse_array, parse_object, parse_parenthetical))(input)
 }
 
-/// Parser for MistQL expressions
+// Parser for MistQL expressions
 pub struct Parser;
 
 impl Parser {
-    /// Parse a MistQL expression string into an AST
+    // Parse a MistQL expression string into an AST
     pub fn parse(input: &str) -> Result<Expression, String> {
         let (remaining, result) = parse_expression(input).map_err(|e| format!("Parse error: {:?}", e))?;
 
