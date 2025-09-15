@@ -1158,7 +1158,7 @@ pub fn execute_builtin(name: &str, args: &[Expression], context: &mut ExecutionC
         }
         "=~" => {
             // TODO: Join with match_function?
-            validate_args("/", args, 2, Some(2))?;
+            validate_args("=~", args, 2, Some(2))?;
             let left = execute_expression(&args[0], context)?;
             let right = execute_expression(&args[1], context)?;
             match (&left, &right) {
