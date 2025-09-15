@@ -13,17 +13,6 @@ This is the Rust implementation of MistQL, a miniature query language for perfor
 - [x] **Builtin Functions**: Most functions need implementation (see TODO list below)
 - [ ] **Refactor**: Carefully read the LLM-assisted port and refactor it.
 
-## TODO
-
-- [ ] Fix parser discrepancies.
-  - [ ] I think array and object need to be in literal, see `parse_simplevalue`
-  - [ ] Go through the lark grammar and make sure our precedence matches exactly.
-  - [ ] Add some convenience units in parser.rs (reusable combinator blocks)
-- [ ] Fix the failing shared tests
-- [ ] Improve serde <-> Rust <-> MistQL type conversions
-  - [ ] Shouldn't need to convert all serde_json::Value to RuntimeValue, can do it lazily
-  - [ ] Should pick a consistent shared test data format for the test suite (probably RuntimeValue?)
-
 ## Development Roadmap
 
 ### Phase 1: Core Architecture
