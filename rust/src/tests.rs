@@ -23,6 +23,7 @@ pub struct TestAssertion {
     pub query: String,
     pub data: RuntimeValue,
     pub expected: Option<RuntimeValue>,
+    pub expected_set: Option<Vec<RuntimeValue>>,
     pub throws: Option<String>,
 }
 
@@ -46,6 +47,7 @@ pub struct TestFailure {
     pub query: String,
     pub data: RuntimeValue,
     pub expected: Option<RuntimeValue>,
+    pub expected_set: Option<Vec<RuntimeValue>>,
     pub actual: Option<RuntimeValue>,
     pub error: Option<String>,
 }
@@ -84,6 +86,7 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                                                     (assertion.get("query").and_then(|q| q.as_str()), assertion.get("data"))
                                                 {
                                                     let expected = assertion.get("expected");
+                                                    let expected_set = assertion.get("expected_set");
                                                     let throws = assertion.get("throws").and_then(|t| {
                                                         if t.is_boolean() && t.as_bool().unwrap_or(false) {
                                                             Some("true")
@@ -97,7 +100,8 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                                                         query: query.to_string(),
                                                         data: data.try_into().unwrap(),
                                                         expected: expected.map(|e| e.try_into().unwrap()),
-                                                        throws: throws.map(|s| s.to_string()),
+                                                        expected_set: expected_set.map(|e| e.as_array().unwrap().iter().map(|v| v.try_into().unwrap()).collect()),
+                                                        throws: throws.map(|s| s.to_string())
                                                     });
                                                     assertion_counter += 1;
                                                 }
@@ -153,7 +157,13 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>),
             Ok(result) => {
                 // Convert to JSON only for reporting
                 let actual_value = Some(result.to_serde_value(false).unwrap_or_else(|_| serde_json::Value::Null));
-                if let Some(expected) = &assertion.expected {
+
+                // Check if we have an expectedSet (takes precedence over expected)
+                if let Some(expected_set) = &assertion.expected_set {
+                    // Check if actual result matches any value in the expected set
+                    let matches = expected_set.iter().any(|expected| (&result) == expected);
+                    Ok((matches, actual_value))
+                } else if let Some(expected) = &assertion.expected {
                     // Convert expected value to RuntimeValue for comparison
                     let matches = (&result) == expected;
                     Ok((matches, actual_value))
@@ -214,6 +224,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
                         query: assertion.query.clone(),
                         data: assertion.data.clone(),
                         expected: assertion.expected.clone(),
+                        expected_set: assertion.expected_set.clone(),
                         actual: actual.map(|a| a.try_into().unwrap()),
                         error: None,
                     });
@@ -228,6 +239,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
                         query: assertion.query.clone(),
                         data: assertion.data.clone(),
                         expected: assertion.expected.clone(),
+                        expected_set: assertion.expected_set.clone(),
                         actual: None,
                         error: Some(error),
                     });
@@ -247,6 +259,9 @@ impl std::fmt::Display for TestFailure {
         writeln!(f, "  Data: {}", serde_json::to_string_pretty(&self.data).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
         if let Some(expected) = &self.expected {
             writeln!(f, "  Expected: {}", serde_json::to_string_pretty(expected).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
+        }
+        if let Some(expected_set) = &self.expected_set {
+            writeln!(f, "  Expected Set: {}", serde_json::to_string_pretty(expected_set).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
         }
         if let Some(actual) = &self.actual {
             writeln!(f, "  Actual: {}", serde_json::to_string_pretty(actual).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
@@ -432,13 +447,33 @@ mod test_runner {
     }
 
     #[test]
-    fn test_abc() {
-        use crate::parser::Parser;
-        use crate::query;
+    fn test_expected_set_functionality() {
 
-        let json_data = serde_json::json!({"index": "hello"});
-        println!("{:?}", Parser::parse("[1, 2, 3][1]").unwrap());
-        println!("{}", query("[1, 2, 3][1]", &json_data).unwrap());
-        assert!(false);
+        // Test that expectedSet works correctly
+        let assertion = TestAssertion {
+            assertion_number: 999,
+            query: "string {a: 1, b: \"2\"}".to_string(),
+            data: RuntimeValue::Null,
+            expected: None,
+            expected_set: Some(vec![
+                RuntimeValue::String("{\"a\":1,\"b\":\"2\"}".to_string()),
+                RuntimeValue::String("{\"b\":\"2\",\"a\":1}".to_string()),
+            ]),
+            throws: None,
+        };
+
+        let result = run_assertion(&assertion);
+        match result {
+            Ok((true, _)) => {
+                // Test passed - the actual result matched one of the expected values
+                println!("expectedSet test passed");
+            }
+            Ok((false, actual)) => {
+                panic!("expectedSet test failed - actual result: {:?}", actual);
+            }
+            Err(e) => {
+                panic!("expectedSet test error: {}", e);
+            }
+        }
     }
 }
