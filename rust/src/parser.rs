@@ -100,11 +100,11 @@ impl Expression {
     }
 
     pub fn index_single(index: Expression, operand: Expression) -> Self {
-        Expression::function_call(Expression::reference("index", false), vec![index, operand])
+        Expression::function_call(Expression::reference("index", true), vec![index, operand])
     }
 
     pub fn index_double(start: Expression, end: Expression, operand: Expression) -> Self {
-        Expression::function_call(Expression::reference("index", false), vec![start, end, operand])
+        Expression::function_call(Expression::reference("index", true), vec![start, end, operand])
     }
 }
 
@@ -1148,11 +1148,11 @@ mod tests {
         // Test chained indexing: array[0][1]
         // This should be parsed as: index(1, index(0, array))
         let expected = Expression::function_call(
-            Expression::reference("index", false),
+            Expression::reference("index", true),
             vec![
                 Expression::value(RuntimeValue::Number(1.0)),
                 Expression::function_call(
-                    Expression::reference("index", false),
+                    Expression::reference("index", true),
                     vec![Expression::value(RuntimeValue::Number(0.0)), Expression::reference("array", false)],
                 ),
             ],
@@ -1164,7 +1164,7 @@ mod tests {
     fn test_parse_mixed_dot_and_index() {
         // Test mixed dot access and indexing: object.field[0]
         let expected = Expression::function_call(
-            Expression::reference("index", false),
+            Expression::reference("index", true),
             vec![
                 Expression::value(RuntimeValue::Number(0.0)),
                 Expression::dot_access(Expression::reference("object", false), "field"),
@@ -1175,7 +1175,7 @@ mod tests {
         // Test the reverse: object[0].field
         let expected = Expression::dot_access(
             Expression::function_call(
-                Expression::reference("index", false),
+                Expression::reference("index", true),
                 vec![Expression::value(RuntimeValue::Number(0.0)), Expression::reference("object", false)],
             ),
             "field",
@@ -1227,7 +1227,7 @@ mod tests {
 
         // Test valid indexing (no space)
         let expected = Expression::function_call(
-            Expression::reference("index", false),
+            Expression::reference("index", true),
             vec![
                 Expression::value(RuntimeValue::Number(0.0)),
                 Expression::array(vec![
