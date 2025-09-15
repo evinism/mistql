@@ -213,7 +213,11 @@ fn parse_null(input: &str) -> IResult<&str, RuntimeValue> {
 }
 
 fn parse_literal(input: &str) -> IResult<&str, Expression> {
-    map(alt((parse_number, parse_string, parse_boolean, parse_null)), Expression::value)(input)
+    alt((
+        parse_object,
+        parse_array,
+        map(alt((parse_string, parse_number, parse_boolean, parse_null)), Expression::value),
+    ))(input)
 }
 
 fn parse_identifier(input: &str) -> IResult<&str, &str> {
@@ -588,7 +592,7 @@ fn parse_expression(input: &str) -> IResult<&str, Expression> {
 // Parse a simplevalue (literal, reference, or parenthetical expression)
 // simplevalue: literal | reference | "(" piped_expression ")"
 fn parse_simplevalue(input: &str) -> IResult<&str, Expression> {
-    alt((parse_literal, parse_reference, parse_array, parse_object, parse_parenthetical))(input)
+    alt((parse_literal, parse_reference, parse_parenthetical))(input)
 }
 
 // Parser for MistQL expressions
