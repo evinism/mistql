@@ -3,15 +3,15 @@
 //! This is the Rust implementation of MistQL, designed for embedding across multiple domains.
 //! It serves as a powerful common expression language with strong cross-platform behavior semantics.
 
+use crate::executor::ExecutionError;
 pub mod builtins;
 pub mod executor;
-pub mod instance;
 pub mod lexer;
 pub mod parser;
 pub mod types;
 
 // Re-export commonly used types and functions
-pub use types::{RuntimeValue, ToRuntimeValue};
+pub use types::RuntimeValue;
 
 // Shared test modules.
 #[cfg(test)]
@@ -43,8 +43,11 @@ pub enum MistQLError {
 /// let data = serde_json::json!([{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]);
 /// let result = query("filter age > 26 | map name", &data).unwrap();
 /// ```
-pub fn query<T: ToRuntimeValue>(query_str: &str, data: &T) -> Result<RuntimeValue, MistQLError> {
-    let runtime_data = data.to_runtime_value();
+pub fn query<T>(query_str: &str, data: T) -> Result<RuntimeValue, MistQLError>
+where
+    T: TryInto<RuntimeValue, Error = ExecutionError>,
+{
+    let runtime_data = data.try_into().map_err(|e| MistQLError::Runtime(e.to_string()))?;
     query_runtime(query_str, &runtime_data)
 }
 

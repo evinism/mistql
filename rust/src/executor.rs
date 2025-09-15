@@ -30,6 +30,7 @@ pub enum ExecutionError {
     DivisionByZero,
     InvalidOperation(String),
     CannotConvertToJSON(String),
+    CannotConvertToRuntimeValue(String),
     Custom(String),
 }
 
@@ -46,6 +47,7 @@ impl std::fmt::Display for ExecutionError {
             ExecutionError::DivisionByZero => write!(f, "Division by zero"),
             ExecutionError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
             ExecutionError::CannotConvertToJSON(msg) => write!(f, "Cannot convert to JSON: {}", msg),
+            ExecutionError::CannotConvertToRuntimeValue(msg) => write!(f, "Cannot convert to RuntimeValue: {}", msg),
             ExecutionError::Custom(msg) => write!(f, "{}", msg),
         }
     }
@@ -319,7 +321,6 @@ fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionC
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -522,10 +523,10 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let expr = Expression::array(vec![
-                Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Number(2.0)),
-                Expression::value(RuntimeValue::Number(3.0)),
-            ]);
+            Expression::value(RuntimeValue::Number(1.0)),
+            Expression::value(RuntimeValue::Number(2.0)),
+            Expression::value(RuntimeValue::Number(3.0)),
+        ]);
 
         let result = execute_expression(&expr, &mut context).unwrap();
         let expected = RuntimeValue::Array(vec![
@@ -541,14 +542,8 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let mut entries = HashMap::new();
-        entries.insert(
-            "key1".to_string(),
-            Expression::value(RuntimeValue::String("value1".to_string())),
-        );
-        entries.insert(
-            "key2".to_string(),
-            Expression::value(RuntimeValue::Number(42.0)),
-        );
+        entries.insert("key1".to_string(), Expression::value(RuntimeValue::String("value1".to_string())));
+        entries.insert("key2".to_string(), Expression::value(RuntimeValue::Number(42.0)));
 
         let expr = Expression::object(entries);
 
@@ -717,10 +712,7 @@ mod execution_tests {
 
         let expr = Expression::function_call(
             Expression::reference("index", false),
-            vec![
-                Expression::value(RuntimeValue::Number(0.0)),
-                Expression::reference("scores", false),
-            ],
+            vec![Expression::value(RuntimeValue::Number(0.0)), Expression::reference("scores", false)],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -753,7 +745,7 @@ mod execution_tests {
                 Expression::value(RuntimeValue::Number(0.0)),
                 Expression::value(RuntimeValue::String("hello".to_string())),
             ],
-            );
+        );
 
         let result = execute_expression(&expr, &mut context).unwrap();
         assert_eq!(result, RuntimeValue::String("h".to_string()));
@@ -765,10 +757,7 @@ mod execution_tests {
 
         // Simple pipeline: @ | name
         let expr = Expression::PipeExpression {
-            stages: vec![
-                Expression::reference("@", false),
-                Expression::reference("name", false),
-            ],
+            stages: vec![Expression::reference("@", false), Expression::reference("name", false)],
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
@@ -906,10 +895,7 @@ mod execution_tests {
 
         let filter_expr = Expression::function_call(
             Expression::reference("filter", false),
-            vec![
-                condition,
-                Expression::reference("@", false),
-            ],
+            vec![condition, Expression::reference("@", false)],
         );
 
         let result = execute_expression(&filter_expr, &mut context).unwrap();
@@ -953,7 +939,10 @@ mod execution_tests {
             field: "name".to_string(),
         };
 
-        let map_expr = Expression::function_call(Expression::reference("map", false), vec![transformation, Expression::reference("@", false)]);
+        let map_expr = Expression::function_call(
+            Expression::reference("map", false),
+            vec![transformation, Expression::reference("@", false)],
+        );
 
         let result = execute_expression(&map_expr, &mut context).unwrap();
 

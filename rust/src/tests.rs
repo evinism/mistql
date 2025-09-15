@@ -3,9 +3,9 @@
 //! This module loads and runs the language-independent test suite from the shared directory,
 //! ensuring cross-platform compatibility with JavaScript and Python implementations.
 
-use serde_json::Value;
-use crate::types::{RuntimeValue, ToRuntimeValue};
 use crate::query_runtime;
+use crate::types::RuntimeValue;
+use serde_json::Value;
 
 // Test case structure matching the shared testdata.json format
 #[derive(Debug, Clone)]
@@ -128,7 +128,7 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
 // Returns (pass_status, actual_value) where actual_value is Some for successful queries
 pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>), String> {
     // Convert input data to RuntimeValue once at the boundary
-    let runtime_data = assertion.data.to_runtime_value();
+    let runtime_data: RuntimeValue = (&assertion.data).try_into().unwrap();
 
     if let Some(expected_error) = &assertion.throws {
         // Test should throw an error
@@ -137,8 +137,8 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>),
                 match actual_result.to_serde_value(false) {
                     Ok(actual_value) => {
                         return Err(format!(
-                                "Expected error '{}' but query succeeded with result: {:?}",
-                                expected_error, actual_value
+                            "Expected error '{}' but query succeeded with result: {:?}",
+                            expected_error, actual_value
                         ))
                     }
                     // Parser errors are expected.
@@ -158,7 +158,7 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>),
                 let actual_value = Some(result.to_serde_value(false).unwrap_or_else(|_| serde_json::Value::Null));
                 if let Some(expected) = &assertion.expected {
                     // Convert expected value to RuntimeValue for comparison
-                    let expected_runtime = RuntimeValue::from_serde_value(expected);
+                    let expected_runtime: RuntimeValue = expected.try_into().unwrap();
                     let matches = result == expected_runtime;
                     Ok((matches, actual_value))
                 } else {
@@ -322,12 +322,12 @@ mod test_runner {
         use serde_json::json;
 
         // @ on [1, 2, 3]
-        let runtime_data = json!([1, 2, 3]).to_runtime_value();
+        let runtime_data: RuntimeValue = (&json!([1, 2, 3])).try_into().unwrap();
         let result = query_runtime("@", &runtime_data).expect("Basic identity query should work");
         assert_eq!(result, runtime_data, "@ on arrays should work");
 
         // @ on {"a": 1, "b": 2}
-        let runtime_data = json!({"a": 1, "b": 2}).to_runtime_value();
+        let runtime_data: RuntimeValue = (&json!({"a": 1, "b": 2})).try_into().unwrap();
         let result = query_runtime("@", &runtime_data).expect("Object identity query should work");
         assert_eq!(result, runtime_data, "@ on objects should work");
     }
@@ -337,28 +337,28 @@ mod test_runner {
         use serde_json::json;
 
         // $.@ on {"filter": "cat", "nums": [1, 2, 3]}
-        let runtime_data = json!({"filter": "cat", "nums": [1, 2, 3]}).to_runtime_value();
+        let runtime_data: RuntimeValue = (&json!({"filter": "cat", "nums": [1, 2, 3]})).try_into().unwrap();
         let result = query_runtime("$.@", &runtime_data).expect("$.@ should work");
         assert_eq!(result, runtime_data, "$.@ should work");
 
         // $.@.filter on {"filter": "cat", "nums": [1, 2, 3]}
         let result = query_runtime("$.@.filter", &runtime_data).expect("$.@.filter should work");
-        assert_eq!(result, json!("cat").to_runtime_value(), "$.@.filter should work");
+        assert_eq!(result, (&json!("cat")).try_into().unwrap(), "$.@.filter should work");
 
         // $.count $.@.nums on {"filter": "cat", "nums": [1, 2, 3]}
         let result = query_runtime("$.count $.@.nums", &runtime_data).expect("$.count $.@.nums should work");
-        assert_eq!(result, json!(3).to_runtime_value(), "$.count $.@.nums should work");
+        assert_eq!(result, (&json!(3)).try_into().unwrap(), "$.count $.@.nums should work");
 
         // $.sum $.@.nums on {"filter": "cat", "nums": [1, 2, 3]}
         let result = query_runtime("$.sum $.@.nums", &runtime_data).expect("$.sum $.@.nums should work");
-        assert_eq!(result, json!(6).to_runtime_value(), "$.sum $.@.nums should work");
+        assert_eq!(result, (&json!(6)).try_into().unwrap(), "$.sum $.@.nums should work");
     }
 
     #[test]
     fn test_float_function() {
         use serde_json::json;
 
-        let runtime_data = json!(null).to_runtime_value();
+        let runtime_data: RuntimeValue = (&json!(null)).try_into().unwrap();
 
         // float "1.1e1"
         let result = query_runtime("float \"1.1e1\"", &runtime_data).expect("float should work");
@@ -385,7 +385,7 @@ mod test_runner {
         let test_cases = vec![(1e50, "1e+50"), (3e20, "300000000000000000000"), (3e21, "3e+21"), (1e-7, "1e-7")];
 
         for (input, expected) in test_cases {
-            let runtime_data = json!(input).to_runtime_value();
+            let runtime_data: RuntimeValue = (&json!(input)).try_into().unwrap();
             let result = query_runtime("string @", &runtime_data).expect("string should work");
             assert_eq!(result, RuntimeValue::String(expected.to_string()), "string should work");
         }
@@ -395,11 +395,15 @@ mod test_runner {
     fn test_keys_function() {
         use serde_json::json;
 
-        let runtime_data = json!({}).to_runtime_value();
+        let runtime_data: RuntimeValue = (&json!({})).try_into().unwrap();
 
         // Test keys function
         let result = query_runtime("{a: 1, b: 2} | keys", &runtime_data).expect("keys should work");
-        assert_eq!(result, RuntimeValue::Array(vec![RuntimeValue::String("a".to_string()), RuntimeValue::String("b".to_string())]), "keys should work");
+        assert_eq!(
+            result,
+            RuntimeValue::Array(vec![RuntimeValue::String("a".to_string()), RuntimeValue::String("b".to_string())]),
+            "keys should work"
+        );
 
         // Test empty object
         let result = query_runtime("{} | keys", &runtime_data).expect("keys should work");
@@ -410,7 +414,7 @@ mod test_runner {
     fn test_regex_operator() {
         use serde_json::json;
 
-        let runtime_data = json!(null).to_runtime_value();
+        let runtime_data: RuntimeValue = (&json!(null)).try_into().unwrap();
 
         // Test =~ operator with string pattern
         let result = query_runtime("\"Hello\" =~ \"[a-z]ello\"", &runtime_data).expect("regex should work");
@@ -422,9 +426,12 @@ mod test_runner {
     }
 
     #[test]
-    fn test_abc() {
-        println!("{}", serde_json::json!("4.9E50"));
-        println!("{}", serde_json::json!("4.9E50").to_runtime_value());
+    fn test_floating_point_precision_fix() {
+        let serde = serde_json::json!(4.9e50);
+        let runtime: RuntimeValue = (&serde_json::json!(4.9e50)).try_into().unwrap();
+
+        println!("{}", serde);
+        println!("{}", runtime);
         assert!(false);
     }
 }
