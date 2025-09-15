@@ -909,7 +909,10 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
                 actual_index = index_num as isize;
             }
 
-            Ok(s.chars().nth(actual_index as usize).map(|c| RuntimeValue::String(c.to_string())).unwrap_or(RuntimeValue::Null))
+            Ok(s.chars()
+                .nth(actual_index as usize)
+                .map(|c| RuntimeValue::String(c.to_string()))
+                .unwrap_or(RuntimeValue::Null))
         }
         RuntimeValue::Object(obj) => {
             let key = assert_string(index)?;
@@ -925,7 +928,11 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
                 ))),
             }
         }
-        _ => Err(ExecutionError::Custom(format!("index: Cannot index {:?} with {:?}", operand.get_type(), index.get_type()))),
+        _ => Err(ExecutionError::Custom(format!(
+            "index: Cannot index {:?} with {:?}",
+            operand.get_type(),
+            index.get_type()
+        ))),
     }
 }
 
@@ -1010,7 +1017,12 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
                 }
             }
         }
-        _ => Err(ExecutionError::Custom(format!("index: Cannot slice {:?} with start {:?} and end {:?}", operand.get_type(), start.get_type(), end.get_type()))),
+        _ => Err(ExecutionError::Custom(format!(
+            "index: Cannot slice {:?} with start {:?} and end {:?}",
+            operand.get_type(),
+            start.get_type(),
+            end.get_type()
+        ))),
     }
 }
 
