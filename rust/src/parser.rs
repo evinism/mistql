@@ -524,7 +524,7 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
                     expr = Expression::FnExpression { function, arguments };
                 } else {
                     // This is simple indexing, create: index(operand, expr)
-                    expr = Expression::function_call(Expression::reference("index", false), vec![operand, expr]);
+                    expr = Expression::function_call(Expression::reference("index", true), vec![operand, expr]);
                 }
             }
             _ => unreachable!(),
@@ -550,7 +550,7 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
             // For slicing, we need to return a special marker that indicates this is a slice
             // The op_h parser will handle adding the target as the third argument
             let result = Expression::function_call(
-                Expression::reference("index", false),
+                Expression::reference("index", true),
                 vec![expr, end.unwrap_or_else(|| Expression::value(RuntimeValue::Null))],
             );
             let (remaining, _) = pair(multispace0, char(']'))(remaining)?;
@@ -568,7 +568,7 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, Expression> {
             // This is slicing syntax: [:end] or [:]
             let end = end_opt.map(|(_, expr)| expr);
             let result = Expression::function_call(
-                Expression::reference("index", false),
+                Expression::reference("index", true),
                 vec![
                     Expression::value(RuntimeValue::Null),
                     end.unwrap_or_else(|| Expression::value(RuntimeValue::Null)),

@@ -258,26 +258,38 @@ impl std::fmt::Display for TestFailure {
     }
 }
 
+impl TestFailure {
+    fn summary(&self) -> String {
+        format!(
+            "FAIL #{}: {}::{}::{}",
+            self.assertion_number, self.describe_block, self.describe_inner, self.it_description
+        )
+    }
+}
+
 #[rustfmt::skip]
 impl std::fmt::Display for TestResults {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Test Results Summary:")?;
+        if !self.failures.is_empty() {
+            for failure in &self.failures {
+                writeln!(f, "{}", failure)?;
+            }
+
+            writeln!(f, "\nFailures ({} total):", self.failures.len())?;
+            for failure in &self.failures {
+                writeln!(f, "{}", failure.summary())?;
+            }
+        }
+
+        writeln!(f, "\nTest Results Summary:")?;
         writeln!(f, "  Test Cases: {} ({} skipped)", self.total_test_cases, self.skipped_test_cases)?;
         writeln!(f, "  Assertions: {} total", self.total_assertions)?;
         writeln!(f, "    ✅ Passed: {}", self.passed_assertions)?;
         writeln!(f, "    ❌ Failed: {}", self.failed_assertions)?;
         writeln!(f, "    ⏭️ Skipped: {}", self.skipped_assertions)?;
-
         if self.total_assertions > 0 {
             let pass_rate = (self.passed_assertions as f64 / self.total_assertions as f64) * 100.0;
             writeln!(f, "  Pass Rate: {:.1}%", pass_rate)?;
-        }
-
-        if !self.failures.is_empty() {
-            writeln!(f, "\nFailures ({} total):", self.failures.len())?;
-            for failure in &self.failures {
-                writeln!(f, "{}", failure)?;
-            }
         }
 
         Ok(())
@@ -294,8 +306,6 @@ mod test_runner {
             Ok(results) => {
                 println!("{}", results);
 
-                // For now, we'll allow some failures as the implementation is still in progress
-                // TODO: Make this stricter once the implementation is more complete
                 if results.failed_assertions > 0 {
                     println!(
                         "Note: {} assertions failed. This is expected during development.",
@@ -422,12 +432,13 @@ mod test_runner {
     }
 
     #[test]
-    fn test_floating_point_precision_fix() {
-        let serde = serde_json::json!(4.9e50);
-        let runtime: RuntimeValue = (&serde_json::json!(4.9e50)).try_into().unwrap();
+    fn test_abc() {
+        use crate::parser::Parser;
+        use crate::query;
 
-        println!("{}", serde);
-        println!("{}", runtime);
+        let json_data = serde_json::json!({"index": "hello"});
+        println!("{:?}", Parser::parse("[1, 2, 3][1]").unwrap());
+        println!("{}", query("[1, 2, 3][1]", &json_data).unwrap());
         assert!(false);
     }
 }
