@@ -300,11 +300,9 @@ impl RuntimeValue {
         match self {
             RuntimeValue::Null => Ok(serde_json::Value::Null),
             RuntimeValue::Boolean(b) => Ok(serde_json::Value::Bool(*b)),
-            RuntimeValue::Number(n) => {
-                match serde_json::Number::from_f64(*n) {
-                    Some(number) => Ok(serde_json::Value::Number(number)),
-                    None => Err(ExecutionError::CannotConvertToJSON(format!("float conversion failed on {}", n))),
-                }
+            RuntimeValue::Number(n) => match serde_json::Number::from_f64(*n) {
+                Some(number) => Ok(serde_json::Value::Number(number)),
+                None => Err(ExecutionError::CannotConvertToJSON(format!("float conversion failed on {}", n))),
             },
             RuntimeValue::String(s) => Ok(serde_json::Value::String(s.clone())),
             RuntimeValue::Array(arr) => {
@@ -361,18 +359,45 @@ impl RuntimeValue {
         }
     }
 
-    // Convert to string representation
-    pub fn to_string(&self) -> String {
+    // Convert to string representation for serialization (with quotes for strings)
+    pub fn to_string_serialize(&self) -> String {
+        match self {
+            // Needs JavaScript-like number formatting for MistQL compatibility
+            RuntimeValue::Number(n) => self.format_number_as_string(*n),
+            // Needs string-escaping for serialization
+            RuntimeValue::String(s) => format!("\"{}\"", s),
+            RuntimeValue::Array(arr) => {
+                let items: Vec<String> = arr.iter().map(|v| v.to_string_serialize()).collect();
+                format!("[{}]", items.join(","))
+            }
+            RuntimeValue::Object(obj) => {
+                let items: Vec<String> = obj.iter().map(|(k, v)| format!("\"{}\":{}", k, v.to_string_serialize())).collect();
+                format!("{{{}}}", items.join(","))
+            }
+            RuntimeValue::Null => "null".to_string(),
+            RuntimeValue::Boolean(b) => b.to_string(),
+            RuntimeValue::Function(_) => "[function]".to_string(),
+            RuntimeValue::Regex(_) => "[regex]".to_string(),
+        }
+    }
+
+    // Convert to string representation for display (without quotes for strings)
+    pub fn to_string_display(&self) -> String {
         match self {
             RuntimeValue::String(s) => s.clone(),
-            RuntimeValue::Number(n) => {
-                // Implement JavaScript-like number formatting for MistQL compatibility
-                self.format_number_as_string(*n)
+            RuntimeValue::Number(n) => self.format_number_as_string(*n),
+            RuntimeValue::Boolean(b) => b.to_string(),
+            RuntimeValue::Null => "null".to_string(),
+            RuntimeValue::Array(arr) => {
+                let items: Vec<String> = arr.iter().map(|v| v.to_string_display()).collect();
+                format!("[{}]", items.join(","))
             }
-            _ => match self.to_serde_value(true) {
-                Ok(value) => serde_json::to_string(&value).unwrap_or_else(|_| "null".to_string()),
-                Err(_) => "non-external".to_string(),
-            },
+            RuntimeValue::Object(obj) => {
+                let items: Vec<String> = obj.iter().map(|(k, v)| format!("\"{}\":{}", k, v.to_string_display())).collect();
+                format!("{{{}}}", items.join(","))
+            }
+            RuntimeValue::Function(_) => "[function]".to_string(),
+            RuntimeValue::Regex(_) => "[regex]".to_string(),
         }
     }
 
@@ -1048,21 +1073,21 @@ mod type_conversion_tests {
     fn test_to_string_conversion() {
         // String to string
         let str_val = RuntimeValue::String("hello".to_string());
-        assert_eq!(str_val.to_string(), "hello");
+        assert_eq!(str_val.to_string_serialize(), "\"hello\"");
 
         // Number to string
         let int_num = RuntimeValue::Number(42.0);
-        assert_eq!(int_num.to_string(), "42");
+        assert_eq!(int_num.to_string_serialize(), "42");
 
         let float_num = RuntimeValue::Number(3.14);
-        assert_eq!(float_num.to_string(), "3.14");
+        assert_eq!(float_num.to_string_serialize(), "3.14");
 
         // Other types use JSON serialization
         let bool_val = RuntimeValue::Boolean(true);
-        assert_eq!(bool_val.to_string(), "true");
+        assert_eq!(bool_val.to_string_serialize(), "true");
 
         let null = RuntimeValue::Null;
-        assert_eq!(null.to_string(), "null");
+        assert_eq!(null.to_string_serialize(), "null");
     }
 
     #[test]
@@ -1076,11 +1101,11 @@ mod type_conversion_tests {
         let arr = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
 
         // These should serialize to JSON
-        let obj_str = obj.to_string();
+        let obj_str = obj.to_string_serialize();
         assert!(obj_str.contains("key"));
         assert!(obj_str.contains("value"));
 
-        let arr_str = arr.to_string();
+        let arr_str = arr.to_string_serialize();
         assert!(arr_str.contains("1"));
         assert!(arr_str.contains("test"));
     }
@@ -1217,7 +1242,7 @@ mod edge_case_tests {
         let unicode_str = RuntimeValue::String("Hello 世界 🌍".to_string());
         assert_eq!(unicode_str.get_type(), RuntimeValueType::String);
         assert!(unicode_str.truthy());
-        assert_eq!(unicode_str.to_string(), "Hello 世界 🌍");
+        assert_eq!(unicode_str.to_string_serialize(), "\"Hello 世界 🌍\"");
     }
 
     #[test]

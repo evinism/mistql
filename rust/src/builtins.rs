@@ -63,7 +63,7 @@ pub fn log(args: &[Expression], context: &mut ExecutionContext) -> Result<Runtim
     validate_args("log", args, 1, Some(1))?;
 
     let value = execute_expression(&args[0], context)?;
-    println!("MistQL: {}", value.to_string());
+    println!("MistQL: {}", value.to_string_serialize());
     Ok(value)
 }
 
@@ -305,8 +305,19 @@ pub fn groupby(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
         context.push_context(item.clone());
         let key = execute_expression(key_expr, context)?;
         context.pop_context()?;
-        let key_str = key.to_string();
-        groups.entry(key_str).or_insert_with(Vec::new).push(item);
+        // Dispatch to string_display to handle nested objects and arrays.
+        // Otherwise use string_display to handle strings.
+        match key {
+            RuntimeValue::Object(_) => {
+                groups.entry(key.to_string_display()).or_insert_with(Vec::new).push(item);
+            }
+            RuntimeValue::Array(_) => {
+                groups.entry(key.to_string_display()).or_insert_with(Vec::new).push(item);
+            }
+            _ => {
+                groups.entry(key.to_string_display()).or_insert_with(Vec::new).push(item);
+            }
+        }
     }
 
     // Convert HashMap to RuntimeValue::Object
@@ -460,7 +471,7 @@ pub fn fromentries(args: &[Expression], context: &mut ExecutionContext) -> Resul
 
         // TODO: Is this correct?
         let key = if entry_array.len() > 0 {
-            entry_array[0].to_string()
+            entry_array[0].to_string_display()
         } else {
             "null".to_string()
         };
@@ -490,7 +501,19 @@ pub fn mapkeys(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
         context.push_context(RuntimeValue::String(key.clone()));
         let new_key = execute_expression(transformation, context)?;
         context.pop_context()?;
-        result.insert(new_key.to_string(), value);
+        // Dispatch to string_serialize to handle nested objects and arrays.
+        // Otherwise use string_display to handle strings.
+        match new_key {
+            RuntimeValue::Object(_) => {
+                result.insert(new_key.to_string_serialize(), value);
+            }
+            RuntimeValue::Array(_) => {
+                result.insert(new_key.to_string_serialize(), value);
+            }
+            _ => {
+                result.insert(new_key.to_string_display(), value);
+            }
+        }
     }
 
     Ok(RuntimeValue::Object(result))
@@ -694,7 +717,7 @@ pub fn string(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
         RuntimeValue::String(s) => Ok(RuntimeValue::String(s)),
         RuntimeValue::Function(_) => Err(ExecutionError::TypeMismatch("Cannot cast function to string".to_string())),
         RuntimeValue::Regex(_) => Err(ExecutionError::TypeMismatch("Cannot cast regex to string".to_string())),
-        _ => Ok(RuntimeValue::String(value.to_string())),
+        _ => Ok(RuntimeValue::String(value.to_string_serialize())),
     }
 }
 
