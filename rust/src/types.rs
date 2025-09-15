@@ -411,66 +411,25 @@ impl RuntimeValue {
             return if n > 0.0 { "Infinity".to_string() } else { "-Infinity".to_string() };
         }
 
-        // Handle zero
-        if n == 0.0 {
-            return "0".to_string();
-        }
-
         // For very large or very small numbers, use scientific notation
         let abs_n = n.abs();
-        if abs_n >= 1e21 || (abs_n < 1e-6 && abs_n > 0.0) {
-            return self.format_scientific_notation(n);
+        if abs_n <= 1e-7 || abs_n >= 1e21 {
+            let scientific = format!("{:e}", n);
+            if scientific.contains("e-") {
+                return scientific
+            } else {
+                return scientific.replace('e', "e+")
+            }
         }
 
-        // For numbers in the range [1e-6, 1e21), use regular formatting
-        // But we need to handle precision issues carefully
+        // For numbers in the range [1e-7, 1e21), use regular formatting
         if n.fract() == 0.0 {
-            // Integer - but check if it's too large for i64
-            if n.abs() <= (i64::MAX as f64) {
-                format!("{}", n as i64)
-            } else {
-                // Large integer - format as string without decimal places
-                let formatted = format!("{:.0}", n);
-                formatted
-            }
+            format!("{:.0}", n)
         } else {
-            // Float - use a precision that matches JavaScript's behavior
             let formatted = format!("{:.15}", n);
-            // Remove trailing zeros and unnecessary decimal point
             let trimmed = formatted.trim_end_matches('0').trim_end_matches('.');
             trimmed.to_string()
         }
-    }
-
-    // Format a number in scientific notation to match JavaScript's behavior
-    fn format_scientific_notation(&self, n: f64) -> String {
-        let abs_n = n.abs();
-        let sign = if n < 0.0 { "-" } else { "" };
-
-        // Find the exponent
-        let exponent = abs_n.log10().floor() as i32;
-        let mantissa = abs_n / 10_f64.powi(exponent);
-
-        // Format mantissa with appropriate precision
-        let mantissa_str = if mantissa.fract() == 0.0 {
-            format!("{}", mantissa as i64)
-        } else {
-            // Use up to 15 significant digits
-            let precision = (15 - (mantissa.log10().floor() as usize)).max(0);
-            format!("{:.precision$}", mantissa, precision = precision)
-                .trim_end_matches('0')
-                .trim_end_matches('.')
-                .to_string()
-        };
-
-        // Format exponent
-        let exp_str = if exponent >= 0 {
-            format!("e+{}", exponent)
-        } else {
-            format!("e{}", exponent)
-        };
-
-        format!("{}{}{}", sign, mantissa_str, exp_str)
     }
 
     // Access object property
