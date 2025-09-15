@@ -21,8 +21,8 @@ pub struct TestCase {
 pub struct TestAssertion {
     pub assertion_number: usize,
     pub query: String,
-    pub data: Value,
-    pub expected: Option<Value>,
+    pub data: RuntimeValue,
+    pub expected: Option<RuntimeValue>,
     pub throws: Option<String>,
 }
 
@@ -44,9 +44,9 @@ pub struct TestFailure {
     pub describe_inner: String,
     pub it_description: String,
     pub query: String,
-    pub data: Value,
-    pub expected: Option<Value>,
-    pub actual: Option<Value>,
+    pub data: RuntimeValue,
+    pub expected: Option<RuntimeValue>,
+    pub actual: Option<RuntimeValue>,
     pub error: Option<String>,
 }
 
@@ -95,8 +95,8 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                                                     assertions.push(TestAssertion {
                                                         assertion_number: assertion_counter,
                                                         query: query.to_string(),
-                                                        data: data.clone(),
-                                                        expected: expected.cloned(),
+                                                        data: data.try_into().unwrap(),
+                                                        expected: expected.map(|e| e.try_into().unwrap()),
                                                         throws: throws.map(|s| s.to_string()),
                                                     });
                                                     assertion_counter += 1;
@@ -127,12 +127,9 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
 // Run a single test assertion
 // Returns (pass_status, actual_value) where actual_value is Some for successful queries
 pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>), String> {
-    // Convert input data to RuntimeValue once at the boundary
-    let runtime_data: RuntimeValue = (&assertion.data).try_into().unwrap();
-
     if let Some(expected_error) = &assertion.throws {
         // Test should throw an error
-        match query_runtime(&assertion.query, &runtime_data) {
+        match query_runtime(&assertion.query, &assertion.data) {
             Ok(actual_result) => {
                 match actual_result.to_serde_value(false) {
                     Ok(actual_value) => {
@@ -152,14 +149,13 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>),
         }
     } else {
         // Test should succeed and return expected value
-        match query_runtime(&assertion.query, &runtime_data) {
+        match query_runtime(&assertion.query, &assertion.data) {
             Ok(result) => {
                 // Convert to JSON only for reporting
                 let actual_value = Some(result.to_serde_value(false).unwrap_or_else(|_| serde_json::Value::Null));
                 if let Some(expected) = &assertion.expected {
                     // Convert expected value to RuntimeValue for comparison
-                    let expected_runtime: RuntimeValue = expected.try_into().unwrap();
-                    let matches = result == expected_runtime;
+                    let matches = (&result) == expected;
                     Ok((matches, actual_value))
                 } else {
                     Ok((true, actual_value)) // No expected value specified, just check it doesn't error
@@ -218,7 +214,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
                         query: assertion.query.clone(),
                         data: assertion.data.clone(),
                         expected: assertion.expected.clone(),
-                        actual,
+                        actual: actual.map(|a| a.try_into().unwrap()),
                         error: None,
                     });
                 }
