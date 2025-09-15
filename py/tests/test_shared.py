@@ -30,6 +30,7 @@ for block in testdata["data"]:
                             assertion["query"],
                             assertion["data"],
                             assertion.get("expected"),
+                            assertion.get("expectedSet"),
                             assertion.get("throws"),
                         )
                         for assertion in test["assertions"]
@@ -48,10 +49,12 @@ def get_test_id_for_case(case: Case) -> str:
 
 @pytest.mark.parametrize("case", non_skipped_cases, ids=get_test_id_for_case)
 def test_shared(case: Case):
-    for target_query, data, expected, throws in case[0]:
+    for target_query, data, expected, expectedSet, throws in case[0]:
         if throws:
             with pytest.raises(Exception):
                 query(target_query, data)
+        elif expectedSet:
+            assert query(target_query, data) in expectedSet
         else:
             assert query(target_query, data) == expected
 
