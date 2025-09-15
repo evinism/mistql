@@ -8,13 +8,13 @@ use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
 
-/// A single frame in the execution stack containing variable bindings.
+// A single frame in the execution stack containing variable bindings.
 pub type StackFrame = HashMap<String, RuntimeValue>;
 
-/// The execution stack containing nested variable scopes.
+// The execution stack containing nested variable scopes.
 pub type ExecutionStack = Vec<StackFrame>;
 
-/// Execution context containing the stack, builtins, and root data.
+// Execution context containing the stack, builtins, and root data.
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
     stack: ExecutionStack,
@@ -29,6 +29,7 @@ pub enum ExecutionError {
     TypeMismatch(String),
     DivisionByZero,
     InvalidOperation(String),
+    CannotConvertToJSON(String),
     Custom(String),
 }
 
@@ -44,6 +45,7 @@ impl std::fmt::Display for ExecutionError {
             ExecutionError::TypeMismatch(msg) => write!(f, "Type mismatch: {}", msg),
             ExecutionError::DivisionByZero => write!(f, "Division by zero"),
             ExecutionError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
+            ExecutionError::CannotConvertToJSON(msg) => write!(f, "Cannot convert to JSON: {}", msg),
             ExecutionError::Custom(msg) => write!(f, "{}", msg),
         }
     }
@@ -114,7 +116,7 @@ impl ExecutionContext {
         Ok(())
     }
 
-    /// Find a variable in the execution stack.
+    // Find a variable in the execution stack.
     pub fn find_variable(&self, name: &str, absolute: bool) -> Result<RuntimeValue, ExecutionError> {
         if absolute {
             // For absolute references (like $), only search in the first frame (builtins).
@@ -141,7 +143,7 @@ impl ExecutionContext {
             .ok_or_else(|| ExecutionError::VariableNotFound(name.to_string()))
     }
 
-    /// Get the current @ context value.
+    // Get the current @ context value.
     pub fn get_current_context(&self) -> Result<&RuntimeValue, ExecutionError> {
         for frame in self.stack.iter().rev() {
             if let Some(value) = frame.get("@") {
@@ -160,7 +162,7 @@ impl ExecutionContext {
     }
 }
 
-/// Check if a string is a valid identifier for variable binding.
+// Check if a string is a valid identifier for variable binding.
 fn is_valid_identifier(s: &str) -> bool {
     if s.is_empty() {
         return false;

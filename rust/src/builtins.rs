@@ -9,7 +9,7 @@ use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
 
-/// Validate the number of arguments for a builtin function.
+// Validate the number of arguments for a builtin function.
 fn validate_args(name: &str, args: &[Expression], min_args: usize, max_args: Option<usize>) -> Result<(), ExecutionError> {
     if args.len() < min_args {
         return Err(ExecutionError::Custom(format!("{} takes at least {} arguments", name, min_args)));
@@ -22,7 +22,7 @@ fn validate_args(name: &str, args: &[Expression], min_args: usize, max_args: Opt
     Ok(())
 }
 
-/// Assert that a value is a number and return it.
+// Assert that a value is a number and return it.
 fn assert_number(value: RuntimeValue) -> Result<f64, ExecutionError> {
     match value {
         RuntimeValue::Number(n) => Ok(n),
@@ -30,7 +30,7 @@ fn assert_number(value: RuntimeValue) -> Result<f64, ExecutionError> {
     }
 }
 
-/// Assert that a value is an array and return it.
+// Assert that a value is an array and return it.
 fn assert_array(value: RuntimeValue) -> Result<Vec<RuntimeValue>, ExecutionError> {
     match value {
         RuntimeValue::Array(arr) => Ok(arr),
@@ -38,7 +38,7 @@ fn assert_array(value: RuntimeValue) -> Result<Vec<RuntimeValue>, ExecutionError
     }
 }
 
-/// Assert that a value is an object and return it.
+// Assert that a value is an object and return it.
 fn assert_object(value: RuntimeValue) -> Result<HashMap<String, RuntimeValue>, ExecutionError> {
     match value {
         RuntimeValue::Object(obj) => Ok(obj),
@@ -46,7 +46,7 @@ fn assert_object(value: RuntimeValue) -> Result<HashMap<String, RuntimeValue>, E
     }
 }
 
-/// Assert that a value is a string and return it.
+// Assert that a value is a string and return it.
 fn assert_string(value: RuntimeValue) -> Result<String, ExecutionError> {
     match value {
         RuntimeValue::String(s) => Ok(s),
@@ -58,7 +58,7 @@ fn assert_string(value: RuntimeValue) -> Result<String, ExecutionError> {
 // UTILITY FUNCTIONS
 // ============================================================================
 
-/// Log function - prints the value and returns it.
+// Log function - prints the value and returns it.
 pub fn log(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("log", args, 1, Some(1))?;
 
@@ -67,7 +67,7 @@ pub fn log(args: &[Expression], context: &mut ExecutionContext) -> Result<Runtim
     Ok(value)
 }
 
-/// If function - conditional execution.
+// If function - conditional execution.
 pub fn if_function(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("if", args, 3, Some(3))?;
 
@@ -79,7 +79,7 @@ pub fn if_function(args: &[Expression], context: &mut ExecutionContext) -> Resul
     }
 }
 
-/// Apply function - applies an expression to a value (sets @ context).
+// Apply function - applies an expression to a value (sets @ context).
 pub fn apply(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("apply", args, 2, Some(2))?;
 
@@ -96,7 +96,7 @@ pub fn apply(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
 // ARRAY OPERATIONS
 // ============================================================================
 
-/// Return the length of an array.
+// Return the length of an array.
 pub fn count(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("count", args, 1, Some(1))?;
 
@@ -104,7 +104,7 @@ pub fn count(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
     Ok(RuntimeValue::Number(array.len() as f64))
 }
 
-/// Filter array elements based on a condition.
+// Filter array elements based on a condition.
 pub fn filter(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("filter", args, 2, Some(2))?;
 
@@ -124,7 +124,7 @@ pub fn filter(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     Ok(RuntimeValue::Array(result))
 }
 
-/// Transform array elements.
+// Transform array elements.
 pub fn map(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("map", args, 2, Some(2))?;
 
@@ -142,7 +142,7 @@ pub fn map(args: &[Expression], context: &mut ExecutionContext) -> Result<Runtim
     Ok(RuntimeValue::Array(result))
 }
 
-/// Find the first element that matches a condition.
+// Find the first element that matches a condition.
 pub fn find(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("find", args, 2, Some(2))?;
 
@@ -161,7 +161,7 @@ pub fn find(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
     Ok(RuntimeValue::Null)
 }
 
-/// Reverse an array.
+// Reverse an array.
 pub fn reverse(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("reverse", args, 1, Some(1))?;
 
@@ -170,7 +170,7 @@ pub fn reverse(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     Ok(RuntimeValue::Array(array))
 }
 
-/// Flatten nested arrays.
+// Flatten nested arrays.
 pub fn flatten(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("flatten", args, 1, Some(1))?;
     let array = assert_array(execute_expression(&args[0], context)?)?;
@@ -191,7 +191,7 @@ pub fn flatten(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     Ok(RuntimeValue::Array(result))
 }
 
-/// Sum all numbers in an array.
+// Sum all numbers in an array.
 pub fn sum(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("sum", args, 1, Some(1))?;
     let value = execute_expression(&args[0], context)?;
@@ -218,7 +218,7 @@ pub fn sum(args: &[Expression], context: &mut ExecutionContext) -> Result<Runtim
     Ok(RuntimeValue::Number(total))
 }
 
-/// Sort an array in ascending order.
+// Sort an array in ascending order.
 pub fn sort(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("sort", args, 1, Some(1))?;
     let mut array = assert_array(execute_expression(&args[0], context)?)?;
@@ -246,7 +246,7 @@ pub fn sort(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
     Ok(RuntimeValue::Array(array))
 }
 
-/// Sort an array by a key expression.
+// Sort an array by a key expression.
 pub fn sortby(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("sortby", args, 2, Some(2))?;
 
@@ -273,7 +273,7 @@ pub fn sortby(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     Ok(RuntimeValue::Array(result))
 }
 
-/// Reduce an array to a single value.
+// Reduce an array to a single value.
 pub fn reduce(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("reduce", args, 3, Some(3))?;
 
@@ -292,7 +292,7 @@ pub fn reduce(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     Ok(accumulator)
 }
 
-/// Group array elements by a key expression.
+// Group array elements by a key expression.
 pub fn groupby(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("groupby", args, 2, Some(2))?;
 
@@ -318,7 +318,7 @@ pub fn groupby(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     Ok(RuntimeValue::Object(result_obj))
 }
 
-/// Add indices to array elements.
+// Add indices to array elements.
 pub fn withindices(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("withindices", args, 1, Some(1))?;
     let array = assert_array(execute_expression(&args[0], context)?)?;
@@ -333,7 +333,7 @@ pub fn withindices(args: &[Expression], context: &mut ExecutionContext) -> Resul
     Ok(RuntimeValue::Array(result))
 }
 
-/// Find subsequences satisfying conditions.
+// Find subsequences satisfying conditions.
 pub fn sequence(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     if args.len() < 2 {
         return Err(ExecutionError::Custom("sequence takes at least 2 arguments".to_string()));
@@ -373,7 +373,7 @@ pub fn sequence(args: &[Expression], context: &mut ExecutionContext) -> Result<R
     Ok(RuntimeValue::Array(result))
 }
 
-/// Recursively find valid subsequences.
+// Recursively find valid subsequences.
 fn sequence_helper(bitmasks: &[Vec<bool>], start: usize) -> Vec<Vec<usize>> {
     if bitmasks.is_empty() {
         return vec![];
@@ -403,7 +403,7 @@ fn sequence_helper(bitmasks: &[Vec<bool>], start: usize) -> Vec<Vec<usize>> {
 // OBJECT OPERATIONS
 // ============================================================================
 
-/// Return the keys of an object.
+// Return the keys of an object.
 pub fn keys(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("keys", args, 1, Some(1))?;
     let object = assert_object(execute_expression(&args[0], context)?)?;
@@ -417,7 +417,7 @@ pub fn keys(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
     Ok(RuntimeValue::Array(keys))
 }
 
-/// Return the values of an object.
+// Return the values of an object.
 pub fn values(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("values", args, 1, Some(1))?;
     let object = assert_object(execute_expression(&args[0], context)?)?;
@@ -430,7 +430,7 @@ pub fn values(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     Ok(RuntimeValue::Array(values))
 }
 
-/// Return key-value pairs as an array of [key, value] arrays.
+// Return key-value pairs as an array of [key, value] arrays.
 pub fn entries(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("entries", args, 1, Some(1))?;
     let object = assert_object(execute_expression(&args[0], context)?)?;
@@ -449,7 +449,7 @@ pub fn entries(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     Ok(RuntimeValue::Array(result))
 }
 
-/// Create an object from an array of [key, value] pairs.
+// Create an object from an array of [key, value] pairs.
 pub fn fromentries(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("fromentries", args, 1, Some(1))?;
     let array = assert_array(execute_expression(&args[0], context)?)?;
@@ -458,12 +458,14 @@ pub fn fromentries(args: &[Expression], context: &mut ExecutionContext) -> Resul
     for entry in array {
         let entry_array = assert_array(entry)?;
 
+        // TODO: Is this correct?
         let key = if entry_array.len() > 0 {
             entry_array[0].to_string()
         } else {
             "null".to_string()
         };
 
+        // TODO: Is this correct?
         let value = if entry_array.len() > 1 {
             entry_array[1].clone()
         } else {
@@ -476,7 +478,7 @@ pub fn fromentries(args: &[Expression], context: &mut ExecutionContext) -> Resul
     Ok(RuntimeValue::Object(result))
 }
 
-/// Map object keys.
+// Map object keys.
 pub fn mapkeys(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("mapkeys", args, 2, Some(2))?;
 
@@ -494,7 +496,7 @@ pub fn mapkeys(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     Ok(RuntimeValue::Object(result))
 }
 
-/// Map object values.
+// Map object values.
 pub fn mapvalues(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("mapvalues", args, 2, Some(2))?;
 
@@ -512,7 +514,7 @@ pub fn mapvalues(args: &[Expression], context: &mut ExecutionContext) -> Result<
     Ok(RuntimeValue::Object(result))
 }
 
-/// Filter object keys based on a condition.
+// Filter object keys based on a condition.
 pub fn filterkeys(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("filterkeys", args, 2, Some(2))?;
 
@@ -532,7 +534,7 @@ pub fn filterkeys(args: &[Expression], context: &mut ExecutionContext) -> Result
     Ok(RuntimeValue::Object(result))
 }
 
-/// Filter object values based on a condition.
+// Filter object values based on a condition.
 pub fn filtervalues(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("filtervalues", args, 2, Some(2))?;
 
@@ -556,7 +558,7 @@ pub fn filtervalues(args: &[Expression], context: &mut ExecutionContext) -> Resu
 // STRING OPERATIONS
 // ============================================================================
 
-/// Split a string by a delimiter.
+// Split a string by a delimiter.
 pub fn split(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("split", args, 2, Some(2))?;
 
@@ -587,7 +589,7 @@ pub fn split(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
     Ok(RuntimeValue::Array(parts))
 }
 
-/// Join an array of strings.
+// Join an array of strings.
 pub fn stringjoin(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("stringjoin", args, 2, Some(2))?;
 
@@ -602,7 +604,7 @@ pub fn stringjoin(args: &[Expression], context: &mut ExecutionContext) -> Result
     Ok(RuntimeValue::String(result))
 }
 
-/// Replace substrings in a string.
+// Replace substrings in a string.
 pub fn replace(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("replace", args, 3, Some(3))?;
 
@@ -637,7 +639,7 @@ pub fn replace(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     }
 }
 
-/// Test if a string matches a pattern.
+// Test if a string matches a pattern.
 pub fn match_function(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("match", args, 2, Some(2))?;
 
@@ -662,7 +664,7 @@ pub fn match_function(args: &[Expression], context: &mut ExecutionContext) -> Re
     Ok(RuntimeValue::Boolean(matches))
 }
 
-/// Create a regex object.
+// Create a regex object.
 pub fn regex(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("regex", args, 1, Some(2))?;
 
@@ -683,7 +685,7 @@ pub fn regex(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
 // TYPE CONVERSION
 // ============================================================================
 
-/// Convert a value to a string.
+// Convert a value to a string.
 pub fn string(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("string", args, 1, Some(1))?;
     let value = execute_expression(&args[0], context)?;
@@ -696,11 +698,24 @@ pub fn string(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     }
 }
 
-/// Convert a value to a number.
+// Convert a value to a number.
 pub fn float(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("float", args, 1, Some(1))?;
     let value = execute_expression(&args[0], context)?;
-    let num = value.to_float().map_err(|e| ExecutionError::TypeMismatch(e))?;
+
+    let num = match value {
+        RuntimeValue::Number(n) => Ok(n),
+        RuntimeValue::String(s) => {
+            // Trim whitespace before parsing
+            let trimmed = s.trim();
+            trimmed.parse::<f64>().map_err(|_| format!("Cannot convert string to float: {}", s))
+        }
+        RuntimeValue::Boolean(b) => Ok(if b { 1.0 } else { 0.0 }),
+        RuntimeValue::Null => Ok(0.0),
+        _ => Err(format!("Cannot convert {} to float", value.get_type())),
+    };
+
+    let num = num.map_err(|e| ExecutionError::TypeMismatch(e))?;
     Ok(RuntimeValue::Number(num))
 }
 
@@ -708,7 +723,7 @@ pub fn float(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
 // MATHEMATICAL FUNCTIONS
 // ============================================================================
 
-/// Generate a range of numbers.
+// Generate a range of numbers.
 pub fn range(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     if args.len() < 1 || args.len() > 3 {
         return Err(ExecutionError::Custom("range takes 1-3 arguments".to_string()));
@@ -789,7 +804,7 @@ pub fn range(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
     Ok(RuntimeValue::Array(result))
 }
 
-/// Provide a statistical summary of numbers.
+// Provide a statistical summary of numbers.
 pub fn summarize(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("summarize", args, 1, Some(1))?;
     let array = assert_array(execute_expression(&args[0], context)?)?;
@@ -1003,7 +1018,7 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
 // BUILTIN REGISTRATION
 // ============================================================================
 
-/// Get all built-in functions as a HashMap.
+// Get all built-in functions as a HashMap.
 pub fn get_builtins() -> HashMap<String, RuntimeValue> {
     let mut builtins = HashMap::new();
 
@@ -1078,7 +1093,7 @@ pub fn get_builtins() -> HashMap<String, RuntimeValue> {
     builtins
 }
 
-/// Execute a built-in function by name.
+// Execute a built-in function by name.
 pub fn execute_builtin(name: &str, args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     match name {
         // Unary operators.

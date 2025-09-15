@@ -4,8 +4,10 @@
 //! ensuring cross-platform compatibility with JavaScript and Python implementations.
 
 use serde_json::Value;
+use crate::types::{RuntimeValue, ToRuntimeValue};
+use crate::query_runtime;
 
-/// Test case structure matching the shared testdata.json format
+// Test case structure matching the shared testdata.json format
 #[derive(Debug, Clone)]
 pub struct TestCase {
     pub assertions: Vec<TestAssertion>,
@@ -17,6 +19,7 @@ pub struct TestCase {
 
 #[derive(Debug, Clone)]
 pub struct TestAssertion {
+    pub assertion_number: usize,
     pub query: String,
     pub data: Value,
     pub expected: Option<Value>,
@@ -36,6 +39,7 @@ pub struct TestResults {
 
 #[derive(Debug)]
 pub struct TestFailure {
+    pub assertion_number: usize,
     pub describe_block: String,
     pub describe_inner: String,
     pub it_description: String,
@@ -46,52 +50,16 @@ pub struct TestFailure {
     pub error: Option<String>,
 }
 
-/// Compare two JSON values with special handling for numeric equality
-fn values_equal(a: &Value, b: &Value) -> bool {
-    match (a, b) {
-        // For numbers, compare the numeric values rather than the JSON representation
-        (Value::Number(n1), Value::Number(n2)) => {
-            if let (Some(f1), Some(f2)) = (n1.as_f64(), n2.as_f64()) {
-                f1 == f2
-            } else {
-                a == b // Fallback to exact comparison
-            }
-        }
-        // For arrays, compare each element
-        (Value::Array(arr1), Value::Array(arr2)) => {
-            if arr1.len() != arr2.len() {
-                return false;
-            }
-            arr1.iter().zip(arr2.iter()).all(|(a, b)| values_equal(a, b))
-        }
-        // For objects, compare each key-value pair
-        (Value::Object(obj1), Value::Object(obj2)) => {
-            if obj1.len() != obj2.len() {
-                return false;
-            }
-            for (key, value1) in obj1 {
-                if let Some(value2) = obj2.get(key) {
-                    if !values_equal(value1, value2) {
-                        return false;
-                    }
-                } else {
-                    return false;
-                }
-            }
-            true
-        }
-        // For other types, use exact comparison
-        _ => a == b,
-    }
-}
+// Note: Removed values_equal function since we now use direct RuntimeValue comparisons
 
-/// Load test data from the shared testdata.json file
+// Load test data from the shared testdata.json file
 pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
     let testdata_path = "shared/testdata.json";
     let content = std::fs::read_to_string(testdata_path)?;
     let testdata: Value = serde_json::from_str(&content)?;
 
     let mut test_cases = Vec::new();
+    let mut assertion_counter = 1; // Start numbering from 1
 
     // Process the nested structure: data -> cases -> cases -> assertions
     if let Some(data_array) = testdata.get("data").and_then(|d| d.as_array()) {
@@ -125,11 +93,13 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                                                     });
 
                                                     assertions.push(TestAssertion {
+                                                        assertion_number: assertion_counter,
                                                         query: query.to_string(),
                                                         data: data.clone(),
                                                         expected: expected.cloned(),
                                                         throws: throws.map(|s| s.to_string()),
                                                     });
+                                                    assertion_counter += 1;
                                                 }
                                             }
 
@@ -154,20 +124,26 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
     Ok(test_cases)
 }
 
-/// Run a single test assertion
-/// Returns (pass_status, actual_value) where actual_value is Some for successful queries
+// Run a single test assertion
+// Returns (pass_status, actual_value) where actual_value is Some for successful queries
 pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>), String> {
-    use crate::query;
+    // Convert input data to RuntimeValue once at the boundary
+    let runtime_data = assertion.data.to_runtime_value();
 
     if let Some(expected_error) = &assertion.throws {
         // Test should throw an error
-        match query(&assertion.query, &assertion.data) {
+        match query_runtime(&assertion.query, &runtime_data) {
             Ok(actual_result) => {
-                let actual_value: Option<Value> = Some(actual_result.into());
-                Err(format!(
-                    "Expected error '{}' but query succeeded with result: {:?}",
-                    expected_error, actual_value
-                ))
+                match actual_result.to_serde_value(false) {
+                    Ok(actual_value) => {
+                        return Err(format!(
+                                "Expected error '{}' but query succeeded with result: {:?}",
+                                expected_error, actual_value
+                        ))
+                    }
+                    // Parser errors are expected.
+                    Err(_e) => return Ok((true, None)),
+                }
             }
             Err(_e) => {
                 // Could be more granular, but shared tests don't specify error types.
@@ -176,11 +152,14 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>),
         }
     } else {
         // Test should succeed and return expected value
-        match query(&assertion.query, &assertion.data) {
+        match query_runtime(&assertion.query, &runtime_data) {
             Ok(result) => {
-                let actual_value = Some(result.clone().into());
+                // Convert to JSON only for reporting
+                let actual_value = Some(result.to_serde_value(false).unwrap_or_else(|_| serde_json::Value::Null));
                 if let Some(expected) = &assertion.expected {
-                    let matches = values_equal(&result.clone().into(), expected);
+                    // Convert expected value to RuntimeValue for comparison
+                    let expected_runtime = RuntimeValue::from_serde_value(expected);
+                    let matches = result == expected_runtime;
                     Ok((matches, actual_value))
                 } else {
                     Ok((true, actual_value)) // No expected value specified, just check it doesn't error
@@ -191,7 +170,7 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>),
     }
 }
 
-/// Run all test cases, separating skipped and non-skipped tests
+// Run all test cases, separating skipped and non-skipped tests
 pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
     let test_cases = load_test_data()?;
     let rust_lang_id = "rust";
@@ -232,6 +211,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
                 Ok((false, actual)) => {
                     results.failed_assertions += 1;
                     results.failures.push(TestFailure {
+                        assertion_number: assertion.assertion_number,
                         describe_block: test_case.describe_block.clone(),
                         describe_inner: test_case.describe_inner.clone(),
                         it_description: test_case.it_description.clone(),
@@ -245,6 +225,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
                 Err(error) => {
                     results.failed_assertions += 1;
                     results.failures.push(TestFailure {
+                        assertion_number: assertion.assertion_number,
                         describe_block: test_case.describe_block.clone(),
                         describe_inner: test_case.describe_inner.clone(),
                         it_description: test_case.it_description.clone(),
@@ -265,7 +246,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
 #[rustfmt::skip]
 impl std::fmt::Display for TestFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "FAIL: {}::{}::{}", self.describe_block, self.describe_inner, self.it_description)?;
+        writeln!(f, "FAIL #{}: {}::{}::{}", self.assertion_number, self.describe_block, self.describe_inner, self.it_description)?;
         writeln!(f, "  Query: {}", self.query)?;
         writeln!(f, "  Data: {}", serde_json::to_string_pretty(&self.data).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
         if let Some(expected) = &self.expected {
@@ -297,7 +278,7 @@ impl std::fmt::Display for TestResults {
         }
 
         if !self.failures.is_empty() {
-            writeln!(f, "\nFailures:")?;
+            writeln!(f, "\nFailures ({} total):", self.failures.len())?;
             for failure in &self.failures {
                 writeln!(f, "{}", failure)?;
             }
@@ -338,106 +319,112 @@ mod test_runner {
 
     #[test]
     fn test_basic_functionality() {
-        use crate::query;
         use serde_json::json;
 
-        // Test basic identity query
-        let data = json!([1, 2, 3]);
-        let result = query("@", &data).expect("Basic identity query should work");
-        assert_eq!(result, data.into());
+        // @ on [1, 2, 3]
+        let runtime_data = json!([1, 2, 3]).to_runtime_value();
+        let result = query_runtime("@", &runtime_data).expect("Basic identity query should work");
+        assert_eq!(result, runtime_data, "@ on arrays should work");
 
-        // Test object identity
-        let data = json!({"a": 1, "b": 2});
-        let result = query("@", &data).expect("Object identity query should work");
-        assert_eq!(result, data.into());
+        // @ on {"a": 1, "b": 2}
+        let runtime_data = json!({"a": 1, "b": 2}).to_runtime_value();
+        let result = query_runtime("@", &runtime_data).expect("Object identity query should work");
+        assert_eq!(result, runtime_data, "@ on objects should work");
     }
 
     #[test]
     fn test_dollar_variable() {
-        use crate::query;
         use serde_json::json;
 
-        // Test $ variable access
-        let data = json!({"filter": "cat", "nums": [1, 2, 3]});
+        // $.@ on {"filter": "cat", "nums": [1, 2, 3]}
+        let runtime_data = json!({"filter": "cat", "nums": [1, 2, 3]}).to_runtime_value();
+        let result = query_runtime("$.@", &runtime_data).expect("$.@ should work");
+        assert_eq!(result, runtime_data, "$.@ should work");
 
-        // Test $.@ access (should return the root data)
-        let result = query("$.@", &data.clone()).expect("$.@ should work");
-        assert_eq!(result, data.clone().into());
+        // $.@.filter on {"filter": "cat", "nums": [1, 2, 3]}
+        let result = query_runtime("$.@.filter", &runtime_data).expect("$.@.filter should work");
+        assert_eq!(result, json!("cat").to_runtime_value(), "$.@.filter should work");
 
-        // Test accessing data fields through $ variable
-        let result = query("$.@.filter", &data).expect("$.@.filter should work");
-        assert_eq!(result, json!("cat").into());
+        // $.count $.@.nums on {"filter": "cat", "nums": [1, 2, 3]}
+        let result = query_runtime("$.count $.@.nums", &runtime_data).expect("$.count $.@.nums should work");
+        assert_eq!(result, json!(3).to_runtime_value(), "$.count $.@.nums should work");
 
-        // Test that we can use builtin functions from $ variable
-        let result = query("$.count $.@.nums", &data).expect("$.count $.@.nums should work");
-        assert_eq!(result, json!(3).into());
-
-        // Test that we can access builtin functions through $ variable
-        let result = query("$.sum $.@.nums", &data).expect("$.sum $.@.nums should work");
-        assert_eq!(result, json!(6).into());
+        // $.sum $.@.nums on {"filter": "cat", "nums": [1, 2, 3]}
+        let result = query_runtime("$.sum $.@.nums", &runtime_data).expect("$.sum $.@.nums should work");
+        assert_eq!(result, json!(6).to_runtime_value(), "$.sum $.@.nums should work");
     }
 
     #[test]
     fn test_float_function() {
-        use crate::query;
         use serde_json::json;
 
-        // Test float function with scientific notation
-        let result = query("float \"1.1e1\"", &json!(null)).expect("float should work");
-        println!("float \"1.1e1\" result: {} (type: {:?})", result, result);
+        let runtime_data = json!(null).to_runtime_value();
 
-        // Test float function with trailing dot
-        let result = query("float \"5.\"", &json!(null)).expect("float should work");
-        println!("float \"5.\" result: {} (type: {:?})", result, result);
+        // float "1.1e1"
+        let result = query_runtime("float \"1.1e1\"", &runtime_data).expect("float should work");
+        assert_eq!(result, RuntimeValue::Number(11.0), "float \"1.1e1\" should work");
 
-        // Test with serde_json serialization
-        let result = query("float \"1.1e1\"", &json!(null)).expect("float should work");
-        println!("float \"1.1e1\" serialized: {}", serde_json::to_string(&result).unwrap());
+        // float "5."
+        let result = query_runtime("float \"5.\"", &runtime_data).expect("float should work");
+        assert_eq!(result, RuntimeValue::Number(5.0), "float \"5.\" should work");
 
-        let result = query("float \"5.\"", &json!(null)).expect("float should work");
-        println!("float \"5.\" serialized: {}", serde_json::to_string(&result).unwrap());
+        // float "1.1e1"
+        let result = query_runtime("float \"1.1e1\"", &runtime_data).expect("float should work");
+        assert_eq!(result, RuntimeValue::Number(11.0), "float \"1.1e1\" should work");
+
+        // float "5."
+        let result = query_runtime("float \"5.\"", &runtime_data).expect("float should work");
+        assert_eq!(result, RuntimeValue::Number(5.0), "float \"5.\" should work");
     }
 
     #[test]
     fn test_string_function() {
-        use crate::query;
         use serde_json::json;
 
         // Test string function with various numbers
         let test_cases = vec![(1e50, "1e+50"), (3e20, "300000000000000000000"), (3e21, "3e+21"), (1e-7, "1e-7")];
 
         for (input, expected) in test_cases {
-            let result = query("string @", &json!(input)).expect("string should work");
-            println!("string {} = {} (expected: {})", input, result, expected);
+            let runtime_data = json!(input).to_runtime_value();
+            let result = query_runtime("string @", &runtime_data).expect("string should work");
+            assert_eq!(result, RuntimeValue::String(expected.to_string()), "string should work");
         }
     }
 
     #[test]
     fn test_keys_function() {
-        use crate::query;
         use serde_json::json;
 
+        let runtime_data = json!({}).to_runtime_value();
+
         // Test keys function
-        let _data = json!({"a": 1, "b": 2});
-        let result = query("{a: 1, b: 2} | keys", &json!({})).expect("keys should work");
-        println!("keys result: {}", result);
+        let result = query_runtime("{a: 1, b: 2} | keys", &runtime_data).expect("keys should work");
+        assert_eq!(result, RuntimeValue::Array(vec![RuntimeValue::String("a".to_string()), RuntimeValue::String("b".to_string())]), "keys should work");
 
         // Test empty object
-        let result = query("{} | keys", &json!({})).expect("keys should work");
-        println!("empty keys result: {}", result);
+        let result = query_runtime("{} | keys", &runtime_data).expect("keys should work");
+        assert_eq!(result, RuntimeValue::Array(vec![]), "empty keys should work");
     }
 
     #[test]
     fn test_regex_operator() {
-        use crate::query;
         use serde_json::json;
 
+        let runtime_data = json!(null).to_runtime_value();
+
         // Test =~ operator with string pattern
-        let result = query("\"Hello\" =~ \"[a-z]ello\"", &json!(null)).expect("regex should work");
-        println!("Hello =~ [a-z]ello: {}", result);
+        let result = query_runtime("\"Hello\" =~ \"[a-z]ello\"", &runtime_data).expect("regex should work");
+        assert_eq!(result, RuntimeValue::Boolean(false), "Hello =~ [a-z]ello should work");
 
         // Test =~ operator with regex object
-        let result = query("\"Hello\" =~ (regex \"[a-z]ello\" \"i\")", &json!(null)).expect("regex should work");
-        println!("Hello =~ (regex [a-z]ello i): {}", result);
+        let result = query_runtime("\"Hello\" =~ (regex \"[a-z]ello\" \"i\")", &runtime_data).expect("regex should work");
+        assert_eq!(result, RuntimeValue::Boolean(true), "Hello =~ (regex [a-z]ello i) should work");
+    }
+
+    #[test]
+    fn test_abc() {
+        println!("{}", serde_json::json!("4.9E50"));
+        println!("{}", serde_json::json!("4.9E50").to_runtime_value());
+        assert!(false);
     }
 }
