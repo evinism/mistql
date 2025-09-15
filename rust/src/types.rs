@@ -3,11 +3,11 @@
 //! This module implements the 8 core MistQL types with proper type safety,
 //! conversion, equality, comparison, and truthiness operations.
 
+use crate::executor::ExecutionError;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
-use crate::executor::ExecutionError;
 
 // Custom regex wrapper that implements Serialize/Deserialize/
 // TODO: Do we really need this?
@@ -262,28 +262,35 @@ impl Eq for RuntimeValue {}
 
 impl RuntimeValue {
     // Convert from serde_json::Value to RuntimeValue
-    pub fn from_serde_value(value: &serde_json::Value) -> Self {
+    pub fn from_serde_value(value: &serde_json::Value) -> Result<Self, ExecutionError> {
         match value {
-            serde_json::Value::Null => RuntimeValue::Null,
-            serde_json::Value::Bool(b) => RuntimeValue::Boolean(*b),
+            serde_json::Value::Null => Ok(RuntimeValue::Null),
+            serde_json::Value::Bool(b) => Ok(RuntimeValue::Boolean(*b)),
             serde_json::Value::Number(n) => {
-                if let Some(f) = n.as_f64() {
-                    RuntimeValue::Number(f)
-                } else {
+                match n.as_f64() {
+                    Some(f) => Ok(RuntimeValue::Number(f)),
                     // Going against the docs, see comment:
                     // https://www.mistql.com/docs/reference/types
                     // Likely the original decision was because JSON does not support NaN or Infinity.
-                    RuntimeValue::Number(f64::INFINITY)
+                    None => Err(ExecutionError::CannotConvertToRuntimeValue(
+                        "number in non-permissive mode".to_string(),
+                    )),
                 }
             }
-            serde_json::Value::String(s) => RuntimeValue::String(s.clone()),
-            serde_json::Value::Array(arr) => RuntimeValue::Array(arr.iter().map(Self::from_serde_value).collect()),
+            serde_json::Value::String(s) => Ok(RuntimeValue::String(s.clone())),
+            serde_json::Value::Array(arr) => {
+                let values = arr
+                    .iter()
+                    .map(Self::from_serde_value)
+                    .collect::<Result<Vec<RuntimeValue>, ExecutionError>>()?;
+                Ok(RuntimeValue::Array(values))
+            }
             serde_json::Value::Object(obj) => {
                 let mut map = HashMap::new();
                 for (key, value) in obj {
-                    map.insert(key.clone(), Self::from_serde_value(value));
+                    map.insert(key.clone(), Self::from_serde_value(value)?);
                 }
-                RuntimeValue::Object(map)
+                Ok(RuntimeValue::Object(map))
             }
         }
     }
@@ -294,14 +301,11 @@ impl RuntimeValue {
             RuntimeValue::Null => Ok(serde_json::Value::Null),
             RuntimeValue::Boolean(b) => Ok(serde_json::Value::Bool(*b)),
             RuntimeValue::Number(n) => {
-                // Try to preserve integer format if the number is a whole number
-                if n.fract() == 0.0 && n.abs() <= i64::MAX as f64 {
-                    // Max safe integer
-                    Ok(serde_json::Value::Number(serde_json::Number::from(*n as i64)))
-                } else {
-                    Ok(serde_json::Value::Number(serde_json::Number::from_f64(*n).unwrap_or(serde_json::Number::from(0))))
+                match serde_json::Number::from_f64(*n) {
+                    Some(number) => Ok(serde_json::Value::Number(number)),
+                    None => Err(ExecutionError::CannotConvertToJSON(format!("float conversion failed on {}", n))),
                 }
-            }
+            },
             RuntimeValue::String(s) => Ok(serde_json::Value::String(s.clone())),
             RuntimeValue::Array(arr) => {
                 let mut result = Vec::new();
@@ -317,16 +321,20 @@ impl RuntimeValue {
                 }
                 Ok(serde_json::Value::Object(map))
             }
-            RuntimeValue::Function(_) => if permissive {
-                Ok(serde_json::Value::String("[function]".to_string()))
-            } else {
-                Err(ExecutionError::CannotConvertToJSON("function in non-permissive mode".to_string()))
-            },
-            RuntimeValue::Regex(_) => if permissive {
-                Ok(serde_json::Value::String("[regex]".to_string()))
-            } else {
-                Err(ExecutionError::CannotConvertToJSON("regex in non-permissive mode".to_string()))
-            },
+            RuntimeValue::Function(_) => {
+                if permissive {
+                    Ok(serde_json::Value::String("[function]".to_string()))
+                } else {
+                    Err(ExecutionError::CannotConvertToJSON("function in non-permissive mode".to_string()))
+                }
+            }
+            RuntimeValue::Regex(_) => {
+                if permissive {
+                    Ok(serde_json::Value::String("[regex]".to_string()))
+                } else {
+                    Err(ExecutionError::CannotConvertToJSON("regex in non-permissive mode".to_string()))
+                }
+            }
         }
     }
 
@@ -457,19 +465,19 @@ impl RuntimeValue {
     }
 }
 
-impl Into<RuntimeValue> for serde_json::Value {
-    fn into(self) -> RuntimeValue {
-        RuntimeValue::from_serde_value(&self)
+impl TryFrom<&serde_json::Value> for RuntimeValue {
+    type Error = ExecutionError;
+
+    fn try_from(value: &serde_json::Value) -> Result<Self, Self::Error> {
+        RuntimeValue::from_serde_value(&value)
     }
 }
 
-pub trait ToRuntimeValue {
-    fn to_runtime_value(&self) -> RuntimeValue;
-}
+impl TryFrom<serde_json::Value> for RuntimeValue {
+    type Error = ExecutionError;
 
-impl ToRuntimeValue for serde_json::Value {
-    fn to_runtime_value(&self) -> RuntimeValue {
-        RuntimeValue::from_serde_value(self)
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
+        RuntimeValue::from_serde_value(&value)
     }
 }
 
@@ -514,7 +522,7 @@ mod tests {
             "scores": [1, 2, 3]
         });
 
-        let runtime_val = json_val.to_runtime_value();
+        let runtime_val: RuntimeValue = (&json_val).try_into().unwrap();
         assert_eq!(runtime_val.get_type(), RuntimeValueType::Object);
 
         let back_to_json = runtime_val.to_serde_value_default().unwrap();
@@ -543,7 +551,6 @@ mod tests {
         assert_eq!(runtime_obj.access("age"), RuntimeValue::Number(30.0));
         assert_eq!(runtime_obj.access("missing"), RuntimeValue::Null);
     }
-
 }
 
 #[cfg(test)]
@@ -857,10 +864,11 @@ mod serde_conversion_tests {
     #[test]
     fn test_null_conversion() {
         let json_null = json!(null);
-        let runtime_null = RuntimeValue::from_serde_value(&json_null);
+        let runtime_null: RuntimeValue = (&json_null).try_into().unwrap();
         assert_eq!(runtime_null, RuntimeValue::Null);
 
         let back_to_json = runtime_null.to_serde_value_default().unwrap();
+        let back_to_json: serde_json::Value = back_to_json.try_into().unwrap();
         assert_eq!(back_to_json, json_null);
     }
 
@@ -869,8 +877,8 @@ mod serde_conversion_tests {
         let json_true = json!(true);
         let json_false = json!(false);
 
-        let runtime_true = RuntimeValue::from_serde_value(&json_true);
-        let runtime_false = RuntimeValue::from_serde_value(&json_false);
+        let runtime_true: RuntimeValue = (&json_true).try_into().unwrap();
+        let runtime_false: RuntimeValue = (&json_false).try_into().unwrap();
 
         assert_eq!(runtime_true, RuntimeValue::Boolean(true));
         assert_eq!(runtime_false, RuntimeValue::Boolean(false));
@@ -885,9 +893,9 @@ mod serde_conversion_tests {
         let json_float = json!(3.14);
         let json_negative = json!(-100);
 
-        let runtime_int = RuntimeValue::from_serde_value(&json_int);
-        let runtime_float = RuntimeValue::from_serde_value(&json_float);
-        let runtime_negative = RuntimeValue::from_serde_value(&json_negative);
+        let runtime_int: RuntimeValue = (&json_int).try_into().unwrap();
+        let runtime_float: RuntimeValue = (&json_float).try_into().unwrap();
+        let runtime_negative: RuntimeValue = (&json_negative).try_into().unwrap();
 
         assert_eq!(runtime_int, RuntimeValue::Number(42.0));
         assert_eq!(runtime_float, RuntimeValue::Number(3.14));
@@ -911,9 +919,9 @@ mod serde_conversion_tests {
         let json_empty = json!("");
         let json_unicode = json!("🚀🌟");
 
-        let runtime_str = RuntimeValue::from_serde_value(&json_str);
-        let runtime_empty = RuntimeValue::from_serde_value(&json_empty);
-        let runtime_unicode = RuntimeValue::from_serde_value(&json_unicode);
+        let runtime_str: RuntimeValue = (&json_str).try_into().unwrap();
+        let runtime_empty: RuntimeValue = (&json_empty).try_into().unwrap();
+        let runtime_unicode: RuntimeValue = (&json_unicode).try_into().unwrap();
 
         assert_eq!(runtime_str, RuntimeValue::String("hello world".to_string()));
         assert_eq!(runtime_empty, RuntimeValue::String("".to_string()));
@@ -927,7 +935,7 @@ mod serde_conversion_tests {
     #[test]
     fn test_array_conversion() {
         let json_arr = json!([1, "test", true, null]);
-        let runtime_arr = RuntimeValue::from_serde_value(&json_arr);
+        let runtime_arr: RuntimeValue = (&json_arr).try_into().unwrap();
 
         let expected = RuntimeValue::Array(vec![
             RuntimeValue::Number(1.0),
@@ -960,7 +968,7 @@ mod serde_conversion_tests {
             "scores": [1, 2, 3]
         });
 
-        let runtime_obj = RuntimeValue::from_serde_value(&json_obj);
+        let runtime_obj: RuntimeValue = (&json_obj).try_into().unwrap();
         let back_to_json = runtime_obj.to_serde_value_default().unwrap();
 
         // Test that the conversion preserves the structure and values
@@ -995,7 +1003,7 @@ mod serde_conversion_tests {
             }
         });
 
-        let runtime_nested = RuntimeValue::from_serde_value(&json_nested);
+        let runtime_nested: RuntimeValue = (&json_nested).try_into().unwrap();
         let back_to_json = runtime_nested.to_serde_value_default().unwrap();
 
         // Test that the structure is preserved
@@ -1284,4 +1292,3 @@ mod edge_case_tests {
         assert_eq!(zero, negative_zero);
     }
 }
-
