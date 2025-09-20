@@ -21,10 +21,6 @@ path = "src/bin/mq.rs"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["arbitrary_precision"] }
 
-# Error handling
-thiserror = "1.0"
-anyhow = "1.0"
-
 # Parsing - using nom for parser combinators (replaces Lark)
 nom = "7.0"
 
@@ -33,6 +29,11 @@ regex = "1.0"
 
 # CLI interface (replaces Python's argparse)
 clap = { version = "4.0", features = ["derive", "color", "suggestions"] }
+
+# TODO: Are we using any of the below?
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
 
 # Logging (for debug logging function)
 log = "0.4"
@@ -47,19 +48,12 @@ chrono = { version = "0.4", features = ["serde"] }
 # Mathematical operations and statistics
 num-traits = "0.2"
 statistical = "0.1"
-
-# String manipulation utilities
 unicode-segmentation = "1.0"
 
 [dev-dependencies]
-# Testing framework (replaces Python's pytest)
 rstest = "0.19"
 
-# Property-based testing (for comprehensive test coverage)
+# TODO: Are we using any of the below?
 proptest = "1.0"
-
-# Benchmarking (for performance comparison with JS/Python)
 criterion = { version = "0.5", features = ["html_reports"] }
-
-# Additional testing utilities
 tempfile = "3.0"

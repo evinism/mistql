@@ -15,26 +15,41 @@ MistQL is a miniature query language for performing computations on JSON-like st
 
 ## Installation & Usage
 
-### JavaScript
-```bash
+```sh
+# JavaScript
 npm install mistql
+
+# Python
+uv venv
+uv pip install mistql
+
+# Rust
+cargo add mistql
 ```
+
+JavaScript:
+
 ```js
 import mistql from 'mistql';
 const result = mistql.query('events | filter type == "purchase" | count', data);
 ```
 
-### Python
-```bash
-uv venv
-uv pip install mistql
-```
+Python:
+
 ```py
 import mistql
 result = mistql.query('events | filter type == "purchase" | count', data)
 ```
 
-### Command Line
+Rust:
+
+```rust
+use mistql::query;
+let result = query("events | filter type == 'purchase' | count", data);
+```
+
+Command Line:
+
 ```bash
 npm install -g mistql
 mq "count @" < data.json
@@ -68,70 +83,97 @@ MistQL supports 8 core types:
 
 ## Syntax Overview
 
-### Basic Operations
 ```mistql
 # Arithmetic
-1 + 5 * 2  # 11
+> 1 + 5 * 2
+11
 
 # Logical
-true && false  # false
-!false  # true
+> true && false
+false
 
-# Comparisons
-10 > 5  # true
-"abc" == "abc"  # true
-```
+> !false
+true
 
-### Literals
-```mistql
+> 10 > 5
+true
+
+> "abc" == "abc"
+true
+
 # JSON literals work directly
+> {"name": "John", "age": 30}
 {"name": "John", "age": 30}
+
+> [1, 2, 3, {"nested": true}]
 [1, 2, 3, {"nested": true}]
-```
 
-### Object Access
-```mistql
-# Dot notation
-@.name
-@.user.profile.email
+# Lisp-like syntax for function calls
+> sort [3, 1, 2]
+[1, 2, 3]
 
-# Bracket notation
-@["name"]
-@["user"]["profile"]["email"]
-```
+> index 1 "hello"
+"e"
 
-### Array/String Indexing
-```mistql
-# Zero-indexed
-"hello"[0]  # "h"
-[1, 2, 3][1]  # 2
+# Chain operations with piping
+> [1, 2, 3] | sum
+6
 
-# Negative indexing
-"world"[-1]  # "d"
-
-# Slicing
-"hello"[1:4]  # "ell"
-[1, 2, 3, 4][1:3]  # [2, 3]
-```
-
-### Function Calls
-```mistql
-# Lisp-like syntax
-functionname arg1 arg2 arg3
-
-# Examples
-sort [3, 1, 2]  # [1, 2, 3]
-index 1 "hello"  # "e"
-```
-
-### Piping
-```mistql
-# Chain operations
 data | filter type == "purchase" | map amount | sum
 
 # Equivalent to:
 sum (map amount (filter (type == "purchase") data))
+
+
+# Dot notation
+> {"name": "John", "age": 30} | apply @.name
+"John"
+
+> {"user": {"profile": {"email": "john@example.com"}}} | apply @.user.profile.email
+"john@example.com"
+
+# Bracket notation
+> {"name": "John", "age": 30} | apply @["name"]
+"John"
+
+> {"user": {"profile": {"email": "john@example.com"}}} | apply @["user"]["profile"]["email"]
+"john@example.com"
+
+# Zero-indexed arrays
+> "hello" | apply @[0]
+"h"
+
+> [1, 2, 3] | apply @[1]
+2
+
+# Negative indexing
+> "world" | apply @[-1]
+"d"
+
+# Slicing
+> "hello" | apply @[1:4]
+"ell"
+
+> [1, 2, 3, 4] | apply @[1:3]
+[2, 3]
 ```
+
+## Contextualized Expressions
+
+MistQL's core feature is contextualized expressions - expressions that execute with different contexts:
+
+```mistql
+# @ changes context in each iteration
+[{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]
+| filter age > 26  # @ is each object
+| map name  # @ is each filtered object
+```
+
+Functions that use contextualized expressions:
+- `filter`: @ becomes each array element
+- `map`: @ becomes each array element
+- `groupby`: @ becomes each array element
+- `sortby`: @ becomes each array element
 
 ## Built-in Functions
 
@@ -172,22 +214,6 @@ sum (map amount (filter (type == "purchase") data))
 - `apply`: Apply function to value
 - `string`/`float`: Type casting
 
-## Contextualized Expressions
-
-MistQL's core feature is contextualized expressions - expressions that execute with different contexts:
-
-```mistql
-# @ changes context in each iteration
-[{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]
-| filter age > 26  # @ is each object
-| map name  # @ is each filtered object
-```
-
-Functions that use contextualized expressions:
-- `filter`: @ becomes each array element
-- `map`: @ becomes each array element
-- `groupby`: @ becomes each array element
-- `sortby`: @ becomes each array element
 
 ## Operators
 
@@ -238,6 +264,11 @@ Functions that use contextualized expressions:
 - Python 3.8+ support
 - Uses Poetry for dependency management
 - Type mapping: `None` → `null`, `datetime` → ISO string
+
+### Rust Implementation
+- Rust 1.70+ support
+- Uses Cargo for dependency management
+- Type mapping: `None` → `null`, `DateTime<Utc>` → ISO string
 
 ### Custom Functions (JS only)
 ```js
