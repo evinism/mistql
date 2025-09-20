@@ -4,61 +4,20 @@
 
 The Python implementation follows a clean, modular architecture with the following key components:
 
-#### Core Modules
-
-1. **`query.py`** - Main entry point
-   - Exports the primary `query(query: str, data: Any) -> Any` function
-   - Uses the default instance for query execution
-
-2. **`instance.py`** - MistQL Instance Management
-   - `MistQLInstance` class for parameterized instances
-   - Supports custom functions via `extras` parameter
-   - `default_instance` for simple usage
-
-3. **`parse.py`** - Parser Implementation
-   - Uses Lark parser with `grammar.lark` for syntax parsing
-   - Converts Lark AST to MistQL expression tree
-   - Handles operators, function calls, indexing, and piping
-
-4. **`execute.py`** - Expression Execution Engine
-   - `execute()` function for evaluating expressions
-   - Handles function calls, piping, and contextualized expressions
-   - Manages execution stack and context
-
-5. **`runtime_value.py`** - Type System and Value Management
-   - `RuntimeValue` class representing MistQL values
-   - Type conversion between Python and MistQL types
-   - Equality, comparison, and truthiness operations
-   - JSON serialization and string formatting
-
-6. **`builtins.py`** - Built-in Functions
-   - All MistQL built-in functions (40+ functions)
-   - Decorator-based function registration
-   - Type checking and argument validation
-
-7. **`expression.py`** - AST Node Definitions
-   - Expression types: `FnExpression`, `RefExpression`, `ValueExpression`
-   - Array, Object, and Pipe expressions
-   - Type-safe expression tree structure
-
-8. **`stack.py`** - Execution Stack Management
-   - Context stack for variable scoping
-   - Variable resolution with absolute/relative references
-   - Stack frame creation from runtime values
-
-9. **`gardenwall.py`** - Type Boundary Management
-   - Input/output conversion between Python and MistQL types
-   - Ensures type safety at language boundaries
-
-10. **`cli.py`** - Command Line Interface
-    - Full-featured CLI with JSON/JSONL support
-    - Pretty printing and file I/O options
-    - Argument parsing and error handling
-
-11. **`exceptions.py`** - Error Handling
-    - Custom exception hierarchy
-    - Type errors, runtime errors, and reference errors
-    - User-friendly error messages
+```
+py/
+├── query.py            # Main entry point, exports the primary `query(query: str, data: Any) -> Any` function
+├── instance.py         # MistQL instance management
+├── parse.py            # Parser implementation using Lark
+├── execute.py          # Expression execution engine with context management
+├── runtime_value.py    # `RuntimeValue` class representing MistQL values
+├── builtins.py         # MistQL built-in functions (40+ functions)
+├── expression.py       # AST node definitions
+├── stack.py            # Execution stack management
+├── gardenwall.py       # Type boundary management
+├── cli.py              # Command line interface, pretty printing, file management, JSON/JSONL support
+├── exceptions.py       # Error handling, exception hierarchy, and user-friendly error messages
+```
 
 ### Key Features
 
@@ -126,17 +85,6 @@ instance = MistQLInstance(extras={'custom_sum': custom_sum})
 result = instance.query('custom_sum 1 2', None)  # Returns 3
 ```
 
-#### CLI Usage
-```bash
-# Basic query
-echo '{"items": [1,2,3]}' | python -m mistql "count items"
-
-# JSONL processing
-python -m mistql "filter active" --file_jsonl data.jsonl
-
-# Pretty output
-python -m mistql "groupby category" --file data.json --pretty
-```
 
 ### Performance Characteristics
 

@@ -1,88 +1,33 @@
 # MistQL Rust Implementation
 
-This is the Rust implementation of MistQL, a miniature query language for performing computations on JSON-like structures. It's designed for embedding across multiple domains and serves as a powerful common expression language with strong cross-platform behavior semantics.
+This is the Rust implementation of MistQL, a miniature query language for
+performing computations on JSON-like structures. It's designed for embedding
+across multiple domains and serves as a powerful common expression language with
+strong cross-platform behavior semantics.
 
 ## Project Status
 
-🚧 **MVP Complete - Core Infrastructure Ready** - The basic MistQL infrastructure is working with a comprehensive test suite.
-
 **Current Status**:
+
 - [x] **Core Architecture**: Lexer, Parser, Executor, Type System.
-- [x] **Test Framework**: ~7/514 assertions in the test suite are failing.
 - [x] **Basic Query Function**: Main API working.
-- [x] **Builtin Functions**: Most functions need implementation (see TODO list below)
-- [ ] **Refactor**: Carefully read the LLM-assisted port and refactor it.
-
-## Development Roadmap
-
-### Phase 1: Core Architecture
-
-- [x] **Project Setup** - Set up Rust project structure with Cargo.toml, workspace configuration, and basic directory layout
-- [x] **Dependencies Research** - Research and select Rust dependencies for JSON parsing, regex, CLI, and testing frameworks
-- [x] **Bare minimal testing framework** - Implement a bare minimal testing framework in Rust
-- [x] **Type System** - Implement RuntimeValue enum and type system for 8 core MistQL types (null, boolean, number, string, object, array, function, regex)
-- [x] **Test type system** - Test the type system (match tests in Python implementation)
-- [x] **Lexer Implementation** - Implement lexer from scratch in Rust
-- [x] **Test lexer** - Test the lexer (match tests in Python implementation)
-- [x] **Parser Implementation** - Implement parser from scratch in Rust
-- [x] **Test parser** - Test the parser (match tests in Python implementation)
-- [x] **AST Definition** - Define AST node types (FnExpression, RefExpression, ValueExpression, Array, Object, Pipe expressions)
-- [x] **Test AST** - Test the AST (match tests in Python implementation)
-- [x] **Execution Engine** - Implement expression execution engine with contextualized expressions
-  - [x] **Execution Stack** - Implement execution stack and context management system
-  - [x] **Core Execution Engine** - Implement core expression execution engine with pattern matching
-  - [x] **Binary and Unary Operators** - Implement binary and unary operator evaluation
-  - [x] **Function Call Execution** - Implement function call execution and argument handling
-  - [x] **Pipeline Execution** - Implement pipeline execution with context passing
-  - [x] **Dot Access and Indexing** - Implement dot access and indexing operations
-  - [x] **Comprehensive Tests** - Create comprehensive tests for executor functionality
-  - [x] **Contextualized Expressions** - Implement contextualized expressions (@ variable handling)
-- [x] **Test execution engine** - Test the execution engine (match tests in Python implementation)
-
-### Phase 2: Feature Implementation (Tasks 8-12)
-
-- [x] **Built-in Functions** - Implement all 40+ built-in functions (array, object, string, mathematical, utility operations)
-- [ ] **Instance Management** - Implement MistQLInstance for custom functions and parameterized instances
-- [ ] **Type Boundaries** - Implement type conversion between Rust and MistQL types (serde integration, special handling for Option<T>, DateTime, etc.)
-- [ ] **Error Handling** - Implement custom error types and user-friendly error messages
-- [ ] **CLI Interface** - Implement command-line interface with JSON/JSONL support and pretty printing
-
-### Phase 3: Quality & Compatibility (Tasks 13-16)
-
-- [x] **Testing Integration** - Integrate with shared test suite and implement Rust-specific tests
+- [x] **Builtin Functions**: All functions are implemented.
+- [x] **Shared Test Framework**: 511/514 assertions in the shared test suite are passing.
+- [x] **Refactor**: Carefully read the LLM-assisted port and refactor it.
 - [ ] **Performance Optimization** - Optimize for performance and memory efficiency, benchmark against JS/Python implementations
 - [ ] **Documentation** - Create Rust-specific documentation and usage examples
-- [ ] **Cross-platform Validation** - Validate cross-platform compatibility with JavaScript and Python implementations
 
 ## Quick Start
 
-### Running Tests
-```bash
-# Run the full shared test suite
-cargo test test_shared_suite -- --nocapture
+### Running the CLI
 
-# Run all tests
-cargo test
+TODO.
+
+```bash
+cargo run --bin mq
 ```
 
-## Key Technical Considerations
-
-### Type Safety
-- Rust's type system should provide better compile-time guarantees than Python's runtime checking
-- Zero-copy JSON parsing where possible
-- Efficient string handling with minimal allocations
-
-### Performance
-- Significant performance improvements over Python expected
-- Memory-efficient immutable runtime values with reference sharing
-- Lazy evaluation for expressions
-
-### Cross-platform Compatibility
-- Must pass all shared tests from `/shared` directory
-- Identical behavior semantics with JavaScript and Python implementations
-- Same API surface as Python implementation
-
-## Target API
+### Example API Usage
 
 ```rust
 use mistql::query;
@@ -98,85 +43,21 @@ let instance = MistQLInstance::new()
 let result = instance.query("custom_sum 1 2", &serde_json::Value::Null)?;
 ```
 
-## MistQL Language Features
+## Contributing
 
-### Core Types
-- **8 Core Types**: null, boolean, number, string, object, array, function, regex
-- **Type Conversion**: Automatic conversion between Rust and MistQL types
-- **Special Handling**: `Option<T>` → `null`, `DateTime` → ISO strings
+Feel free to open up a PR! This project follows the same patterns as the existing JavaScript and Python implementations.
 
-### Syntax Features
-- **Contextualized Expressions**: `@` variable changes context in iterations
-- **Piping**: Clean function chaining syntax (`data | filter condition | map field`)
-- **Operators**: Arithmetic, logical, comparison, and regex matching
-- **Indexing**: Dot notation, bracket notation, array/string indexing with negative indices and slicing
+### Running Tests
 
-### Built-in Functions (40+)
-- **Array Operations**: count, filter, map, find, reduce, sort, reverse, flatten, withindices
-- **Object Operations**: keys, values, entries, fromentries, mapkeys, mapvalues, filterkeys, filtervalues
-- **String Operations**: split, stringjoin, replace, match, regex
-- **Mathematical**: sum, summarize, range
-- **Utility**: if, log, apply, string, float
+```bash
+# Run the full shared test suite
+cargo test test_shared_suite -- --nocapture
 
-## Dependencies (Selected)
-
-```toml
-[dependencies]
-# Core JSON and serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-# Error handling
-thiserror = "1.0"
-anyhow = "1.0"
-
-# Parsing - using nom for parser combinators (replaces Lark)
-nom = "7.0"
-
-# Regular expressions (for regex type and string operations)
-regex = "1.0"
-
-# CLI interface (replaces Python's argparse)
-clap = { version = "4.0", features = ["derive", "color", "suggestions"] }
-
-# Logging (for debug logging function)
-log = "0.4"
-env_logger = "0.10"
-
-# JSONL support (replaces Python's json-lines)
-jsonl = "0.1"
-
-# Date/time handling (for DateTime -> ISO string conversion)
-chrono = { version = "0.4", features = ["serde"] }
-
-# Mathematical operations and statistics
-num-traits = "0.2"
-statistical = "0.1"
-
-# String manipulation utilities
-unicode-segmentation = "1.0"
+# Run all tests
+cargo test
 ```
 
-## Development Tools
-
-```toml
-[dev-dependencies]
-# Testing framework (replaces Python's pytest)
-rstest = "0.19"
-
-# Property-based testing (for comprehensive test coverage)
-proptest = "1.0"
-
-# Benchmarking (for performance comparison with JS/Python)
-criterion = { version = "0.5", features = ["html_reports"] }
-
-# Additional testing utilities
-tempfile = "3.0"
-```
-
-See [DEPENDENCIES.md](DEPENDENCIES.md) for detailed rationale and comparisons with existing implementations.
-
-## Project Structure
+### Project Structure
 
 ```
 rust/
@@ -194,16 +75,7 @@ rust/
     └── errors.rs       # Error handling
 ```
 
-## Contributing
-
-This implementation follows the same patterns as the existing JavaScript and Python implementations. Key principles:
-
-1. **Cross-platform Compatibility**: All implementations must behave identically
-2. **Shared Test Suite**: Must pass all tests in `/shared` directory
-3. **Performance**: Rust implementation should be significantly faster than Python
-4. **Type Safety**: Leverage Rust's type system for compile-time guarantees
-
-## Resources
+### Resources
 
 - Overview files (relative to monorepo root):
   - README.md
