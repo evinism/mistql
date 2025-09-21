@@ -48,7 +48,9 @@ impl MistQLRegex {
                 'U' => {
                     regex_builder.swap_greed(true);
                 }
-                _ => { return Err(regex::Error::Syntax("Invalid flag".to_string())); }
+                _ => {
+                    return Err(regex::Error::Syntax("Invalid flag".to_string()));
+                }
             }
         }
 
@@ -416,9 +418,9 @@ impl RuntimeValue {
         if abs_n <= 1e-7 || abs_n >= 1e21 {
             let scientific = format!("{:e}", n);
             if scientific.contains("e-") {
-                return scientific
+                return scientific;
             } else {
-                return scientific.replace('e', "e+")
+                return scientific.replace('e', "e+");
             }
         }
 

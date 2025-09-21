@@ -235,11 +235,7 @@ fn parse_reference(input: &str) -> IResult<&str, Expression> {
 
 fn parse_array(input: &str) -> IResult<&str, Expression> {
     map(
-        delimited(
-            wsr_tag("["),
-            separated_list0(wslr_tag(","), wslr(parse_expression)),
-            wslr_tag("]"),
-        ),
+        delimited(wsr_tag("["), separated_list0(wslr_tag(","), wslr(parse_expression)), wslr_tag("]")),
         |items| Expression::array(items),
     )(input)
 }
@@ -276,10 +272,7 @@ fn parse_object_entry(input: &str) -> IResult<&str, (String, Expression)> {
 }
 
 fn parse_parenthetical(input: &str) -> IResult<&str, Expression> {
-    map(
-        delimited(wsr_tag("("), parse_pipeline, wslr_tag(")")),
-        Expression::parenthetical,
-    )(input)
+    map(delimited(wsr_tag("("), parse_pipeline, wslr_tag(")")), Expression::parenthetical)(input)
 }
 
 // Whitespace handling functions matching Lark grammar patterns
@@ -378,39 +371,33 @@ fn parse_function_call(input: &str) -> IResult<&str, Expression> {
 // Parse op_a expressions (logical OR: ||)
 // op_a: op_b | op_a _wslr{"||"} op_b
 fn parse_op_a(input: &str) -> IResult<&str, Expression> {
-    map(
-        separated_list1(wslr_tag("||"), wslr(parse_op_b)),
-        |operands| {
-            if operands.len() == 1 {
-                operands.into_iter().next().unwrap()
-            } else {
-                // Left-associative: a || b || c = (a || b) || c
-                operands
-                    .into_iter()
-                    .reduce(|left, right| Expression::function_call(Expression::reference("||", false), vec![left, right]))
-                    .unwrap()
-            }
-        },
-    )(input)
+    map(separated_list1(wslr_tag("||"), wslr(parse_op_b)), |operands| {
+        if operands.len() == 1 {
+            operands.into_iter().next().unwrap()
+        } else {
+            // Left-associative: a || b || c = (a || b) || c
+            operands
+                .into_iter()
+                .reduce(|left, right| Expression::function_call(Expression::reference("||", false), vec![left, right]))
+                .unwrap()
+        }
+    })(input)
 }
 
 // Parse op_b expressions (logical AND: &&)
 // op_b: op_c | op_b _wslr{"&&"} op_c
 fn parse_op_b(input: &str) -> IResult<&str, Expression> {
-    map(
-        separated_list1(wslr_tag("&&"), wslr(parse_op_c)),
-        |operands| {
-            if operands.len() == 1 {
-                operands.into_iter().next().unwrap()
-            } else {
-                // Left-associative: a && b && c = (a && b) && c
-                operands
-                    .into_iter()
-                    .reduce(|left, right| Expression::function_call(Expression::reference("&&", false), vec![left, right]))
-                    .unwrap()
-            }
-        },
-    )(input)
+    map(separated_list1(wslr_tag("&&"), wslr(parse_op_c)), |operands| {
+        if operands.len() == 1 {
+            operands.into_iter().next().unwrap()
+        } else {
+            // Left-associative: a && b && c = (a && b) && c
+            operands
+                .into_iter()
+                .reduce(|left, right| Expression::function_call(Expression::reference("&&", false), vec![left, right]))
+                .unwrap()
+        }
+    })(input)
 }
 
 // Parse op_c expressions (equality: ==, !=, =~)
@@ -419,10 +406,7 @@ fn parse_op_c(input: &str) -> IResult<&str, Expression> {
     map(
         pair(
             parse_op_d,
-            many0(pair(
-                alt((wslr_tag("=="), wslr_tag("!="), wslr_tag("=~"))),
-                wslr(parse_op_d),
-            )),
+            many0(pair(alt((wslr_tag("=="), wslr_tag("!="), wslr_tag("=~"))), wslr(parse_op_d))),
         ),
         |(left, rest)| {
             rest.into_iter().fold(left, |left, (operator, right)| {
@@ -455,13 +439,7 @@ fn parse_op_d(input: &str) -> IResult<&str, Expression> {
 // op_e: op_f | op_e _wslr{"+"} op_f | op_e _wslr{"-"} op_f
 fn parse_op_e(input: &str) -> IResult<&str, Expression> {
     map(
-        pair(
-            parse_op_f,
-            many0(pair(
-                alt((wslr_tag("+"), wslr_tag("-"))),
-                wslr(parse_op_f),
-            )),
-        ),
+        pair(parse_op_f, many0(pair(alt((wslr_tag("+"), wslr_tag("-"))), wslr(parse_op_f)))),
         |(left, rest)| {
             rest.into_iter().fold(left, |left, (operator, right)| {
                 Expression::function_call(Expression::reference(operator, false), vec![left, right])
@@ -476,10 +454,7 @@ fn parse_op_f(input: &str) -> IResult<&str, Expression> {
     map(
         pair(
             parse_op_g,
-            many0(pair(
-                alt((wslr_tag("*"), wslr_tag("/"), wslr_tag("%"))),
-                wslr(parse_op_g),
-            )),
+            many0(pair(alt((wslr_tag("*"), wslr_tag("/"), wslr_tag("%"))), wslr(parse_op_g))),
         ),
         |(left, rest)| {
             rest.into_iter().fold(left, |left, (operator, right)| {
@@ -517,10 +492,9 @@ fn parse_op_h(input: &str) -> IResult<&str, Expression> {
     // Then try to parse dot access and indexing operations
     let (remaining, operations) = many0(alt((
         // Dot access: .reference
-        map(
-            pair(wslr_tag("."), wslr(parse_reference)),
-            |(_, reference)| ("dot", reference, false),
-        ),
+        map(pair(wslr_tag("."), wslr(parse_reference)), |(_, reference)| {
+            ("dot", reference, false)
+        }),
         // Indexing: [expression]
         map(
             pair(wsr_tag("["), pair(parse_indexing_innards, wslr_tag("]"))),
@@ -613,10 +587,13 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, (Expression, bool)> {
             Expression::value(RuntimeValue::Null)
         };
 
-        Ok((remaining, (Expression::function_call(
-            Expression::reference("index", true),
-            vec![start, end],
-        ), true)))
+        Ok((
+            remaining,
+            (
+                Expression::function_call(Expression::reference("index", true), vec![start, end]),
+                true,
+            ),
+        ))
     }
 }
 
@@ -1350,13 +1327,25 @@ mod tests {
     fn test_debug_complex_indexing() {
         // Debug test for the failing case: x[(keys x)[0]]
         let result = Parser::parse("x[(keys x)[0]]");
-        assert_eq!(result.unwrap(), Expression::function_call(
-            Expression::reference("index", true),
-            vec![
-                Expression::function_call(Expression::reference("index", true), vec![Expression::value(RuntimeValue::Number(0.0)), Expression::parenthetical(Expression::function_call(Expression::reference("keys", false), vec![Expression::reference("x", false)]))]),
-                Expression::reference("x", false)
-            ],
-        ));
+        assert_eq!(
+            result.unwrap(),
+            Expression::function_call(
+                Expression::reference("index", true),
+                vec![
+                    Expression::function_call(
+                        Expression::reference("index", true),
+                        vec![
+                            Expression::value(RuntimeValue::Number(0.0)),
+                            Expression::parenthetical(Expression::function_call(
+                                Expression::reference("keys", false),
+                                vec![Expression::reference("x", false)]
+                            ))
+                        ]
+                    ),
+                    Expression::reference("x", false)
+                ],
+            )
+        );
     }
 
     #[test]

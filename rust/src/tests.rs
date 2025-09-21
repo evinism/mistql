@@ -100,8 +100,9 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                                                         query: query.to_string(),
                                                         data: data.try_into().unwrap(),
                                                         expected: expected.map(|e| e.try_into().unwrap()),
-                                                        expected_set: expected_set.map(|e| e.as_array().unwrap().iter().map(|v| v.try_into().unwrap()).collect()),
-                                                        throws: throws.map(|s| s.to_string())
+                                                        expected_set: expected_set
+                                                            .map(|e| e.as_array().unwrap().iter().map(|v| v.try_into().unwrap()).collect()),
+                                                        throws: throws.map(|s| s.to_string()),
                                                     });
                                                     assertion_counter += 1;
                                                 }
@@ -448,7 +449,6 @@ mod test_runner {
 
     #[test]
     fn test_expected_set_functionality() {
-
         // Test that expectedSet works correctly
         let assertion = TestAssertion {
             assertion_number: 999,
