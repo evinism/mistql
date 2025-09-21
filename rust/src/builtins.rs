@@ -241,7 +241,7 @@ pub fn sort(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
         }
     }
 
-    array.sort_by(|a, b| a.compare(b).unwrap_or(std::cmp::Ordering::Equal));
+    array.sort_by(|a, b| a.compare(b).unwrap());
 
     Ok(RuntimeValue::Array(array))
 }
