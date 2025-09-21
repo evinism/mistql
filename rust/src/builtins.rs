@@ -1389,8 +1389,7 @@ pub fn execute_builtin(name: &str, args: &[Expression], context: &mut ExecutionC
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::Expression;
-    use crate::types::{RuntimeValue, RuntimeValueType};
+    use crate::types::RuntimeValueType;
     use std::collections::HashMap;
 
     fn create_test_context() -> ExecutionContext {

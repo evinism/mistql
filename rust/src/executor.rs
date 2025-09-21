@@ -3,7 +3,7 @@
 //! This module implements the core execution engine for MistQL expressions,
 //! including contextualized expressions, function calls, and pipeline processing.
 
-use crate::builtins::execute_builtin;
+use crate::builtins::{execute_builtin, get_builtins};
 use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
@@ -68,7 +68,6 @@ impl ExecutionContext {
     }
 
     pub fn with_builtins(data: RuntimeValue) -> Self {
-        use crate::builtins::get_builtins;
         Self::new(data, get_builtins())
     }
 
@@ -324,7 +323,7 @@ fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionC
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{RuntimeValue, RuntimeValueType};
+    use crate::types::RuntimeValueType;
     use std::collections::HashMap;
 
     fn create_test_context() -> ExecutionContext {
@@ -475,8 +474,6 @@ mod tests {
 #[cfg(test)]
 mod execution_tests {
     use super::*;
-    use crate::parser::Expression;
-    use crate::types::RuntimeValue;
     use std::collections::HashMap;
 
     fn create_test_context() -> ExecutionContext {
