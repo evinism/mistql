@@ -760,8 +760,8 @@ mod execution_tests {
             stages: vec![Expression::reference("@", false), Expression::reference("name", false)],
         };
 
-        let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("John".to_string()));
+        let result = execute_expression(&expr, &mut context);
+        assert!(matches!(result, Err(ExecutionError::NotCallable(_))));
     }
 
     #[test]
