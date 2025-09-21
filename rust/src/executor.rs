@@ -262,8 +262,8 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
                     };
                     execute_expression(&new_call, context)?
                 } else {
-                    // For non-function references, execute normally.
-                    execute_expression(stage, context)?
+                    // In pipe context, non-function references should throw an error
+                    return Err(ExecutionError::NotCallable(func_value.get_type().to_string()));
                 }
             }
             Expression::DotAccessExpression { object: _, field: _ } => {
@@ -276,8 +276,8 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
                     };
                     execute_expression(&new_call, context)?
                 } else {
-                    // For non-function results, return as-is.
-                    func_value
+                    // In pipe context, non-function results should throw an error
+                    return Err(ExecutionError::NotCallable(func_value.get_type().to_string()));
                 }
             }
             _ => {
@@ -291,8 +291,8 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
                     };
                     execute_expression(&new_call, context)?
                 } else {
-                    // For non-function results, return as-is.
-                    stage_result
+                    // In pipe context, non-function results should throw an error
+                    return Err(ExecutionError::NotCallable(stage_result.get_type().to_string()));
                 }
             }
         };
