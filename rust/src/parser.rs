@@ -236,7 +236,7 @@ fn parse_reference(input: &str) -> IResult<&str, Expression> {
 fn parse_array(input: &str) -> IResult<&str, Expression> {
     map(
         delimited(wsr_tag("["), separated_list0(wslr_tag(","), wslr(parse_expression)), wslr_tag("]")),
-        |items| Expression::array(items),
+        Expression::array,
     )(input)
 }
 

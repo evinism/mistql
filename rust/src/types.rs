@@ -455,7 +455,7 @@ impl TryFrom<&serde_json::Value> for RuntimeValue {
     type Error = ExecutionError;
 
     fn try_from(value: &serde_json::Value) -> Result<Self, Self::Error> {
-        RuntimeValue::from_serde_value(&value)
+        RuntimeValue::from_serde_value(value)
     }
 }
 
