@@ -48,7 +48,7 @@ impl MistQLRegex {
                 'U' => {
                     regex_builder.swap_greed(true);
                 }
-                _ => { /* Ignore unknown flags */ }
+                _ => { return Err(regex::Error::Syntax("Invalid flag".to_string())); }
             }
         }
 
