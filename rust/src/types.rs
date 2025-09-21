@@ -263,41 +263,6 @@ impl PartialEq for RuntimeValue {
 impl Eq for RuntimeValue {}
 
 impl RuntimeValue {
-    // Convert from serde_json::Value to RuntimeValue
-    pub fn from_serde_value(value: &serde_json::Value) -> Result<Self, ExecutionError> {
-        match value {
-            serde_json::Value::Null => Ok(RuntimeValue::Null),
-            serde_json::Value::Bool(b) => Ok(RuntimeValue::Boolean(*b)),
-            serde_json::Value::Number(n) => {
-                match n.as_f64() {
-                    Some(f) => Ok(RuntimeValue::Number(f)),
-                    // Going against the docs, see comment:
-                    // https://www.mistql.com/docs/reference/types
-                    // Likely the original decision was because JSON does not support NaN or Infinity.
-                    None => Err(ExecutionError::CannotConvertToRuntimeValue(
-                        "number in non-permissive mode".to_string(),
-                    )),
-                }
-            }
-            serde_json::Value::String(s) => Ok(RuntimeValue::String(s.clone())),
-            serde_json::Value::Array(arr) => {
-                let values = arr
-                    .iter()
-                    .map(Self::from_serde_value)
-                    .collect::<Result<Vec<RuntimeValue>, ExecutionError>>()?;
-                Ok(RuntimeValue::Array(values))
-            }
-            serde_json::Value::Object(obj) => {
-                let mut map = HashMap::new();
-                for (key, value) in obj {
-                    map.insert(key.clone(), Self::from_serde_value(value)?);
-                }
-                Ok(RuntimeValue::Object(map))
-            }
-        }
-    }
-
-    // Convert to serde_json::Value
     pub fn to_serde_value(&self, permissive: bool) -> Result<serde_json::Value, ExecutionError> {
         match self {
             RuntimeValue::Null => Ok(serde_json::Value::Null),
@@ -338,7 +303,6 @@ impl RuntimeValue {
         }
     }
 
-    // Convert to serde_json::Value with default non-permissive mode
     pub fn to_serde_value_default(&self) -> Result<serde_json::Value, ExecutionError> {
         self.to_serde_value(false)
     }
@@ -361,7 +325,7 @@ impl RuntimeValue {
         }
     }
 
-    // Convert to string representation for serialization (with quotes for strings)
+    // Convert to string for serialization (use escape characters)
     pub fn to_string_serialize(&self) -> String {
         match self {
             // Needs JavaScript-like number formatting for MistQL compatibility
@@ -383,7 +347,7 @@ impl RuntimeValue {
         }
     }
 
-    // Convert to string representation for display (without quotes for strings)
+    // Convert to string for display (don't use escape characters)
     pub fn to_string_display(&self) -> String {
         match self {
             RuntimeValue::String(s) => s.clone(),
@@ -451,11 +415,44 @@ impl RuntimeValue {
     }
 }
 
+fn runtime_value_from_serde_value(value: &serde_json::Value) -> Result<RuntimeValue, ExecutionError> {
+    match value {
+        serde_json::Value::Null => Ok(RuntimeValue::Null),
+        serde_json::Value::Bool(b) => Ok(RuntimeValue::Boolean(*b)),
+        serde_json::Value::Number(n) => {
+            match n.as_f64() {
+                Some(f) => Ok(RuntimeValue::Number(f)),
+                // Going against the docs, see comment:
+                // https://www.mistql.com/docs/reference/types
+                // Likely the original decision was because JSON does not support NaN or Infinity.
+                None => Err(ExecutionError::CannotConvertToRuntimeValue(
+                    "number in non-permissive mode".to_string(),
+                )),
+            }
+        }
+        serde_json::Value::String(s) => Ok(RuntimeValue::String(s.clone())),
+        serde_json::Value::Array(arr) => {
+            let values = arr
+                .iter()
+                .map(runtime_value_from_serde_value)
+                .collect::<Result<Vec<RuntimeValue>, ExecutionError>>()?;
+            Ok(RuntimeValue::Array(values))
+        }
+        serde_json::Value::Object(obj) => {
+            let mut map = HashMap::new();
+            for (key, value) in obj {
+                map.insert(key.clone(), runtime_value_from_serde_value(value)?);
+            }
+            Ok(RuntimeValue::Object(map))
+        }
+    }
+}
+
 impl TryFrom<&serde_json::Value> for RuntimeValue {
     type Error = ExecutionError;
 
     fn try_from(value: &serde_json::Value) -> Result<Self, Self::Error> {
-        RuntimeValue::from_serde_value(value)
+        runtime_value_from_serde_value(value)
     }
 }
 
@@ -463,7 +460,7 @@ impl TryFrom<serde_json::Value> for RuntimeValue {
     type Error = ExecutionError;
 
     fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
-        RuntimeValue::from_serde_value(&value)
+        runtime_value_from_serde_value(&value)
     }
 }
 
