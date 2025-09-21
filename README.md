@@ -124,9 +124,9 @@ The directory structure is relatively flat, except for the single `src/builtins`
 
 ## Developing for `mistql` on pypi
 
-`mistql` is a fairly standard python package managed with [poetry](https://python-poetry.org/).
+`mistql` is a fairly standard python package managed with [uv](https://github.com/astral-sh/uv).
 
-Tests can be run using pytest, e.g. `poetry run pytest` from within the `/py` directory.
+Tests can be run using pytest, e.g. `uv run pytest` from within the `/py` directory.
 
 ## Developing for `mistql` on crates.io
 
