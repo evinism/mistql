@@ -10,7 +10,6 @@ use std::collections::HashMap;
 use std::fmt;
 
 // Custom regex wrapper that implements Serialize/Deserialize/
-// TODO: Do we really need this?
 #[derive(Debug, Clone)]
 pub struct MistQLRegex {
     pattern: String,
