@@ -6,7 +6,6 @@
 use crate::executor::ExecutionError;
 pub mod builtins;
 pub mod executor;
-pub mod lexer;
 pub mod parser;
 pub mod types;
 
