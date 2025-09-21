@@ -7,7 +7,7 @@ use clap::{Arg, ArgAction, Command};
 use mistql::query;
 use serde_json::Value;
 use std::fs;
-use std::io::{self, Read};
+use std::io::{self, BufRead, BufReader, Read};
 use std::process;
 
 fn main() {
@@ -78,21 +78,70 @@ fn main() {
             }
         }
     } else if let Some(filename) = matches.get_one::<String>("file") {
-        match fs::read_to_string(filename) {
-            Ok(content) => match serde_json::from_str::<Value>(&content) {
-                Ok(data) => data,
+        // Check if file has JSONL extension
+        if filename.ends_with(".jsonl") || filename.ends_with(".ndjson") || filename.ends_with(".jsonlines") {
+            // Process JSONL file - run query on each line and collect results
+            let file = match fs::File::open(filename) {
+                Ok(file) => file,
                 Err(e) => {
-                    eprintln!("Error parsing JSON from file '{}': {}", filename, e);
+                    eprintln!("Error opening JSONL file '{}': {}", filename, e);
                     process::exit(1);
                 }
-            },
-            Err(e) => {
-                eprintln!("Error reading file '{}': {}", filename, e);
-                process::exit(1);
+            };
+
+            let reader = BufReader::new(file);
+            let mut results = Vec::new();
+
+            for (line_num, line) in reader.lines().enumerate() {
+                let line = match line {
+                    Ok(line) => line,
+                    Err(e) => {
+                        eprintln!("Error reading line {} from JSONL file: {}", line_num + 1, e);
+                        process::exit(1);
+                    }
+                };
+
+                if line.trim().is_empty() {
+                    continue; // Skip empty lines
+                }
+
+                let json_value = match serde_json::from_str::<Value>(&line) {
+                    Ok(value) => value,
+                    Err(e) => {
+                        eprintln!("Error parsing JSON on line {}: {}", line_num + 1, e);
+                        process::exit(1);
+                    }
+                };
+
+                results.push(json_value);
+            }
+
+            // Convert results to a serde_json array
+            match serde_json::to_value(&results) {
+                Ok(data) => data,
+                Err(e) => {
+                    eprintln!("Error converting results to JSON: {}", e);
+                    process::exit(1);
+                }
+            }
+        } else {
+            // Process as regular JSON file
+            match fs::read_to_string(filename) {
+                Ok(content) => match serde_json::from_str::<Value>(&content) {
+                    Ok(data) => data,
+                    Err(e) => {
+                        eprintln!("Error parsing JSON from file '{}': {}", filename, e);
+                        process::exit(1);
+                    }
+                },
+                Err(e) => {
+                    eprintln!("Error reading file '{}': {}", filename, e);
+                    process::exit(1);
+                }
             }
         }
     } else {
-        eprintln!("No input data specified. Use -c for command line data, -f for file, or pipe to stdin.");
+        eprintln!("No input data specified. Use -c for command line data, -f for file (supports .jsonl/.ndjson/.jsonlines), or pipe to stdin.");
         process::exit(1);
     };
 
