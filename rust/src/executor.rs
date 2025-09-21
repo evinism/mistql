@@ -101,7 +101,7 @@ impl ExecutionContext {
         for builtin_name in crate::builtins::BUILTIN_NAMES.iter() {
             let builtin = crate::builtins::get_builtin(builtin_name).unwrap();
 
-            dollar_frame.insert(builtin.name, builtin.runtime_value);
+            dollar_frame.insert(builtin.name().to_string(), builtin.runtime_value().clone());
         }
 
         let mut functions_frame = HashMap::new();
@@ -291,7 +291,7 @@ fn execute_function_call(
             } else {
                 // Fall back to stock builtins
                 let builtin = crate::builtins::get_builtin(&func_name).unwrap();
-                (builtin.execute_function)(arguments, context)
+                builtin.call(arguments, context)
             }
         }
         _ => Err(ExecutionError::NotCallable(func_value.get_type().to_string())),

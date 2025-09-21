@@ -14,280 +14,254 @@ use std::collections::HashMap;
 // ============================================================================
 
 pub struct Builtin {
-    pub name: String,
-    pub runtime_value: RuntimeValue,
-    pub execute_function: fn(&[Expression], &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError>,
+    name: String,
+    runtime_value: RuntimeValue,
+    callable: fn(&[Expression], &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError>,
+}
+
+impl Builtin {
+    pub fn new(
+        name: String,
+        runtime_value: RuntimeValue,
+        callable: fn(&[Expression], &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError>,
+    ) -> Self {
+        Self {
+            name,
+            runtime_value,
+            callable,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn runtime_value(&self) -> &RuntimeValue {
+        &self.runtime_value
+    }
+
+    pub fn call(&self, arguments: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        (self.callable)(arguments, context)
+    }
 }
 
 pub fn get_builtin(s: &str) -> Result<Builtin, ExecutionError> {
     match s {
         // Unary operators.
-        "!/unary" => Ok(Builtin {
-            name: "!/unary".to_string(),
-            runtime_value: RuntimeValue::Function("!/unary".to_string()),
-            execute_function: not,
-        }),
-        "-/unary" => Ok(Builtin {
-            name: "-/unary".to_string(),
-            runtime_value: RuntimeValue::Function("-/unary".to_string()),
-            execute_function: negate,
-        }),
+        "!/unary" => Ok(Builtin::new(
+            "!/unary".to_string(),
+            RuntimeValue::Function("!/unary".to_string()),
+            not,
+        )),
+        "-/unary" => Ok(Builtin::new(
+            "-/unary".to_string(),
+            RuntimeValue::Function("-/unary".to_string()),
+            negate,
+        )),
 
         // Binary operators.
-        "||" => Ok(Builtin {
-            name: "||".to_string(),
-            runtime_value: RuntimeValue::Function("||".to_string()),
-            execute_function: or,
-        }),
-        "&&" => Ok(Builtin {
-            name: "&&".to_string(),
-            runtime_value: RuntimeValue::Function("&&".to_string()),
-            execute_function: and,
-        }),
-        "==" => Ok(Builtin {
-            name: "==".to_string(),
-            runtime_value: RuntimeValue::Function("==".to_string()),
-            execute_function: equal,
-        }),
-        "!=" => Ok(Builtin {
-            name: "!=".to_string(),
-            runtime_value: RuntimeValue::Function("!=".to_string()),
-            execute_function: notequal,
-        }),
-        ">" => Ok(Builtin {
-            name: ">".to_string(),
-            runtime_value: RuntimeValue::Function(">".to_string()),
-            execute_function: greaterthan,
-        }),
-        "<" => Ok(Builtin {
-            name: "<".to_string(),
-            runtime_value: RuntimeValue::Function("<".to_string()),
-            execute_function: lessthan,
-        }),
-        ">=" => Ok(Builtin {
-            name: ">=".to_string(),
-            runtime_value: RuntimeValue::Function(">=".to_string()),
-            execute_function: greaterthanorequal,
-        }),
-        "<=" => Ok(Builtin {
-            name: "<=".to_string(),
-            runtime_value: RuntimeValue::Function("<=".to_string()),
-            execute_function: lessthanorequal,
-        }),
-        "=~" => Ok(Builtin {
-            name: "=~".to_string(),
-            runtime_value: RuntimeValue::Function("=~".to_string()),
-            execute_function: regex_match,
-        }),
-        "+" => Ok(Builtin {
-            name: "+".to_string(),
-            runtime_value: RuntimeValue::Function("+".to_string()),
-            execute_function: add_operator,
-        }),
-        "-" => Ok(Builtin {
-            name: "-".to_string(),
-            runtime_value: RuntimeValue::Function("-".to_string()),
-            execute_function: subtract_operator,
-        }),
-        "*" => Ok(Builtin {
-            name: "*".to_string(),
-            runtime_value: RuntimeValue::Function("*".to_string()),
-            execute_function: multiply_operator,
-        }),
-        "/" => Ok(Builtin {
-            name: "/".to_string(),
-            runtime_value: RuntimeValue::Function("/".to_string()),
-            execute_function: divide_operator,
-        }),
-        "%" => Ok(Builtin {
-            name: "%".to_string(),
-            runtime_value: RuntimeValue::Function("%".to_string()),
-            execute_function: modulo_operator,
-        }),
+        "||" => Ok(Builtin::new("||".to_string(), RuntimeValue::Function("||".to_string()), or)),
+        "&&" => Ok(Builtin::new("&&".to_string(), RuntimeValue::Function("&&".to_string()), and)),
+        "==" => Ok(Builtin::new("==".to_string(), RuntimeValue::Function("==".to_string()), equal)),
+        "!=" => Ok(Builtin::new("!=".to_string(), RuntimeValue::Function("!=".to_string()), notequal)),
+        ">" => Ok(Builtin::new(">".to_string(), RuntimeValue::Function(">".to_string()), greaterthan)),
+        "<" => Ok(Builtin::new("<".to_string(), RuntimeValue::Function("<".to_string()), lessthan)),
+        ">=" => Ok(Builtin::new(
+            ">=".to_string(),
+            RuntimeValue::Function(">=".to_string()),
+            greaterthanorequal,
+        )),
+        "<=" => Ok(Builtin::new(
+            "<=".to_string(),
+            RuntimeValue::Function("<=".to_string()),
+            lessthanorequal,
+        )),
+        "=~" => Ok(Builtin::new(
+            "=~".to_string(),
+            RuntimeValue::Function("=~".to_string()),
+            regex_match,
+        )),
+        "+" => Ok(Builtin::new("+".to_string(), RuntimeValue::Function("+".to_string()), add_operator)),
+        "-" => Ok(Builtin::new(
+            "-".to_string(),
+            RuntimeValue::Function("-".to_string()),
+            subtract_operator,
+        )),
+        "*" => Ok(Builtin::new(
+            "*".to_string(),
+            RuntimeValue::Function("*".to_string()),
+            multiply_operator,
+        )),
+        "/" => Ok(Builtin::new(
+            "/".to_string(),
+            RuntimeValue::Function("/".to_string()),
+            divide_operator,
+        )),
+        "%" => Ok(Builtin::new(
+            "%".to_string(),
+            RuntimeValue::Function("%".to_string()),
+            modulo_operator,
+        )),
 
         // Utility functions.
-        "log" => Ok(Builtin {
-            name: "log".to_string(),
-            runtime_value: RuntimeValue::Function("log".to_string()),
-            execute_function: log,
-        }),
-        "if" => Ok(Builtin {
-            name: "if".to_string(),
-            runtime_value: RuntimeValue::Function("if".to_string()),
-            execute_function: if_function,
-        }),
-        "apply" => Ok(Builtin {
-            name: "apply".to_string(),
-            runtime_value: RuntimeValue::Function("apply".to_string()),
-            execute_function: apply,
-        }),
+        "log" => Ok(Builtin::new("log".to_string(), RuntimeValue::Function("log".to_string()), log)),
+        "if" => Ok(Builtin::new(
+            "if".to_string(),
+            RuntimeValue::Function("if".to_string()),
+            if_function,
+        )),
+        "apply" => Ok(Builtin::new(
+            "apply".to_string(),
+            RuntimeValue::Function("apply".to_string()),
+            apply,
+        )),
 
         // Array operations.
-        "count" => Ok(Builtin {
-            name: "count".to_string(),
-            runtime_value: RuntimeValue::Function("count".to_string()),
-            execute_function: count,
-        }),
-        "filter" => Ok(Builtin {
-            name: "filter".to_string(),
-            runtime_value: RuntimeValue::Function("filter".to_string()),
-            execute_function: filter,
-        }),
-        "map" => Ok(Builtin {
-            name: "map".to_string(),
-            runtime_value: RuntimeValue::Function("map".to_string()),
-            execute_function: map,
-        }),
-        "find" => Ok(Builtin {
-            name: "find".to_string(),
-            runtime_value: RuntimeValue::Function("find".to_string()),
-            execute_function: find,
-        }),
-        "reverse" => Ok(Builtin {
-            name: "reverse".to_string(),
-            runtime_value: RuntimeValue::Function("reverse".to_string()),
-            execute_function: reverse,
-        }),
-        "flatten" => Ok(Builtin {
-            name: "flatten".to_string(),
-            runtime_value: RuntimeValue::Function("flatten".to_string()),
-            execute_function: flatten,
-        }),
-        "sum" => Ok(Builtin {
-            name: "sum".to_string(),
-            runtime_value: RuntimeValue::Function("sum".to_string()),
-            execute_function: sum,
-        }),
-        "sort" => Ok(Builtin {
-            name: "sort".to_string(),
-            runtime_value: RuntimeValue::Function("sort".to_string()),
-            execute_function: sort,
-        }),
-        "sortby" => Ok(Builtin {
-            name: "sortby".to_string(),
-            runtime_value: RuntimeValue::Function("sortby".to_string()),
-            execute_function: sortby,
-        }),
-        "reduce" => Ok(Builtin {
-            name: "reduce".to_string(),
-            runtime_value: RuntimeValue::Function("reduce".to_string()),
-            execute_function: reduce,
-        }),
-        "groupby" => Ok(Builtin {
-            name: "groupby".to_string(),
-            runtime_value: RuntimeValue::Function("groupby".to_string()),
-            execute_function: groupby,
-        }),
-        "withindices" => Ok(Builtin {
-            name: "withindices".to_string(),
-            runtime_value: RuntimeValue::Function("withindices".to_string()),
-            execute_function: withindices,
-        }),
-        "sequence" => Ok(Builtin {
-            name: "sequence".to_string(),
-            runtime_value: RuntimeValue::Function("sequence".to_string()),
-            execute_function: sequence,
-        }),
+        "count" => Ok(Builtin::new(
+            "count".to_string(),
+            RuntimeValue::Function("count".to_string()),
+            count,
+        )),
+        "filter" => Ok(Builtin::new(
+            "filter".to_string(),
+            RuntimeValue::Function("filter".to_string()),
+            filter,
+        )),
+        "map" => Ok(Builtin::new("map".to_string(), RuntimeValue::Function("map".to_string()), map)),
+        "find" => Ok(Builtin::new("find".to_string(), RuntimeValue::Function("find".to_string()), find)),
+        "reverse" => Ok(Builtin::new(
+            "reverse".to_string(),
+            RuntimeValue::Function("reverse".to_string()),
+            reverse,
+        )),
+        "flatten" => Ok(Builtin::new(
+            "flatten".to_string(),
+            RuntimeValue::Function("flatten".to_string()),
+            flatten,
+        )),
+        "sum" => Ok(Builtin::new("sum".to_string(), RuntimeValue::Function("sum".to_string()), sum)),
+        "sort" => Ok(Builtin::new("sort".to_string(), RuntimeValue::Function("sort".to_string()), sort)),
+        "sortby" => Ok(Builtin::new(
+            "sortby".to_string(),
+            RuntimeValue::Function("sortby".to_string()),
+            sortby,
+        )),
+        "reduce" => Ok(Builtin::new(
+            "reduce".to_string(),
+            RuntimeValue::Function("reduce".to_string()),
+            reduce,
+        )),
+        "groupby" => Ok(Builtin::new(
+            "groupby".to_string(),
+            RuntimeValue::Function("groupby".to_string()),
+            groupby,
+        )),
+        "withindices" => Ok(Builtin::new(
+            "withindices".to_string(),
+            RuntimeValue::Function("withindices".to_string()),
+            withindices,
+        )),
+        "sequence" => Ok(Builtin::new(
+            "sequence".to_string(),
+            RuntimeValue::Function("sequence".to_string()),
+            sequence,
+        )),
 
         // Object operations.
-        "keys" => Ok(Builtin {
-            name: "keys".to_string(),
-            runtime_value: RuntimeValue::Function("keys".to_string()),
-            execute_function: keys,
-        }),
-        "values" => Ok(Builtin {
-            name: "values".to_string(),
-            runtime_value: RuntimeValue::Function("values".to_string()),
-            execute_function: values,
-        }),
-        "entries" => Ok(Builtin {
-            name: "entries".to_string(),
-            runtime_value: RuntimeValue::Function("entries".to_string()),
-            execute_function: entries,
-        }),
-        "fromentries" => Ok(Builtin {
-            name: "fromentries".to_string(),
-            runtime_value: RuntimeValue::Function("fromentries".to_string()),
-            execute_function: fromentries,
-        }),
-        "mapkeys" => Ok(Builtin {
-            name: "mapkeys".to_string(),
-            runtime_value: RuntimeValue::Function("mapkeys".to_string()),
-            execute_function: mapkeys,
-        }),
-        "mapvalues" => Ok(Builtin {
-            name: "mapvalues".to_string(),
-            runtime_value: RuntimeValue::Function("mapvalues".to_string()),
-            execute_function: mapvalues,
-        }),
-        "filterkeys" => Ok(Builtin {
-            name: "filterkeys".to_string(),
-            runtime_value: RuntimeValue::Function("filterkeys".to_string()),
-            execute_function: filterkeys,
-        }),
-        "filtervalues" => Ok(Builtin {
-            name: "filtervalues".to_string(),
-            runtime_value: RuntimeValue::Function("filtervalues".to_string()),
-            execute_function: filtervalues,
-        }),
+        "keys" => Ok(Builtin::new("keys".to_string(), RuntimeValue::Function("keys".to_string()), keys)),
+        "values" => Ok(Builtin::new(
+            "values".to_string(),
+            RuntimeValue::Function("values".to_string()),
+            values,
+        )),
+        "entries" => Ok(Builtin::new(
+            "entries".to_string(),
+            RuntimeValue::Function("entries".to_string()),
+            entries,
+        )),
+        "fromentries" => Ok(Builtin::new(
+            "fromentries".to_string(),
+            RuntimeValue::Function("fromentries".to_string()),
+            fromentries,
+        )),
+        "mapkeys" => Ok(Builtin::new(
+            "mapkeys".to_string(),
+            RuntimeValue::Function("mapkeys".to_string()),
+            mapkeys,
+        )),
+        "mapvalues" => Ok(Builtin::new(
+            "mapvalues".to_string(),
+            RuntimeValue::Function("mapvalues".to_string()),
+            mapvalues,
+        )),
+        "filterkeys" => Ok(Builtin::new(
+            "filterkeys".to_string(),
+            RuntimeValue::Function("filterkeys".to_string()),
+            filterkeys,
+        )),
+        "filtervalues" => Ok(Builtin::new(
+            "filtervalues".to_string(),
+            RuntimeValue::Function("filtervalues".to_string()),
+            filtervalues,
+        )),
 
         // String operations.
-        "split" => Ok(Builtin {
-            name: "split".to_string(),
-            runtime_value: RuntimeValue::Function("split".to_string()),
-            execute_function: split,
-        }),
-        "stringjoin" => Ok(Builtin {
-            name: "stringjoin".to_string(),
-            runtime_value: RuntimeValue::Function("stringjoin".to_string()),
-            execute_function: stringjoin,
-        }),
-        "replace" => Ok(Builtin {
-            name: "replace".to_string(),
-            runtime_value: RuntimeValue::Function("replace".to_string()),
-            execute_function: replace,
-        }),
-        "match" => Ok(Builtin {
-            name: "match".to_string(),
-            runtime_value: RuntimeValue::Function("match".to_string()),
-            execute_function: match_function,
-        }),
-        "regex" => Ok(Builtin {
-            name: "regex".to_string(),
-            runtime_value: RuntimeValue::Function("regex".to_string()),
-            execute_function: regex,
-        }),
+        "split" => Ok(Builtin::new(
+            "split".to_string(),
+            RuntimeValue::Function("split".to_string()),
+            split,
+        )),
+        "stringjoin" => Ok(Builtin::new(
+            "stringjoin".to_string(),
+            RuntimeValue::Function("stringjoin".to_string()),
+            stringjoin,
+        )),
+        "replace" => Ok(Builtin::new(
+            "replace".to_string(),
+            RuntimeValue::Function("replace".to_string()),
+            replace,
+        )),
+        "match" => Ok(Builtin::new(
+            "match".to_string(),
+            RuntimeValue::Function("match".to_string()),
+            match_function,
+        )),
+        "regex" => Ok(Builtin::new(
+            "regex".to_string(),
+            RuntimeValue::Function("regex".to_string()),
+            regex,
+        )),
 
         // Mathematical functions.
-        "range" => Ok(Builtin {
-            name: "range".to_string(),
-            runtime_value: RuntimeValue::Function("range".to_string()),
-            execute_function: range,
-        }),
-        "summarize" => Ok(Builtin {
-            name: "summarize".to_string(),
-            runtime_value: RuntimeValue::Function("summarize".to_string()),
-            execute_function: summarize,
-        }),
+        "range" => Ok(Builtin::new(
+            "range".to_string(),
+            RuntimeValue::Function("range".to_string()),
+            range,
+        )),
+        "summarize" => Ok(Builtin::new(
+            "summarize".to_string(),
+            RuntimeValue::Function("summarize".to_string()),
+            summarize,
+        )),
 
         // Indexing.
-        "index" => Ok(Builtin {
-            name: "index".to_string(),
-            runtime_value: RuntimeValue::Function("index".to_string()),
-            execute_function: index,
-        }),
+        "index" => Ok(Builtin::new(
+            "index".to_string(),
+            RuntimeValue::Function("index".to_string()),
+            index,
+        )),
 
         // Type conversion.
-        "string" => Ok(Builtin {
-            name: "string".to_string(),
-            runtime_value: RuntimeValue::Function("string".to_string()),
-            execute_function: string,
-        }),
-        "float" => Ok(Builtin {
-            name: "float".to_string(),
-            runtime_value: RuntimeValue::Function("float".to_string()),
-            execute_function: float,
-        }),
+        "string" => Ok(Builtin::new(
+            "string".to_string(),
+            RuntimeValue::Function("string".to_string()),
+            string,
+        )),
+        "float" => Ok(Builtin::new(
+            "float".to_string(),
+            RuntimeValue::Function("float".to_string()),
+            float,
+        )),
 
         _ => Err(ExecutionError::Custom(format!("Unknown builtin function: {}", s))),
     }
