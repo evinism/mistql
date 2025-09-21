@@ -431,14 +431,22 @@ pub fn keys(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
 // Return the values of an object.
 pub fn values(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     validate_args("values", args, 1, Some(1))?;
-    let object = assert_object(execute_expression(&args[0], context)?)?;
+    let target = execute_expression(&args[0], context)?;
 
-    // Sort keys to match JavaScript behavior.
-    let mut sorted_keys: Vec<String> = object.keys().cloned().collect();
-    sorted_keys.sort();
+    match target {
+        RuntimeValue::Object(object) => {
+            // Sort keys to match JavaScript behavior.
+            let mut sorted_keys: Vec<String> = object.keys().cloned().collect();
+            sorted_keys.sort();
 
-    let values: Vec<RuntimeValue> = sorted_keys.iter().map(|key| object[key].clone()).collect();
-    Ok(RuntimeValue::Array(values))
+            let values: Vec<RuntimeValue> = sorted_keys.iter().map(|key| object[key].clone()).collect();
+            Ok(RuntimeValue::Array(values))
+        }
+        _ => {
+            // For non-objects, return empty array (matches Python behavior)
+            Ok(RuntimeValue::Array(vec![]))
+        }
+    }
 }
 
 // Return key-value pairs as an array of [key, value] arrays.
