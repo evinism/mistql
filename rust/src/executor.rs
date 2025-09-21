@@ -3,7 +3,7 @@
 //! This module implements the core execution engine for MistQL expressions,
 //! including contextualized expressions, function calls, and pipeline processing.
 
-use crate::builtins::{execute_builtin, get_builtins};
+use crate::builtins::{is_stock_builtin, CustomFunction, CustomFunctionRegistry, FunctionMetadata};
 use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
@@ -14,11 +14,11 @@ pub type StackFrame = HashMap<String, RuntimeValue>;
 // The execution stack containing nested variable scopes.
 pub type ExecutionStack = Vec<StackFrame>;
 
-// Execution context containing the stack, builtins, and root data.
+// Execution context containing the stack, custom functions, and root data.
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
     stack: ExecutionStack,
-    builtins: HashMap<String, RuntimeValue>,
+    custom_functions: CustomFunctionRegistry,
     root_data: RuntimeValue,
 }
 
@@ -56,10 +56,10 @@ impl std::fmt::Display for ExecutionError {
 impl std::error::Error for ExecutionError {}
 
 impl ExecutionContext {
-    pub fn new(data: RuntimeValue, builtins: HashMap<String, RuntimeValue>) -> Self {
+    pub fn new(data: RuntimeValue) -> Self {
         let mut context = Self {
             stack: Vec::new(),
-            builtins,
+            custom_functions: CustomFunctionRegistry::new(),
             root_data: data.clone(),
         };
 
@@ -68,23 +68,44 @@ impl ExecutionContext {
     }
 
     pub fn with_builtins(data: RuntimeValue) -> Self {
-        Self::new(data, get_builtins())
+        Self::new(data)
+    }
+
+    pub fn with_custom_functions(data: RuntimeValue, custom_functions: CustomFunctionRegistry) -> Self {
+        let mut context = Self::new(data);
+        context.custom_functions = custom_functions;
+        context
+    }
+
+    // Add methods for custom function management
+    pub fn register_custom_function(
+        &mut self,
+        name: String,
+        function: CustomFunction,
+        metadata: FunctionMetadata,
+    ) -> Result<(), ExecutionError> {
+        self.custom_functions.register_function(name, function, metadata)?;
+        Ok(())
+    }
+
+    pub fn has_custom_function(&self, name: &str) -> bool {
+        self.custom_functions.has_function(name)
     }
 
     fn build_initial_stack(&mut self, data: RuntimeValue) {
-        // Frame 0: Built-in functions and $ variable.
-        let mut functions_frame = HashMap::new();
-        for (key, value) in &self.builtins {
-            functions_frame.insert(key.clone(), value.clone());
-        }
-
+        // Frame 0: $ variable containing the root data and builtin functions
         let mut dollar_frame = HashMap::new();
         dollar_frame.insert("@".to_string(), data.clone());
-        for (key, value) in &self.builtins {
-            dollar_frame.insert(key.clone(), value.clone());
-        }
-        functions_frame.insert("$".to_string(), RuntimeValue::Object(dollar_frame));
 
+        // Add all builtin functions to the $ frame
+        for builtin_name in crate::builtins::BUILTIN_NAMES.iter() {
+            let builtin = crate::builtins::get_builtin(builtin_name).unwrap();
+
+            dollar_frame.insert(builtin.name, builtin.runtime_value);
+        }
+
+        let mut functions_frame = HashMap::new();
+        functions_frame.insert("$".to_string(), RuntimeValue::Object(dollar_frame));
         self.stack.push(functions_frame);
 
         // Frame 1: Data context (object keys become variables).
@@ -120,7 +141,7 @@ impl ExecutionContext {
     // Find a variable in the execution stack.
     pub fn find_variable(&self, name: &str, absolute: bool) -> Result<RuntimeValue, ExecutionError> {
         if absolute {
-            // For absolute references (like $), only search in the first frame (builtins).
+            // For absolute references (like $), only search in the first frame.
             if let Some(frame) = self.stack.first() {
                 if let Some(value) = frame.get(name) {
                     return Ok(value.clone());
@@ -135,13 +156,17 @@ impl ExecutionContext {
             }
         }
 
-        Err(ExecutionError::VariableNotFound(name.to_string()))
-    }
+        // If not found in stack, check custom functions
+        if self.custom_functions.has_function(name) {
+            return Ok(RuntimeValue::Function(name.to_string()));
+        }
 
-    pub fn get_builtin(&self, name: &str) -> Result<&RuntimeValue, ExecutionError> {
-        self.builtins
-            .get(name)
-            .ok_or_else(|| ExecutionError::VariableNotFound(name.to_string()))
+        // Finally, check if it's a stock builtin
+        if is_stock_builtin(name) {
+            return Ok(RuntimeValue::Function(name.to_string()));
+        }
+
+        Err(ExecutionError::VariableNotFound(name.to_string()))
     }
 
     // Get the current @ context value.
@@ -194,6 +219,36 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> 
     }
 }
 
+// Helper function to execute an expression in a contextualized way
+// If the expression is a function reference, it creates a function call with @ as argument
+// Otherwise, it evaluates the expression directly
+pub fn execute_contextualized_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    match expr {
+        Expression::RefExpression { name, absolute } => {
+            // Check if this is a function reference
+            let func_value = context.find_variable(name, *absolute)?;
+            if matches!(func_value, RuntimeValue::Function(_)) {
+                // Create a function call with @ as argument
+                let func_call = Expression::FnExpression {
+                    function: Box::new(expr.clone()),
+                    arguments: vec![Expression::RefExpression {
+                        name: "@".to_string(),
+                        absolute: false,
+                    }],
+                };
+                execute_expression(&func_call, context)
+            } else {
+                // Not a function, evaluate directly
+                execute_expression(expr, context)
+            }
+        }
+        _ => {
+            // Not a function reference, evaluate directly
+            execute_expression(expr, context)
+        }
+    }
+}
+
 fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
     let mut result = Vec::new();
     for item in items {
@@ -223,7 +278,22 @@ fn execute_function_call(
     let func_value = execute_expression(function, context)?;
 
     match func_value {
-        RuntimeValue::Function(func_name) => execute_builtin(&func_name, arguments, context),
+        RuntimeValue::Function(func_name) => {
+            // First try custom functions
+            if context.custom_functions.has_function(&func_name) {
+                // We know the function exists, so we can safely execute it
+                if let Some(function) = context.custom_functions.functions.get(&func_name) {
+                    function(arguments, context)
+                } else {
+                    // This should never happen since we just checked has_function
+                    Err(ExecutionError::Custom(format!("Custom function '{}' not found", func_name)))
+                }
+            } else {
+                // Fall back to stock builtins
+                let builtin = crate::builtins::get_builtin(&func_name).unwrap();
+                (builtin.execute_function)(arguments, context)
+            }
+        }
         _ => Err(ExecutionError::NotCallable(func_value.get_type().to_string())),
     }
 }
@@ -334,15 +404,13 @@ mod tests {
             map
         });
 
-        let builtins = HashMap::new();
-        ExecutionContext::new(data, builtins)
+        ExecutionContext::new(data)
     }
 
     #[test]
     fn test_execution_context_creation() {
         let data = RuntimeValue::String("test".to_string());
-        let builtins = HashMap::new();
-        let context = ExecutionContext::new(data.clone(), builtins);
+        let context = ExecutionContext::new(data.clone());
 
         assert_eq!(context.get_root_data(), &data);
         assert!(context.stack_depth() >= 2); // builtins+$ and data frames
@@ -419,17 +487,11 @@ mod tests {
 
     #[test]
     fn test_absolute_variable_lookup() {
-        let mut context = create_test_context();
+        let context = create_test_context();
 
         // Add a builtin function
-        let mut builtins = HashMap::new();
-        builtins.insert("count".to_string(), RuntimeValue::Function("count".to_string()));
-        context.builtins = builtins;
-
-        // Rebuild stack with new builtins
-        let data = context.get_root_data().clone();
-        context.stack.clear();
-        context.build_initial_stack(data);
+        // With the new architecture, builtins are checked directly in find_variable
+        // No need to modify the context
 
         // Absolute lookup should find builtin
         let count_value = context.find_variable("count", true).unwrap();
@@ -765,16 +827,11 @@ mod execution_tests {
     fn test_execute_function_call_not_implemented() {
         let mut context = create_test_context();
 
-        // Add a function to the context so it can be found
-        context
-            .builtins
-            .insert("count".to_string(), RuntimeValue::Function("count".to_string()));
-        context.stack[0].insert("count".to_string(), RuntimeValue::Function("count".to_string()));
-
-        let expr = Expression::function_call(Expression::reference("count", false), vec![]);
+        // Test calling a non-existent function
+        let expr = Expression::function_call(Expression::reference("nonexistent", false), vec![]);
 
         let result = execute_expression(&expr, &mut context);
-        assert!(matches!(result, Err(ExecutionError::Custom(_))));
+        assert!(matches!(result, Err(ExecutionError::VariableNotFound(_))));
     }
 
     #[test]
@@ -949,6 +1006,240 @@ mod execution_tests {
             assert_eq!(arr[1], RuntimeValue::String("Jane".to_string()));
         } else {
             panic!("Expected array result from map");
+        }
+    }
+}
+
+#[cfg(test)]
+mod custom_function_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn create_test_context() -> ExecutionContext {
+        let data = RuntimeValue::Object({
+            let mut map = HashMap::new();
+            map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
+            map.insert("age".to_string(), RuntimeValue::Number(30.0));
+            map.insert(
+                "scores".to_string(),
+                RuntimeValue::Array(vec![
+                    RuntimeValue::Number(85.0),
+                    RuntimeValue::Number(92.0),
+                    RuntimeValue::Number(78.0),
+                ]),
+            );
+            map
+        });
+
+        ExecutionContext::with_builtins(data)
+    }
+
+    #[test]
+    fn test_custom_function_registration_and_execution() {
+        let mut context = create_test_context();
+
+        // Define a custom function that doubles a number
+        fn custom_double(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+            crate::builtins::validate_args("custom_double", args, 1, Some(1))?;
+            let value = execute_expression(&args[0], context)?;
+
+            match value {
+                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(n * 2.0)),
+                _ => Err(ExecutionError::TypeMismatch("custom_double requires a number".to_string())),
+            }
+        }
+
+        // Register the custom function
+        context
+            .register_custom_function(
+                "custom_double".to_string(),
+                custom_double,
+                crate::builtins::FunctionMetadata {
+                    name: "custom_double".to_string(),
+                    min_args: 1,
+                    max_args: Some(1),
+                    description: "Double a number".to_string(),
+                },
+            )
+            .unwrap();
+
+        // Test that the function is registered
+        assert!(context.has_custom_function("custom_double"));
+
+        // Test executing the custom function
+        let expr = Expression::function_call(
+            Expression::reference("custom_double", false),
+            vec![Expression::value(RuntimeValue::Number(21.0))],
+        );
+
+        let result = execute_expression(&expr, &mut context).unwrap();
+        assert_eq!(result, RuntimeValue::Number(42.0));
+    }
+
+    #[test]
+    fn test_custom_function_with_stock_builtin_interaction() {
+        let mut context = create_test_context();
+
+        // Define a custom function that adds 10 to a number
+        fn add_ten(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+            crate::builtins::validate_args("add_ten", args, 1, Some(1))?;
+            let value = execute_expression(&args[0], context)?;
+
+            match value {
+                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(n + 10.0)),
+                _ => Err(ExecutionError::TypeMismatch("add_ten requires a number".to_string())),
+            }
+        }
+
+        // Register the custom function
+        context
+            .register_custom_function(
+                "add_ten".to_string(),
+                add_ten,
+                crate::builtins::FunctionMetadata {
+                    name: "add_ten".to_string(),
+                    min_args: 1,
+                    max_args: Some(1),
+                    description: "Add 10 to a number".to_string(),
+                },
+            )
+            .unwrap();
+
+        // Test combining custom function with stock builtin
+        // First use stock builtin sum, then custom function add_ten
+        let expr = Expression::function_call(
+            Expression::reference("add_ten", false),
+            vec![Expression::function_call(
+                Expression::reference("sum", false),
+                vec![Expression::reference("scores", false)],
+            )],
+        );
+
+        let result = execute_expression(&expr, &mut context).unwrap();
+        // sum([85, 92, 78]) = 255, add_ten(255) = 265
+        assert_eq!(result, RuntimeValue::Number(265.0));
+    }
+
+    #[test]
+    fn test_custom_function_conflict_with_stock_builtin() {
+        let mut context = create_test_context();
+
+        fn dummy_function(_args: &[Expression], _context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+            Ok(RuntimeValue::Null)
+        }
+
+        // Try to register a function with a stock builtin name
+        let result = context.register_custom_function(
+            "count".to_string(),
+            dummy_function,
+            crate::builtins::FunctionMetadata {
+                name: "count".to_string(),
+                min_args: 1,
+                max_args: Some(1),
+                description: "Dummy count".to_string(),
+            },
+        );
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("conflicts with stock builtin"));
+    }
+
+    #[test]
+    fn test_stock_builtin_priority() {
+        let mut context = create_test_context();
+
+        // Even if we somehow had a custom function with the same name,
+        // stock builtins should still work
+        let expr = Expression::function_call(
+            Expression::reference("count", false),
+            vec![Expression::value(RuntimeValue::Array(vec![
+                RuntimeValue::Number(1.0),
+                RuntimeValue::Number(2.0),
+                RuntimeValue::Number(3.0),
+            ]))],
+        );
+
+        let result = execute_expression(&expr, &mut context).unwrap();
+        assert_eq!(result, RuntimeValue::Number(3.0));
+    }
+
+    #[test]
+    fn test_custom_function_in_pipeline() {
+        let mut context = create_test_context();
+
+        // Define a custom function that squares a number
+        fn square(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+            crate::builtins::validate_args("square", args, 1, Some(1))?;
+            let value = execute_expression(&args[0], context)?;
+
+            match value {
+                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(n * n)),
+                _ => Err(ExecutionError::TypeMismatch("square requires a number".to_string())),
+            }
+        }
+
+        // Register the custom function
+        context
+            .register_custom_function(
+                "square".to_string(),
+                square,
+                crate::builtins::FunctionMetadata {
+                    name: "square".to_string(),
+                    min_args: 1,
+                    max_args: Some(1),
+                    description: "Square a number".to_string(),
+                },
+            )
+            .unwrap();
+
+        // Test using custom function directly first
+        let direct_expr = Expression::function_call(
+            Expression::reference("square", false),
+            vec![Expression::value(RuntimeValue::Number(5.0))],
+        );
+        let direct_result = execute_expression(&direct_expr, &mut context).unwrap();
+        assert_eq!(direct_result, RuntimeValue::Number(25.0));
+
+        // If we get here, the direct call works, so the issue is in the pipeline
+        println!("Direct function call works!");
+
+        // First test that stock builtin works in pipeline
+        // @.scores | count
+        let stock_expr = Expression::PipeExpression {
+            stages: vec![
+                Expression::DotAccessExpression {
+                    object: Box::new(Expression::reference("@", false)),
+                    field: "scores".to_string(),
+                },
+                Expression::reference("count", false),
+            ],
+        };
+        let stock_result = execute_expression(&stock_expr, &mut context).unwrap();
+        assert_eq!(stock_result, RuntimeValue::Number(3.0));
+        println!("Stock builtin in pipeline works!");
+
+        // Test using custom function in a pipeline
+        // @.scores | map square
+        let expr = Expression::PipeExpression {
+            stages: vec![
+                Expression::DotAccessExpression {
+                    object: Box::new(Expression::reference("@", false)),
+                    field: "scores".to_string(),
+                },
+                Expression::function_call(Expression::reference("map", false), vec![Expression::reference("square", false)]),
+            ],
+        };
+
+        let result = execute_expression(&expr, &mut context).unwrap();
+
+        if let RuntimeValue::Array(arr) = result {
+            assert_eq!(arr.len(), 3);
+            // 85^2 = 7225, 92^2 = 8464, 78^2 = 6084
+            assert_eq!(arr[0], RuntimeValue::Number(7225.0));
+            assert_eq!(arr[1], RuntimeValue::Number(8464.0));
+            assert_eq!(arr[2], RuntimeValue::Number(6084.0));
+        } else {
+            panic!("Expected array result");
         }
     }
 }

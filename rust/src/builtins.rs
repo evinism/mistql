@@ -4,13 +4,417 @@
 //! including array operations, object operations, string operations, mathematical
 //! functions, and utility functions.
 
-use crate::executor::{execute_expression, ExecutionContext, ExecutionError};
+use crate::executor::{execute_contextualized_expression, execute_expression, ExecutionContext, ExecutionError};
 use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
 
+// ============================================================================
+// GLOBAL BUILTINS
+// ============================================================================
+
+pub struct Builtin {
+    pub name: String,
+    pub runtime_value: RuntimeValue,
+    pub execute_function: fn(&[Expression], &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError>,
+}
+
+pub fn get_builtin(s: &str) -> Result<Builtin, ExecutionError> {
+    match s {
+        // Unary operators.
+        "!/unary" => Ok(Builtin {
+            name: "!/unary".to_string(),
+            runtime_value: RuntimeValue::Function("!/unary".to_string()),
+            execute_function: not,
+        }),
+        "-/unary" => Ok(Builtin {
+            name: "-/unary".to_string(),
+            runtime_value: RuntimeValue::Function("-/unary".to_string()),
+            execute_function: negate,
+        }),
+
+        // Binary operators.
+        "||" => Ok(Builtin {
+            name: "||".to_string(),
+            runtime_value: RuntimeValue::Function("||".to_string()),
+            execute_function: or,
+        }),
+        "&&" => Ok(Builtin {
+            name: "&&".to_string(),
+            runtime_value: RuntimeValue::Function("&&".to_string()),
+            execute_function: and,
+        }),
+        "==" => Ok(Builtin {
+            name: "==".to_string(),
+            runtime_value: RuntimeValue::Function("==".to_string()),
+            execute_function: equal,
+        }),
+        "!=" => Ok(Builtin {
+            name: "!=".to_string(),
+            runtime_value: RuntimeValue::Function("!=".to_string()),
+            execute_function: notequal,
+        }),
+        ">" => Ok(Builtin {
+            name: ">".to_string(),
+            runtime_value: RuntimeValue::Function(">".to_string()),
+            execute_function: greaterthan,
+        }),
+        "<" => Ok(Builtin {
+            name: "<".to_string(),
+            runtime_value: RuntimeValue::Function("<".to_string()),
+            execute_function: lessthan,
+        }),
+        ">=" => Ok(Builtin {
+            name: ">=".to_string(),
+            runtime_value: RuntimeValue::Function(">=".to_string()),
+            execute_function: greaterthanorequal,
+        }),
+        "<=" => Ok(Builtin {
+            name: "<=".to_string(),
+            runtime_value: RuntimeValue::Function("<=".to_string()),
+            execute_function: lessthanorequal,
+        }),
+        "=~" => Ok(Builtin {
+            name: "=~".to_string(),
+            runtime_value: RuntimeValue::Function("=~".to_string()),
+            execute_function: regex_match,
+        }),
+        "+" => Ok(Builtin {
+            name: "+".to_string(),
+            runtime_value: RuntimeValue::Function("+".to_string()),
+            execute_function: add_operator,
+        }),
+        "-" => Ok(Builtin {
+            name: "-".to_string(),
+            runtime_value: RuntimeValue::Function("-".to_string()),
+            execute_function: subtract_operator,
+        }),
+        "*" => Ok(Builtin {
+            name: "*".to_string(),
+            runtime_value: RuntimeValue::Function("*".to_string()),
+            execute_function: multiply_operator,
+        }),
+        "/" => Ok(Builtin {
+            name: "/".to_string(),
+            runtime_value: RuntimeValue::Function("/".to_string()),
+            execute_function: divide_operator,
+        }),
+        "%" => Ok(Builtin {
+            name: "%".to_string(),
+            runtime_value: RuntimeValue::Function("%".to_string()),
+            execute_function: modulo_operator,
+        }),
+
+        // Utility functions.
+        "log" => Ok(Builtin {
+            name: "log".to_string(),
+            runtime_value: RuntimeValue::Function("log".to_string()),
+            execute_function: log,
+        }),
+        "if" => Ok(Builtin {
+            name: "if".to_string(),
+            runtime_value: RuntimeValue::Function("if".to_string()),
+            execute_function: if_function,
+        }),
+        "apply" => Ok(Builtin {
+            name: "apply".to_string(),
+            runtime_value: RuntimeValue::Function("apply".to_string()),
+            execute_function: apply,
+        }),
+
+        // Array operations.
+        "count" => Ok(Builtin {
+            name: "count".to_string(),
+            runtime_value: RuntimeValue::Function("count".to_string()),
+            execute_function: count,
+        }),
+        "filter" => Ok(Builtin {
+            name: "filter".to_string(),
+            runtime_value: RuntimeValue::Function("filter".to_string()),
+            execute_function: filter,
+        }),
+        "map" => Ok(Builtin {
+            name: "map".to_string(),
+            runtime_value: RuntimeValue::Function("map".to_string()),
+            execute_function: map,
+        }),
+        "find" => Ok(Builtin {
+            name: "find".to_string(),
+            runtime_value: RuntimeValue::Function("find".to_string()),
+            execute_function: find,
+        }),
+        "reverse" => Ok(Builtin {
+            name: "reverse".to_string(),
+            runtime_value: RuntimeValue::Function("reverse".to_string()),
+            execute_function: reverse,
+        }),
+        "flatten" => Ok(Builtin {
+            name: "flatten".to_string(),
+            runtime_value: RuntimeValue::Function("flatten".to_string()),
+            execute_function: flatten,
+        }),
+        "sum" => Ok(Builtin {
+            name: "sum".to_string(),
+            runtime_value: RuntimeValue::Function("sum".to_string()),
+            execute_function: sum,
+        }),
+        "sort" => Ok(Builtin {
+            name: "sort".to_string(),
+            runtime_value: RuntimeValue::Function("sort".to_string()),
+            execute_function: sort,
+        }),
+        "sortby" => Ok(Builtin {
+            name: "sortby".to_string(),
+            runtime_value: RuntimeValue::Function("sortby".to_string()),
+            execute_function: sortby,
+        }),
+        "reduce" => Ok(Builtin {
+            name: "reduce".to_string(),
+            runtime_value: RuntimeValue::Function("reduce".to_string()),
+            execute_function: reduce,
+        }),
+        "groupby" => Ok(Builtin {
+            name: "groupby".to_string(),
+            runtime_value: RuntimeValue::Function("groupby".to_string()),
+            execute_function: groupby,
+        }),
+        "withindices" => Ok(Builtin {
+            name: "withindices".to_string(),
+            runtime_value: RuntimeValue::Function("withindices".to_string()),
+            execute_function: withindices,
+        }),
+        "sequence" => Ok(Builtin {
+            name: "sequence".to_string(),
+            runtime_value: RuntimeValue::Function("sequence".to_string()),
+            execute_function: sequence,
+        }),
+
+        // Object operations.
+        "keys" => Ok(Builtin {
+            name: "keys".to_string(),
+            runtime_value: RuntimeValue::Function("keys".to_string()),
+            execute_function: keys,
+        }),
+        "values" => Ok(Builtin {
+            name: "values".to_string(),
+            runtime_value: RuntimeValue::Function("values".to_string()),
+            execute_function: values,
+        }),
+        "entries" => Ok(Builtin {
+            name: "entries".to_string(),
+            runtime_value: RuntimeValue::Function("entries".to_string()),
+            execute_function: entries,
+        }),
+        "fromentries" => Ok(Builtin {
+            name: "fromentries".to_string(),
+            runtime_value: RuntimeValue::Function("fromentries".to_string()),
+            execute_function: fromentries,
+        }),
+        "mapkeys" => Ok(Builtin {
+            name: "mapkeys".to_string(),
+            runtime_value: RuntimeValue::Function("mapkeys".to_string()),
+            execute_function: mapkeys,
+        }),
+        "mapvalues" => Ok(Builtin {
+            name: "mapvalues".to_string(),
+            runtime_value: RuntimeValue::Function("mapvalues".to_string()),
+            execute_function: mapvalues,
+        }),
+        "filterkeys" => Ok(Builtin {
+            name: "filterkeys".to_string(),
+            runtime_value: RuntimeValue::Function("filterkeys".to_string()),
+            execute_function: filterkeys,
+        }),
+        "filtervalues" => Ok(Builtin {
+            name: "filtervalues".to_string(),
+            runtime_value: RuntimeValue::Function("filtervalues".to_string()),
+            execute_function: filtervalues,
+        }),
+
+        // String operations.
+        "split" => Ok(Builtin {
+            name: "split".to_string(),
+            runtime_value: RuntimeValue::Function("split".to_string()),
+            execute_function: split,
+        }),
+        "stringjoin" => Ok(Builtin {
+            name: "stringjoin".to_string(),
+            runtime_value: RuntimeValue::Function("stringjoin".to_string()),
+            execute_function: stringjoin,
+        }),
+        "replace" => Ok(Builtin {
+            name: "replace".to_string(),
+            runtime_value: RuntimeValue::Function("replace".to_string()),
+            execute_function: replace,
+        }),
+        "match" => Ok(Builtin {
+            name: "match".to_string(),
+            runtime_value: RuntimeValue::Function("match".to_string()),
+            execute_function: match_function,
+        }),
+        "regex" => Ok(Builtin {
+            name: "regex".to_string(),
+            runtime_value: RuntimeValue::Function("regex".to_string()),
+            execute_function: regex,
+        }),
+
+        // Mathematical functions.
+        "range" => Ok(Builtin {
+            name: "range".to_string(),
+            runtime_value: RuntimeValue::Function("range".to_string()),
+            execute_function: range,
+        }),
+        "summarize" => Ok(Builtin {
+            name: "summarize".to_string(),
+            runtime_value: RuntimeValue::Function("summarize".to_string()),
+            execute_function: summarize,
+        }),
+
+        // Indexing.
+        "index" => Ok(Builtin {
+            name: "index".to_string(),
+            runtime_value: RuntimeValue::Function("index".to_string()),
+            execute_function: index,
+        }),
+
+        // Type conversion.
+        "string" => Ok(Builtin {
+            name: "string".to_string(),
+            runtime_value: RuntimeValue::Function("string".to_string()),
+            execute_function: string,
+        }),
+        "float" => Ok(Builtin {
+            name: "float".to_string(),
+            runtime_value: RuntimeValue::Function("float".to_string()),
+            execute_function: float,
+        }),
+
+        _ => Err(ExecutionError::Custom(format!("Unknown builtin function: {}", s))),
+    }
+}
+
+// Check if a function name conflicts with stock builtins
+pub fn is_stock_builtin(name: &str) -> bool {
+    get_builtin(name).is_ok()
+}
+
+pub const BUILTIN_NAMES: [&str; 50] = [
+    "!/unary",
+    "-/unary",
+    "||",
+    "&&",
+    "==",
+    "!=",
+    ">",
+    "<",
+    ">=",
+    "<=",
+    "=~",
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
+    "log",
+    "if",
+    "apply",
+    "count",
+    "filter",
+    "map",
+    "find",
+    "reverse",
+    "flatten",
+    "sum",
+    "sort",
+    "sortby",
+    "reduce",
+    "groupby",
+    "withindices",
+    "sequence",
+    "keys",
+    "values",
+    "entries",
+    "fromentries",
+    "mapkeys",
+    "mapvalues",
+    "filterkeys",
+    "filtervalues",
+    "split",
+    "stringjoin",
+    "replace",
+    "match",
+    "regex",
+    "range",
+    "summarize",
+    "index",
+    "string",
+    "float",
+];
+
+// ============================================================================
+// CUSTOM FUNCTION REGISTRY
+// ============================================================================
+
+// Custom function signature - matches builtin functions
+pub type CustomFunction = fn(&[Expression], &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError>;
+
+// Metadata for custom functions
+#[derive(Debug, Clone)]
+pub struct FunctionMetadata {
+    pub name: String,
+    pub min_args: usize,
+    pub max_args: Option<usize>,
+    pub description: String,
+}
+
+// Registry for custom functions
+#[derive(Debug, Clone)]
+pub struct CustomFunctionRegistry {
+    pub functions: HashMap<String, CustomFunction>,
+    metadata: HashMap<String, FunctionMetadata>,
+}
+
+impl CustomFunctionRegistry {
+    pub fn new() -> Self {
+        Self {
+            functions: HashMap::new(),
+            metadata: HashMap::new(),
+        }
+    }
+
+    pub fn register_function(&mut self, name: String, function: CustomFunction, metadata: FunctionMetadata) -> Result<(), ExecutionError> {
+        // Check for conflicts with stock builtins
+        if is_stock_builtin(&name) {
+            return Err(ExecutionError::Custom(format!(
+                "Cannot register custom function '{}': conflicts with stock builtin",
+                name
+            )));
+        }
+
+        self.functions.insert(name.clone(), function);
+        self.metadata.insert(name.clone(), metadata);
+        Ok(())
+    }
+
+    pub fn execute(&self, name: &str, args: &[Expression], context: &mut ExecutionContext) -> Option<Result<RuntimeValue, ExecutionError>> {
+        self.functions.get(name).map(|function| function(args, context))
+    }
+
+    pub fn has_function(&self, name: &str) -> bool {
+        self.functions.contains_key(name)
+    }
+
+    pub fn get_metadata(&self, name: &str) -> Option<&FunctionMetadata> {
+        self.metadata.get(name)
+    }
+
+    pub fn list_functions(&self) -> Vec<String> {
+        self.functions.keys().cloned().collect()
+    }
+}
+
 // Validate the number of arguments for a builtin function.
-fn validate_args(name: &str, args: &[Expression], min_args: usize, max_args: Option<usize>) -> Result<(), ExecutionError> {
+pub fn validate_args(name: &str, args: &[Expression], min_args: usize, max_args: Option<usize>) -> Result<(), ExecutionError> {
     if args.len() < min_args {
         return Err(ExecutionError::Custom(format!("{} takes at least {} arguments", name, min_args)));
     }
@@ -23,7 +427,7 @@ fn validate_args(name: &str, args: &[Expression], min_args: usize, max_args: Opt
 }
 
 // Assert that a value is a number and return it.
-fn assert_number(value: RuntimeValue) -> Result<f64, ExecutionError> {
+pub fn assert_number(value: RuntimeValue) -> Result<f64, ExecutionError> {
     match value {
         RuntimeValue::Number(n) => Ok(n),
         _ => Err(ExecutionError::TypeMismatch(format!("Expected number, got {}", value.get_type()))),
@@ -31,7 +435,7 @@ fn assert_number(value: RuntimeValue) -> Result<f64, ExecutionError> {
 }
 
 // Assert that a value is an array and return it.
-fn assert_array(value: RuntimeValue) -> Result<Vec<RuntimeValue>, ExecutionError> {
+pub fn assert_array(value: RuntimeValue) -> Result<Vec<RuntimeValue>, ExecutionError> {
     match value {
         RuntimeValue::Array(arr) => Ok(arr),
         _ => Err(ExecutionError::TypeMismatch(format!("Expected array, got {}", value.get_type()))),
@@ -39,7 +443,7 @@ fn assert_array(value: RuntimeValue) -> Result<Vec<RuntimeValue>, ExecutionError
 }
 
 // Assert that a value is an object and return it.
-fn assert_object(value: RuntimeValue) -> Result<HashMap<String, RuntimeValue>, ExecutionError> {
+pub fn assert_object(value: RuntimeValue) -> Result<HashMap<String, RuntimeValue>, ExecutionError> {
     match value {
         RuntimeValue::Object(obj) => Ok(obj),
         _ => Err(ExecutionError::TypeMismatch(format!("Expected object, got {}", value.get_type()))),
@@ -47,10 +451,226 @@ fn assert_object(value: RuntimeValue) -> Result<HashMap<String, RuntimeValue>, E
 }
 
 // Assert that a value is a string and return it.
-fn assert_string(value: RuntimeValue) -> Result<String, ExecutionError> {
+pub fn assert_string(value: RuntimeValue) -> Result<String, ExecutionError> {
     match value {
         RuntimeValue::String(s) => Ok(s),
         _ => Err(ExecutionError::TypeMismatch(format!("Expected string, got {}", value.get_type()))),
+    }
+}
+
+// ============================================================================
+// UNARY OPERATORS
+// ============================================================================
+
+pub fn not(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("!/unary", args, 1, Some(1))?;
+    let value = execute_expression(&args[0], context)?;
+    Ok(RuntimeValue::Boolean(!value.truthy()))
+}
+
+pub fn negate(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("-/unary", args, 1, Some(1))?;
+    let value = execute_expression(&args[0], context)?;
+    match value {
+        RuntimeValue::Number(n) => Ok(RuntimeValue::Number(-n)),
+        _ => Err(ExecutionError::TypeMismatch(format!("Cannot negate {}", value.get_type()))),
+    }
+}
+
+// ============================================================================
+// BINARY OPERATORS
+// ============================================================================
+
+pub fn or(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("||", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    if left.truthy() {
+        Ok(left.clone())
+    } else {
+        Ok(right.clone())
+    }
+}
+
+pub fn and(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("&&", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    if left.truthy() {
+        Ok(right.clone())
+    } else {
+        Ok(left.clone())
+    }
+}
+
+pub fn equal(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("==", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    Ok(RuntimeValue::Boolean(left == right))
+}
+
+pub fn notequal(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("!=", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    Ok(RuntimeValue::Boolean(left != right))
+}
+
+pub fn greaterthan(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args(">", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match left.compare(&right) {
+        Ok(std::cmp::Ordering::Greater) => Ok(RuntimeValue::Boolean(true)),
+        Ok(_) => Ok(RuntimeValue::Boolean(false)),
+        Err(e) => Err(ExecutionError::TypeMismatch(e)),
+    }
+}
+
+pub fn lessthan(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("<", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match left.compare(&right) {
+        Ok(std::cmp::Ordering::Less) => Ok(RuntimeValue::Boolean(true)),
+        Ok(_) => Ok(RuntimeValue::Boolean(false)),
+        Err(e) => Err(ExecutionError::TypeMismatch(e)),
+    }
+}
+
+pub fn greaterthanorequal(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args(">=", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match left.compare(&right) {
+        Ok(std::cmp::Ordering::Greater) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
+        Ok(_) => Ok(RuntimeValue::Boolean(false)),
+        Err(e) => Err(ExecutionError::TypeMismatch(e)),
+    }
+}
+
+pub fn lessthanorequal(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("<=", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match left.compare(&right) {
+        Ok(std::cmp::Ordering::Less) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
+        Ok(_) => Ok(RuntimeValue::Boolean(false)),
+        Err(e) => Err(ExecutionError::TypeMismatch(e)),
+    }
+}
+
+pub fn regex_match(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("=~", args, 2, Some(2))?;
+    let target = execute_expression(&args[0], context)?;
+    let pattern = execute_expression(&args[1], context)?;
+    match (&target, &pattern) {
+        (RuntimeValue::String(s), RuntimeValue::Regex(r)) => Ok(RuntimeValue::Boolean(r.as_regex().is_match(s))),
+        (RuntimeValue::String(s), RuntimeValue::String(p)) => {
+            // Treat string as regex pattern
+            match regex::Regex::new(p) {
+                Ok(regex) => Ok(RuntimeValue::Boolean(regex.is_match(s))),
+                Err(_) => Err(ExecutionError::TypeMismatch(format!("Invalid regex pattern: {}", p))),
+            }
+        }
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot match {:?} with {:?}",
+            target.get_type(),
+            pattern.get_type()
+        ))),
+    }
+}
+
+pub fn add_operator(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("+", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match (&left, &right) {
+        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a + b)),
+        (RuntimeValue::String(a), RuntimeValue::String(b)) => Ok(RuntimeValue::String(format!("{}{}", a, b))),
+        (RuntimeValue::Array(a), RuntimeValue::Array(b)) => {
+            let mut result = a.clone();
+            result.extend(b.clone());
+            Ok(RuntimeValue::Array(result))
+        }
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot add {:?} and {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
+    }
+}
+
+pub fn subtract_operator(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("-", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match (&left, &right) {
+        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a - b)),
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot subtract {:?} from {:?}",
+            right.get_type(),
+            left.get_type()
+        ))),
+    }
+}
+
+pub fn multiply_operator(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("*", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match (&left, &right) {
+        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a * b)),
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot multiply {:?} and {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
+    }
+}
+
+pub fn divide_operator(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("/", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match (&left, &right) {
+        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => {
+            if *b == 0.0 {
+                Err(ExecutionError::DivisionByZero)
+            } else {
+                Ok(RuntimeValue::Number(a / b))
+            }
+        }
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot divide {:?} by {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
+    }
+}
+
+pub fn modulo_operator(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args("%", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    match (&left, &right) {
+        (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a % b)),
+        _ => Err(ExecutionError::TypeMismatch(format!(
+            "Cannot modulo {:?} by {:?}",
+            left.get_type(),
+            right.get_type()
+        ))),
+    }
+}
+
+pub fn dot_operator(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    validate_args(".", args, 2, Some(2))?;
+    let left = execute_expression(&args[0], context)?;
+    let right = execute_expression(&args[1], context)?;
+    // TODO: Implement this.
+    match (&left, &right) {
+        _ => Err(ExecutionError::Custom("Not implemented".to_string())),
     }
 }
 
@@ -114,7 +734,8 @@ pub fn filter(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     let mut result = Vec::new();
     for item in array {
         context.push_context(item.clone());
-        let condition_result = execute_expression(condition, context)?;
+
+        let condition_result = execute_contextualized_expression(condition, context)?;
         context.pop_context()?;
         if condition_result.truthy() {
             result.push(item);
@@ -134,7 +755,8 @@ pub fn map(args: &[Expression], context: &mut ExecutionContext) -> Result<Runtim
     let mut result = Vec::new();
     for item in array {
         context.push_context(item.clone());
-        let transformed = execute_expression(transformation, context)?;
+
+        let transformed = execute_contextualized_expression(transformation, context)?;
         context.pop_context()?;
         result.push(transformed);
     }
@@ -151,7 +773,8 @@ pub fn find(args: &[Expression], context: &mut ExecutionContext) -> Result<Runti
 
     for item in array {
         context.push_context(item.clone());
-        let condition_result = execute_expression(condition, context)?;
+
+        let condition_result = execute_contextualized_expression(condition, context)?;
         context.pop_context()?;
         if condition_result.truthy() {
             return Ok(item);
@@ -256,7 +879,8 @@ pub fn sortby(args: &[Expression], context: &mut ExecutionContext) -> Result<Run
     let mut with_key: Vec<(RuntimeValue, RuntimeValue)> = Vec::new();
     for item in array {
         context.push_context(item.clone());
-        let key = execute_expression(key_expr, context)?;
+
+        let key = execute_contextualized_expression(key_expr, context)?;
         context.pop_context()?;
 
         if !key.comparable() {
@@ -303,19 +927,20 @@ pub fn groupby(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
 
     for item in array {
         context.push_context(item.clone());
-        let key = execute_expression(key_expr, context)?;
+
+        let key = execute_contextualized_expression(key_expr, context)?;
         context.pop_context()?;
         // Dispatch to string_display to handle nested objects and arrays.
         // Otherwise use string_display to handle strings.
         match key {
             RuntimeValue::Object(_) => {
-                groups.entry(key.to_string_display()).or_insert_with(Vec::new).push(item);
+                groups.entry(key.to_string_display()).or_default().push(item);
             }
             RuntimeValue::Array(_) => {
-                groups.entry(key.to_string_display()).or_insert_with(Vec::new).push(item);
+                groups.entry(key.to_string_display()).or_default().push(item);
             }
             _ => {
-                groups.entry(key.to_string_display()).or_insert_with(Vec::new).push(item);
+                groups.entry(key.to_string_display()).or_default().push(item);
             }
         }
     }
@@ -478,7 +1103,7 @@ pub fn fromentries(args: &[Expression], context: &mut ExecutionContext) -> Resul
         let entry_array = assert_array(entry)?;
 
         // TODO: Is this correct?
-        let key = if entry_array.len() > 0 {
+        let key = if !entry_array.is_empty() {
             entry_array[0].to_string_display()
         } else {
             "null".to_string()
@@ -507,7 +1132,8 @@ pub fn mapkeys(args: &[Expression], context: &mut ExecutionContext) -> Result<Ru
     let mut result = HashMap::new();
     for (key, value) in object {
         context.push_context(RuntimeValue::String(key.clone()));
-        let new_key = execute_expression(transformation, context)?;
+
+        let new_key = execute_contextualized_expression(transformation, context)?;
         context.pop_context()?;
         // Dispatch to string_serialize to handle nested objects and arrays.
         // Otherwise use string_display to handle strings.
@@ -537,7 +1163,8 @@ pub fn mapvalues(args: &[Expression], context: &mut ExecutionContext) -> Result<
     let mut result = HashMap::new();
     for (key, value) in object {
         context.push_context(value.clone());
-        let new_value = execute_expression(transformation, context)?;
+
+        let new_value = execute_contextualized_expression(transformation, context)?;
         context.pop_context()?;
         result.insert(key, new_value);
     }
@@ -555,7 +1182,8 @@ pub fn filterkeys(args: &[Expression], context: &mut ExecutionContext) -> Result
     let mut result = HashMap::new();
     for (key, value) in object {
         context.push_context(RuntimeValue::String(key.clone()));
-        let condition_result = execute_expression(condition, context)?;
+
+        let condition_result = execute_contextualized_expression(condition, context)?;
         context.pop_context()?;
         if condition_result.truthy() {
             result.insert(key, value);
@@ -575,7 +1203,8 @@ pub fn filtervalues(args: &[Expression], context: &mut ExecutionContext) -> Resu
     let mut result = HashMap::new();
     for (key, value) in object {
         context.push_context(value.clone());
-        let condition_result = execute_expression(condition, context)?;
+
+        let condition_result = execute_contextualized_expression(condition, context)?;
         context.pop_context()?;
         if condition_result.truthy() {
             result.insert(key, value);
@@ -627,7 +1256,7 @@ pub fn stringjoin(args: &[Expression], context: &mut ExecutionContext) -> Result
     let delimiter = assert_string(execute_expression(&args[0], context)?)?;
     let array = assert_array(execute_expression(&args[1], context)?)?;
 
-    let strings: Result<Vec<String>, ExecutionError> = array.into_iter().map(|item| assert_string(item)).collect();
+    let strings: Result<Vec<String>, ExecutionError> = array.into_iter().map(assert_string).collect();
 
     let strings = strings?;
     let result = strings.join(&delimiter);
@@ -746,7 +1375,7 @@ pub fn float(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
         _ => Err(format!("Cannot convert {} to float", value.get_type())),
     };
 
-    let num = num.map_err(|e| ExecutionError::TypeMismatch(e))?;
+    let num = num.map_err(ExecutionError::TypeMismatch)?;
     Ok(RuntimeValue::Number(num))
 }
 
@@ -756,9 +1385,7 @@ pub fn float(args: &[Expression], context: &mut ExecutionContext) -> Result<Runt
 
 // Generate a range of numbers.
 pub fn range(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
-    if args.len() < 1 || args.len() > 3 {
-        return Err(ExecutionError::Custom("range takes 1-3 arguments".to_string()));
-    }
+    validate_args("range", args, 1, Some(3))?;
 
     let validate_integer = |value: RuntimeValue, arg_name: &str| -> Result<i64, ExecutionError> {
         match value {
@@ -915,13 +1542,13 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
             };
 
             let len = arr.len() as isize;
-            let actual_index: isize;
+
             // Handle negative indices.
-            if index_num < 0.0 {
-                actual_index = len + index_num as isize;
+            let actual_index = if index_num < 0.0 {
+                len + index_num as isize
             } else {
-                actual_index = index_num as isize;
-            }
+                index_num as isize
+            };
 
             // Handle regular and out of bounds.
             Ok(arr.get(actual_index as usize).cloned().unwrap_or(RuntimeValue::Null))
@@ -933,12 +1560,11 @@ fn index_single(index: RuntimeValue, operand: RuntimeValue) -> Result<RuntimeVal
             }
 
             let len = s.len() as isize;
-            let actual_index: isize;
-            if index_num < 0.0 {
-                actual_index = len + index_num as isize;
+            let actual_index = if index_num < 0.0 {
+                len + index_num as isize
             } else {
-                actual_index = index_num as isize;
-            }
+                index_num as isize
+            };
 
             Ok(s.chars()
                 .nth(actual_index as usize)
@@ -1062,335 +1688,11 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
 // ============================================================================
 
 // Get all built-in functions as a HashMap.
-pub fn get_builtins() -> HashMap<String, RuntimeValue> {
-    let mut builtins = HashMap::new();
-
-    // Unary operators.
-    builtins.insert("!/unary".to_string(), RuntimeValue::Function("!/unary".to_string()));
-    builtins.insert("-/unary".to_string(), RuntimeValue::Function("-/unary".to_string()));
-
-    // Binary operators.
-    builtins.insert("||".to_string(), RuntimeValue::Function("||".to_string()));
-    builtins.insert("&&".to_string(), RuntimeValue::Function("&&".to_string()));
-    builtins.insert("==".to_string(), RuntimeValue::Function("==".to_string()));
-    builtins.insert("!=".to_string(), RuntimeValue::Function("!=".to_string()));
-    builtins.insert(">".to_string(), RuntimeValue::Function(">".to_string()));
-    builtins.insert("<".to_string(), RuntimeValue::Function("<".to_string()));
-    builtins.insert(">=".to_string(), RuntimeValue::Function(">=".to_string()));
-    builtins.insert("<=".to_string(), RuntimeValue::Function("<=".to_string()));
-    builtins.insert("=~".to_string(), RuntimeValue::Function("=~".to_string()));
-    builtins.insert("+".to_string(), RuntimeValue::Function("+".to_string()));
-    builtins.insert("-".to_string(), RuntimeValue::Function("-".to_string()));
-    builtins.insert("*".to_string(), RuntimeValue::Function("*".to_string()));
-    builtins.insert("/".to_string(), RuntimeValue::Function("/".to_string()));
-    builtins.insert("%".to_string(), RuntimeValue::Function("%".to_string()));
-
-    // Utility functions.
-    builtins.insert("log".to_string(), RuntimeValue::Function("log".to_string()));
-    builtins.insert("if".to_string(), RuntimeValue::Function("if".to_string()));
-    builtins.insert("apply".to_string(), RuntimeValue::Function("apply".to_string()));
-
-    // Array operations.
-    builtins.insert("count".to_string(), RuntimeValue::Function("count".to_string()));
-    builtins.insert("filter".to_string(), RuntimeValue::Function("filter".to_string()));
-    builtins.insert("map".to_string(), RuntimeValue::Function("map".to_string()));
-    builtins.insert("find".to_string(), RuntimeValue::Function("find".to_string()));
-    builtins.insert("reverse".to_string(), RuntimeValue::Function("reverse".to_string()));
-    builtins.insert("flatten".to_string(), RuntimeValue::Function("flatten".to_string()));
-    builtins.insert("sum".to_string(), RuntimeValue::Function("sum".to_string()));
-    builtins.insert("sort".to_string(), RuntimeValue::Function("sort".to_string()));
-    builtins.insert("sortby".to_string(), RuntimeValue::Function("sortby".to_string()));
-    builtins.insert("reduce".to_string(), RuntimeValue::Function("reduce".to_string()));
-    builtins.insert("groupby".to_string(), RuntimeValue::Function("groupby".to_string()));
-    builtins.insert("withindices".to_string(), RuntimeValue::Function("withindices".to_string()));
-    builtins.insert("sequence".to_string(), RuntimeValue::Function("sequence".to_string()));
-
-    // Object operations.
-    builtins.insert("keys".to_string(), RuntimeValue::Function("keys".to_string()));
-    builtins.insert("values".to_string(), RuntimeValue::Function("values".to_string()));
-    builtins.insert("entries".to_string(), RuntimeValue::Function("entries".to_string()));
-    builtins.insert("fromentries".to_string(), RuntimeValue::Function("fromentries".to_string()));
-    builtins.insert("mapkeys".to_string(), RuntimeValue::Function("mapkeys".to_string()));
-    builtins.insert("mapvalues".to_string(), RuntimeValue::Function("mapvalues".to_string()));
-    builtins.insert("filterkeys".to_string(), RuntimeValue::Function("filterkeys".to_string()));
-    builtins.insert("filtervalues".to_string(), RuntimeValue::Function("filtervalues".to_string()));
-
-    // String operations.
-    builtins.insert("split".to_string(), RuntimeValue::Function("split".to_string()));
-    builtins.insert("stringjoin".to_string(), RuntimeValue::Function("stringjoin".to_string()));
-    builtins.insert("replace".to_string(), RuntimeValue::Function("replace".to_string()));
-    builtins.insert("match".to_string(), RuntimeValue::Function("match".to_string()));
-    builtins.insert("regex".to_string(), RuntimeValue::Function("regex".to_string()));
-
-    // Mathematical functions.
-    builtins.insert("range".to_string(), RuntimeValue::Function("range".to_string()));
-    builtins.insert("summarize".to_string(), RuntimeValue::Function("summarize".to_string()));
-
-    // Indexing.
-    builtins.insert("index".to_string(), RuntimeValue::Function("index".to_string()));
-
-    // Type conversion.
-    builtins.insert("string".to_string(), RuntimeValue::Function("string".to_string()));
-    builtins.insert("float".to_string(), RuntimeValue::Function("float".to_string()));
-
-    builtins
-}
-
-// Execute a built-in function by name.
-pub fn execute_builtin(name: &str, args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
-    match name {
-        // Unary operators.
-        "!/unary" => {
-            validate_args("!/unary", args, 1, Some(1))?;
-            let value = execute_expression(&args[0], context)?;
-            Ok(RuntimeValue::Boolean(!value.truthy()))
-        }
-        "-/unary" => {
-            validate_args("-/unary", args, 1, Some(1))?;
-            let value = execute_expression(&args[0], context)?;
-            match value {
-                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(-n)),
-                _ => Err(ExecutionError::TypeMismatch(format!("Cannot negate {}", value.get_type()))),
-            }
-        }
-
-        // Binary operators.
-        "||" => {
-            validate_args("||", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            if left.truthy() {
-                Ok(left.clone())
-            } else {
-                Ok(right.clone())
-            }
-        }
-        "&&" => {
-            validate_args("&&", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            if left.truthy() {
-                Ok(right.clone())
-            } else {
-                Ok(left.clone())
-            }
-        }
-        "==" => {
-            validate_args("==", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            Ok(RuntimeValue::Boolean(left == right))
-        }
-        "!=" => {
-            validate_args("!=", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            Ok(RuntimeValue::Boolean(left != right))
-        }
-        "=~" => {
-            // TODO: Join with match_function?
-            validate_args("=~", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match (&left, &right) {
-                (RuntimeValue::String(s), RuntimeValue::Regex(regex)) => Ok(RuntimeValue::Boolean(regex.as_regex().is_match(s))),
-                (RuntimeValue::String(s), RuntimeValue::String(pattern)) => {
-                    // Treat string as regex pattern
-                    match regex::Regex::new(pattern) {
-                        Ok(regex) => Ok(RuntimeValue::Boolean(regex.is_match(s))),
-                        Err(_) => Err(ExecutionError::TypeMismatch(format!("Invalid regex pattern: {}", pattern))),
-                    }
-                }
-                _ => Err(ExecutionError::TypeMismatch(format!(
-                    "Cannot match {:?} with {:?}",
-                    left.get_type(),
-                    right.get_type()
-                ))),
-            }
-        }
-        ">" => {
-            validate_args(">", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match left.compare(&right) {
-                Ok(std::cmp::Ordering::Greater) => Ok(RuntimeValue::Boolean(true)),
-                Ok(_) => Ok(RuntimeValue::Boolean(false)),
-                Err(e) => Err(ExecutionError::TypeMismatch(e)),
-            }
-        }
-        "<" => {
-            validate_args("<", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match left.compare(&right) {
-                Ok(std::cmp::Ordering::Less) => Ok(RuntimeValue::Boolean(true)),
-                Ok(_) => Ok(RuntimeValue::Boolean(false)),
-                Err(e) => Err(ExecutionError::TypeMismatch(e)),
-            }
-        }
-        ">=" => {
-            validate_args(">=", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match left.compare(&right) {
-                Ok(std::cmp::Ordering::Greater) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
-                Ok(_) => Ok(RuntimeValue::Boolean(false)),
-                Err(e) => Err(ExecutionError::TypeMismatch(e)),
-            }
-        }
-        "<=" => {
-            validate_args("<=", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match left.compare(&right) {
-                Ok(std::cmp::Ordering::Less) | Ok(std::cmp::Ordering::Equal) => Ok(RuntimeValue::Boolean(true)),
-                Ok(_) => Ok(RuntimeValue::Boolean(false)),
-                Err(e) => Err(ExecutionError::TypeMismatch(e)),
-            }
-        }
-        "+" => {
-            validate_args("+", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match (&left, &right) {
-                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a + b)),
-                (RuntimeValue::String(a), RuntimeValue::String(b)) => Ok(RuntimeValue::String(format!("{}{}", a, b))),
-                (RuntimeValue::Array(a), RuntimeValue::Array(b)) => {
-                    let mut result = a.clone();
-                    result.extend(b.clone());
-                    Ok(RuntimeValue::Array(result))
-                }
-                _ => Err(ExecutionError::TypeMismatch(format!(
-                    "Cannot add {:?} and {:?}",
-                    left.get_type(),
-                    right.get_type()
-                ))),
-            }
-        }
-        "-" => {
-            validate_args("-", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match (&left, &right) {
-                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a - b)),
-                _ => Err(ExecutionError::TypeMismatch(format!(
-                    "Cannot subtract {:?} from {:?}",
-                    right.get_type(),
-                    left.get_type()
-                ))),
-            }
-        }
-        "*" => {
-            validate_args("*", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match (&left, &right) {
-                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a * b)),
-                _ => Err(ExecutionError::TypeMismatch(format!(
-                    "Cannot multiply {:?} and {:?}",
-                    left.get_type(),
-                    right.get_type()
-                ))),
-            }
-        }
-        "/" => {
-            validate_args("/", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match (&left, &right) {
-                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => {
-                    if *b == 0.0 {
-                        Err(ExecutionError::DivisionByZero)
-                    } else {
-                        Ok(RuntimeValue::Number(a / b))
-                    }
-                }
-                _ => Err(ExecutionError::TypeMismatch(format!(
-                    "Cannot divide {:?} by {:?}",
-                    left.get_type(),
-                    right.get_type()
-                ))),
-            }
-        }
-        "%" => {
-            validate_args("%", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match (&left, &right) {
-                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a % b)),
-                _ => Err(ExecutionError::TypeMismatch(format!(
-                    "Cannot modulo {:?} by {:?}",
-                    left.get_type(),
-                    right.get_type()
-                ))),
-            }
-        }
-        "." => {
-            validate_args(".", args, 2, Some(2))?;
-            let left = execute_expression(&args[0], context)?;
-            let right = execute_expression(&args[1], context)?;
-            match (&left, &right) {
-                _ => Err(ExecutionError::Custom("Not implemented".to_string())),
-            }
-        }
-
-        // Utility functions.
-        "log" => log(args, context),
-        "if" => if_function(args, context),
-        "apply" => apply(args, context),
-
-        // Array operations.
-        "count" => count(args, context),
-        "filter" => filter(args, context),
-        "map" => map(args, context),
-        "find" => find(args, context),
-        "reverse" => reverse(args, context),
-        "flatten" => flatten(args, context),
-        "sum" => sum(args, context),
-        "sort" => sort(args, context),
-        "sortby" => sortby(args, context),
-        "reduce" => reduce(args, context),
-        "groupby" => groupby(args, context),
-        "withindices" => withindices(args, context),
-        "sequence" => sequence(args, context),
-
-        // Object operations.
-        "keys" => keys(args, context),
-        "values" => values(args, context),
-        "entries" => entries(args, context),
-        "fromentries" => fromentries(args, context),
-        "mapkeys" => mapkeys(args, context),
-        "mapvalues" => mapvalues(args, context),
-        "filterkeys" => filterkeys(args, context),
-        "filtervalues" => filtervalues(args, context),
-
-        // String operations.
-        "split" => split(args, context),
-        "stringjoin" => stringjoin(args, context),
-        "replace" => replace(args, context),
-        "match" => match_function(args, context),
-        "regex" => regex(args, context),
-
-        // Mathematical functions.
-        "range" => range(args, context),
-        "summarize" => summarize(args, context),
-
-        // Indexing.
-        "index" => index(args, context),
-
-        // Type conversion.
-        "string" => string(args, context),
-        "float" => float(args, context),
-
-        _ => Err(ExecutionError::Custom(format!("Unknown builtin function: {}", name))),
-    }
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::types::RuntimeValueType;
-    use std::collections::HashMap;
 
     fn create_test_context() -> ExecutionContext {
         let data = RuntimeValue::Object({
@@ -1400,8 +1702,7 @@ mod tests {
             map
         });
 
-        let builtins = get_builtins();
-        ExecutionContext::new(data, builtins)
+        ExecutionContext::with_builtins(data)
     }
 
     #[test]
@@ -2077,5 +2378,73 @@ mod tests {
 
         let result = regex(&args, &mut context).unwrap();
         assert_eq!(result.get_type(), RuntimeValueType::Regex);
+    }
+
+    // ============================================================================
+    // CUSTOM FUNCTION REGISTRY TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_custom_function_registry_creation() {
+        let registry = CustomFunctionRegistry::new();
+        assert_eq!(registry.list_functions().len(), 0);
+        assert!(!registry.has_function("nonexistent"));
+    }
+
+    #[test]
+    fn test_custom_function_registration() {
+        let mut registry = CustomFunctionRegistry::new();
+
+        // Define a simple custom function
+        fn custom_add(args: &[Expression], context: &mut crate::executor::ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+            validate_args("custom_add", args, 2, Some(2))?;
+            let left = execute_expression(&args[0], context)?;
+            let right = execute_expression(&args[1], context)?;
+
+            match (left, right) {
+                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a + b)),
+                _ => Err(ExecutionError::TypeMismatch("custom_add requires two numbers".to_string())),
+            }
+        }
+
+        let metadata = FunctionMetadata {
+            name: "custom_add".to_string(),
+            min_args: 2,
+            max_args: Some(2),
+            description: "Add two numbers".to_string(),
+        };
+
+        // Register the function
+        registry.register_function("custom_add".to_string(), custom_add, metadata).unwrap();
+
+        assert!(registry.has_function("custom_add"));
+        assert_eq!(registry.list_functions(), vec!["custom_add"]);
+
+        let retrieved_metadata = registry.get_metadata("custom_add").unwrap();
+        assert_eq!(retrieved_metadata.name, "custom_add");
+        assert_eq!(retrieved_metadata.min_args, 2);
+        assert_eq!(retrieved_metadata.max_args, Some(2));
+        assert_eq!(retrieved_metadata.description, "Add two numbers");
+    }
+
+    #[test]
+    fn test_custom_function_conflict_with_stock_builtin() {
+        let mut registry = CustomFunctionRegistry::new();
+
+        fn dummy_function(_args: &[Expression], _context: &mut crate::executor::ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+            Ok(RuntimeValue::Null)
+        }
+
+        let metadata = FunctionMetadata {
+            name: "count".to_string(),
+            min_args: 1,
+            max_args: Some(1),
+            description: "Dummy count function".to_string(),
+        };
+
+        // This should fail because "count" is a stock builtin
+        let result = registry.register_function("count".to_string(), dummy_function, metadata);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("conflicts with stock builtin"));
     }
 }
