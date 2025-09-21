@@ -414,44 +414,40 @@ impl RuntimeValue {
     }
 }
 
-fn runtime_value_from_serde_value(value: &serde_json::Value) -> Result<RuntimeValue, ExecutionError> {
-    match value {
-        serde_json::Value::Null => Ok(RuntimeValue::Null),
-        serde_json::Value::Bool(b) => Ok(RuntimeValue::Boolean(*b)),
-        serde_json::Value::Number(n) => {
-            match n.as_f64() {
-                Some(f) => Ok(RuntimeValue::Number(f)),
-                // Going against the docs, see comment:
-                // https://www.mistql.com/docs/reference/types
-                // Likely the original decision was because JSON does not support NaN or Infinity.
-                None => Err(ExecutionError::CannotConvertToRuntimeValue(
-                    "number in non-permissive mode".to_string(),
-                )),
-            }
-        }
-        serde_json::Value::String(s) => Ok(RuntimeValue::String(s.clone())),
-        serde_json::Value::Array(arr) => {
-            let values = arr
-                .iter()
-                .map(runtime_value_from_serde_value)
-                .collect::<Result<Vec<RuntimeValue>, ExecutionError>>()?;
-            Ok(RuntimeValue::Array(values))
-        }
-        serde_json::Value::Object(obj) => {
-            let mut map = HashMap::new();
-            for (key, value) in obj {
-                map.insert(key.clone(), runtime_value_from_serde_value(value)?);
-            }
-            Ok(RuntimeValue::Object(map))
-        }
-    }
-}
-
 impl TryFrom<&serde_json::Value> for RuntimeValue {
     type Error = ExecutionError;
 
     fn try_from(value: &serde_json::Value) -> Result<Self, Self::Error> {
-        runtime_value_from_serde_value(value)
+        match value {
+            serde_json::Value::Null => Ok(RuntimeValue::Null),
+            serde_json::Value::Bool(b) => Ok(RuntimeValue::Boolean(*b)),
+            serde_json::Value::Number(n) => {
+                match n.as_f64() {
+                    Some(f) => Ok(RuntimeValue::Number(f)),
+                    // Going against the docs, see comment:
+                    // https://www.mistql.com/docs/reference/types
+                    // Likely the original decision was because JSON does not support NaN or Infinity.
+                    None => Err(ExecutionError::CannotConvertToRuntimeValue(
+                        "number in non-permissive mode".to_string(),
+                    )),
+                }
+            }
+            serde_json::Value::String(s) => Ok(RuntimeValue::String(s.clone())),
+            serde_json::Value::Array(arr) => {
+                let values = arr
+                    .iter()
+                    .map(TryFrom::try_from)
+                    .collect::<Result<Vec<RuntimeValue>, ExecutionError>>()?;
+                Ok(RuntimeValue::Array(values))
+            }
+            serde_json::Value::Object(obj) => {
+                let mut map = HashMap::new();
+                for (key, value) in obj {
+                    map.insert(key.clone(), TryFrom::try_from(value)?);
+                }
+                Ok(RuntimeValue::Object(map))
+            }
+        }
     }
 }
 
@@ -459,7 +455,7 @@ impl TryFrom<serde_json::Value> for RuntimeValue {
     type Error = ExecutionError;
 
     fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
-        runtime_value_from_serde_value(&value)
+        TryFrom::try_from(&value)
     }
 }
 
