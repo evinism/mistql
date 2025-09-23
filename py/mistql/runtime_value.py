@@ -52,7 +52,7 @@ def format_number(value: float) -> str:
 
 class RuntimeValue:
     @staticmethod
-    def of(value):
+    def of(value, lazy=True):
         """
         Convert a Python value into a MistQL RuntimeValue
         """
@@ -70,16 +70,25 @@ class RuntimeValue:
             return RuntimeValue(RuntimeValueType.Number, value)
         elif isinstance(value, str):
             return RuntimeValue(RuntimeValueType.String, value)
+
+        # For lists and objects we optionally defer evaluation.
         elif isinstance(value, list) or isinstance(value, tuple):
-            return RuntimeValue(
-                RuntimeValueType.Array,
-                [RuntimeValue.of(item) for item in value],
-            )
+            def producer(value):
+                return [RuntimeValue.of(item, lazy) for item in value]
+            if not lazy:
+                return RuntimeValue(RuntimeValueType.Array, producer(value))
+            else:
+                return LazyRuntimeValue(RuntimeValueType.Array, producer, value)
         elif isinstance(value, dict):
-            return RuntimeValue(
-                RuntimeValueType.Object,
-                {key: RuntimeValue.of(value[key]) for key in value},
-            )
+            def producer(value):
+                return {key: RuntimeValue.of(value[key], lazy) for key in value}
+            if not lazy:
+                return RuntimeValue(
+                    RuntimeValueType.Object,
+                    {key: RuntimeValue.of(value[key]) for key in value},
+                )
+            else:
+                return LazyRuntimeValue(RuntimeValueType.Object, producer, value)
         elif (
             isinstance(value, date)
             or isinstance(value, datetime)
@@ -382,6 +391,28 @@ class RuntimeValue:
             return self.value[index]
         else:
             return self.value[index:index_two]
+
+
+class LazyRuntimeValue(RuntimeValue):
+    def __init__(self, type, producer: Callable[[Any], RuntimeValue], python_value=None, modifiers=None):
+        super().__init__(type, None, modifiers)
+        self._python_value = python_value
+        self._producer = producer
+        self._value = None
+    
+    @property
+    def value(self):
+        if self._value is None:
+            self._value = self._producer(self._python_value)
+            self.lazy = False
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+
+    def __repr__(self):
+        return f"<mistql lazy {self.to_json(permissive=True)}>"
 
 
 def assert_type(
