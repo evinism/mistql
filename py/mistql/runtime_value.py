@@ -73,15 +73,19 @@ class RuntimeValue:
 
         # For lists and objects we optionally defer evaluation.
         elif isinstance(value, list) or isinstance(value, tuple):
+
             def producer(value):
                 return [RuntimeValue.of(item, lazy) for item in value]
+
             if not lazy:
                 return RuntimeValue(RuntimeValueType.Array, producer(value))
             else:
                 return LazyRuntimeValue(RuntimeValueType.Array, producer, value)
         elif isinstance(value, dict):
+
             def producer(value):
                 return {key: RuntimeValue.of(value[key], lazy) for key in value}
+
             if not lazy:
                 return RuntimeValue(
                     RuntimeValueType.Object,
@@ -397,7 +401,13 @@ class RuntimeValue:
 
 
 class LazyRuntimeValue(RuntimeValue):
-    def __init__(self, type, producer: Callable[[Any], RuntimeValue], python_value=None, modifiers=None):
+    def __init__(
+        self,
+        type,
+        producer: Callable[[Any], RuntimeValue],
+        python_value=None,
+        modifiers=None,
+    ):
         super().__init__(type, None, modifiers)
         self._python_value = python_value
         self._producer = producer
@@ -408,7 +418,6 @@ class LazyRuntimeValue(RuntimeValue):
     def value(self):
         if self._value is None:
             self._value = self._producer(self._python_value)
-            self.lazy = False
         return self._value
 
     @value.setter
@@ -424,8 +433,14 @@ class LazyRuntimeValue(RuntimeValue):
         Access a string property of this value
         """
         if self.type == RuntimeValueType.Object and string in self._python_value:
+            # If we've already evaluated the value, we can just use the underlying value
+            if self._value is not None:
+                return self._value[string]
+            # Otherwise, we need to evaluate the value dynamically and cache it.
             if string not in self._subvalue_cache:
-                self._subvalue_cache[string] = self.of(self._python_value[string], lazy=True)
+                self._subvalue_cache[string] = self.of(
+                    self._python_value[string], lazy=True
+                )
             return self._subvalue_cache[string]
         else:
             return RuntimeValue(RuntimeValueType.Null)
@@ -434,9 +449,19 @@ class LazyRuntimeValue(RuntimeValue):
         """
         Access a numeric index of this value
         """
+        # If we've already evaluated the value, we can just use the underlying value
+        if self._value is not None:
+            if index_two is None:
+                return self._value[index]
+            else:
+                return self._value.index[index:index_two]
+
+        # Otherwise, we need to evaluate the value dynamically and cache it.
         if index_two is None:
             if index not in self._subvalue_cache:
-                self._subvalue_cache[index] = self.of(self._python_value[index], lazy=True)
+                self._subvalue_cache[index] = self.of(
+                    self._python_value[index], lazy=True
+                )
             return self._subvalue_cache[index]
         else:
             # Slices are more complicated and less common
