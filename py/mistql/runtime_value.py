@@ -464,7 +464,7 @@ class LazyRuntimeValue(RuntimeValue):
             if index_two is None:
                 return self._value[index]
             else:
-                return self._value.index[index:index_two]
+                return self._value[index:index_two]
 
         # Otherwise, we need to evaluate the value dynamically and cache it.
         if index_two is None:

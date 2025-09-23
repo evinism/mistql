@@ -160,3 +160,64 @@ def test_resuse_full_value_when_already_evaluated_object(monkeypatch):
     # But since it's computed, we shouldn't get any additional calls
     assert value.access("a") is value.access("a")
     assert of_mock.called == 4
+
+
+
+# Thrashing tests (because we have two different caches)
+def test_slice_and_value_thrashing():
+    data = [{"a": 1}, {"a": 2}, {"a": 3}]
+    # First, value.index first
+    value = RuntimeValue.of(data, lazy=True)
+    v1 = value.index(0, 2)
+    v2 = value.value
+    v3 = value.index(0, 2)
+    v4 = value.value
+    assert v1 == v3
+    assert v2 == v4
+
+    # Then, value.value first
+    value = RuntimeValue.of(data, lazy=True)
+    v1 = value.value
+    v2 = value.index(0, 2)
+    v3 = value.value
+    v4 = value.index(0, 2)
+    assert v1 == v3
+    assert v2 == v4
+
+
+def test_index_and_value_thrashing():
+    data = [{"a": 1}, {"a": 2}, {"a": 3}]
+    value = RuntimeValue.of(data, lazy=True)
+    v1 = value.index(0)
+    v2 = value.value
+    v3 = value.index(0)
+    v4 = value.value
+    assert v1 == v3
+    assert v2 == v4
+
+    value = RuntimeValue.of(data, lazy=True)
+    v1 = value.value
+    v2 = value.index(0)
+    v3 = value.value
+    v4 = value.index(0)
+    assert v1 == v3
+    assert v2 == v4
+
+
+def test_access_and_value_thrashing():
+    data = {"a": 1, "b": 2, "c": 3}
+    value = RuntimeValue.of(data, lazy=True)
+    v1 = value.access("a")
+    v2 = value.value
+    v3 = value.access("a")
+    v4 = value.value
+    assert v1 == v3
+    assert v2 == v4
+
+    value = RuntimeValue.of(data, lazy=True)
+    v1 = value.value
+    v2 = value.access("a")
+    v3 = value.value
+    v4 = value.access("a")
+    assert v1 == v3
+    assert v2 == v4
