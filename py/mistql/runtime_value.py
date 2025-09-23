@@ -34,6 +34,12 @@ MAX_SAFE_INT = 2**53 - 1
 e_zero_regex = re.compile(r"e-0+")
 
 
+# The .value attribute should be of this type
+# Union[float, bool, None, str, list[RuntimeValue], dict[str, RuntimeValue], Pattern, Callable]
+# Sadly, maintainting type inference isn't worth the effort.
+SubValue = Any
+
+
 def format_number(value: float) -> str:
     if value < UPPER_NUM_FORMATTING_BREAKPOINT and value >= MAX_SAFE_INT:
         return str(int(value))
@@ -51,6 +57,10 @@ def format_number(value: float) -> str:
 
 
 class RuntimeValue:
+    value: SubValue
+    modifiers: Dict[str, Any]
+    type: RuntimeValueType
+
     @staticmethod
     def of(value, lazy=False):
         """
@@ -408,11 +418,11 @@ class LazyRuntimeValue(RuntimeValue):
         python_value=None,
         modifiers=None,
     ):
-        super().__init__(type, None, modifiers)
+        super().__init__(type, modifiers=modifiers)
         self._python_value = python_value
         self._producer = producer
-        self._value = None
-        self._subvalue_cache = {}
+        self._value: SubValue = None
+        self._subvalue_cache: Dict[Union[int, str], RuntimeValue] = {}
 
     @property
     def value(self):
