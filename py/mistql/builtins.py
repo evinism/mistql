@@ -154,7 +154,7 @@ def or_fn(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("count", 1)
 def count(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     arg = assert_type(exec(arguments[0], stack), RVT.Array)
-    return RuntimeValue.of(len(arg.value))
+    return RuntimeValue.of(len(arg))
 
 
 @builtin("keys", 1)
@@ -176,7 +176,7 @@ def map(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = assert_type(exec(arguments[1], stack), RVT.Array)
     out: List[RuntimeValue] = []
-    for item in operand.value:
+    for item in operand:
         res = exec(mutation, add_runtime_value_to_stack(item, stack))
         out.append(res)
     return RuntimeValue.of(out)
@@ -188,7 +188,7 @@ def reduce(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     initial = exec(arguments[1], stack)
     operand = assert_type(exec(arguments[2], stack), RVT.Array)
     out = initial
-    for item in operand.value:
+    for item in operand:
         acc_cur = RuntimeValue.of([out, item])
         out = exec(mutation, add_runtime_value_to_stack(acc_cur, stack))
     return out
@@ -199,7 +199,7 @@ def filter(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = assert_type(exec(arguments[1], stack), RVT.Array)
     out: List[RuntimeValue] = []
-    for item in operand.value:
+    for item in operand:
         res = exec(mutation, add_runtime_value_to_stack(item, stack))
         if res:
             out.append(item)
@@ -256,7 +256,7 @@ def filterkeys(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def find(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     mutation = arguments[0]
     operand = assert_type(exec(arguments[1], stack), RVT.Array)
-    for item in operand.value:
+    for item in operand:
         res = exec(mutation, add_runtime_value_to_stack(item, stack))
         if res:
             return item
@@ -279,7 +279,7 @@ def _index_double(
     if index_one.type == RVT.Null:
         index_one = RuntimeValue.of(0)
     if index_two.type == RVT.Null:
-        index_two = RuntimeValue.of(len(operand.value))
+        index_two = RuntimeValue.of(len(operand))
     if index_one.type != RVT.Number or index_two.type != RVT.Number:
         raise MistQLRuntimeError("index: Non-numbers cannot be used on arrays")
     index_one_num = index_one.value
@@ -287,10 +287,10 @@ def _index_double(
     if index_one_num % 1 != 0 or index_two_num % 1 != 0:
         raise MistQLRuntimeError("index: Non-integers cannot be used on arrays")
     if index_one_num < 0:
-        index_one_num = len(operand.value) + index_one_num
+        index_one_num = len(operand) + index_one_num
     if index_two_num < 0:
-        index_two_num = len(operand.value) + index_two_num
-    return RuntimeValue.of(operand.value[int(index_one_num) : int(index_two_num)])
+        index_two_num = len(operand) + index_two_num
+    return RuntimeValue.of(operand.index(int(index_one_num), int(index_two_num)))
 
 
 def _index_single(index: RuntimeValue, operand: RuntimeValue):
@@ -300,10 +300,10 @@ def _index_single(index: RuntimeValue, operand: RuntimeValue):
         if index_num % 1 != 0:
             raise MistQLRuntimeError("index: Non-integers cannot be used on arrays")
         if index_num < 0:
-            index_num = len(operand.value) + index_num
-        if index_num < 0 or index_num >= len(operand.value):
+            index_num = len(operand) + index_num
+        if index_num < 0 or index_num >= len(operand):
             return RuntimeValue.of(None)
-        return RuntimeValue.of(operand.value[int(index_num)])
+        return RuntimeValue.of(operand.index(int(index_num)))
     elif operand.type == RVT.Object:
         return operand.access(assert_type(index, RVT.String).value)
     elif operand.type == RVT.Null:
@@ -369,7 +369,7 @@ def regex(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("sort", 1)
 def sort(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     arg = assert_type(exec(arguments[0], stack), RVT.Array)
-    for entry in arg.value:
+    for entry in arg:
         if not entry.comparable():
             raise MistQLRuntimeError("sort: Cannot sort non-comparable values")
     return RuntimeValue.of(
@@ -382,7 +382,7 @@ def sortby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = assert_type(exec(arguments[1], stack), RVT.Array)
     WithKey = List[Tuple[RuntimeValue, RuntimeValue]]
     with_key: WithKey = []
-    for item in target.value:
+    for item in target:
         key = exec(arguments[0], add_runtime_value_to_stack(item, stack))
         if not key.comparable():
             raise MistQLRuntimeError("sort: Cannot sort non-comparable values")
@@ -427,7 +427,7 @@ def groupby(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = assert_type(exec(arguments[1], stack), RVT.Array)
     mut = arguments[0]
     groups: Dict[str, List[RuntimeValue]] = {}
-    for item in target.value:
+    for item in target:
         key = exec(mut, add_runtime_value_to_stack(item, stack)).to_string()
         if key not in groups:
             groups[key] = []
@@ -452,15 +452,15 @@ def entries(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def fromentries(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = assert_type(exec(arguments[0], stack), RVT.Array)
     res = {}
-    for entry in target.value:
+    for entry in target:
         assert_type(entry, RVT.Array)
-        if len(entry.value) > 0:
-            first = entry.value[0]
+        if len(entry) > 0:
+            first = entry.index(0)
         else:
             first = RuntimeValue.of(None)
 
-        if len(entry.value) > 1:
-            second = entry.value[1]
+        if len(entry) > 1:
+            second = entry.index(1)
         else:
             second = RuntimeValue.of(None)
         res[first.to_string()] = second
@@ -548,7 +548,7 @@ def split(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     delimiter = assert_type(exec(arguments[0], stack), RVT.String)
     target = assert_type(exec(arguments[1], stack), RVT.Array)
-    arr = [entry.to_string() for entry in target.value]
+    arr = [entry.to_string() for entry in target]
     return RuntimeValue.of(delimiter.value.join(arr))
 
 
@@ -556,7 +556,7 @@ def stringjoin(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def sum(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = assert_type(exec(arguments[0], stack), RVT.Array)
     total = 0
-    for entry in target.value:
+    for entry in target:
         total += assert_type(entry, RVT.Number).value
     return RuntimeValue.of(total)
 
@@ -564,7 +564,7 @@ def sum(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 @builtin("summarize", 1)
 def summarize(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = assert_type(exec(arguments[0], stack), RVT.Array)
-    for entry in target.value:
+    for entry in target:
         assert_type(entry, RVT.Number)
     arr = target.to_python()
     summary = {
@@ -599,14 +599,14 @@ def sequence(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     bitmasks: List[List[bool]] = []
     for predicate in predicates:
         bitmask = []
-        for i in range(len(target.value)):
-            item = target.value[i]
+        for i in range(len(target)):
+            item = target.index(i)
             value = exec(predicate, add_runtime_value_to_stack(item, stack))
             bitmask.append(value.truthy())
         bitmasks.append(bitmask)
     indices_map = _sequence_helper(bitmasks)
     result: List[List[int]] = [
-        [target.value[idx] for idx in indices] for indices in indices_map
+        [target.index(idx) for idx in indices] for indices in indices_map
     ]
     return RuntimeValue.of(result)
 
@@ -615,6 +615,6 @@ def sequence(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
 def flatten(arguments: Args, stack: Stack, exec: Exec) -> RuntimeValue:
     target = assert_type(exec(arguments[0], stack), RVT.Array)
     result: List[RuntimeValue] = []
-    for entry in target.value:
+    for entry in target:
         result.extend(assert_type(entry, RVT.Array).value)
     return RuntimeValue.of(result)

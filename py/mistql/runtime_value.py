@@ -353,6 +353,12 @@ class RuntimeValue:
         # return "<mistql>"
         return f"<mistql {self.to_json(permissive=True)}>"
 
+    def __len__(self):
+        return len(self.value)
+
+    def __iter__(self):
+        return iter(self.value)
+
     def keys(self):
         if self.type == RuntimeValueType.Object:
             return [key for key in self.value]
@@ -361,12 +367,21 @@ class RuntimeValue:
 
     def access(self, string):
         """
-        Access a property of this value
+        Access a string property of this value
         """
         if self.type == RuntimeValueType.Object and string in self.value:
             return self.value[string]
         else:
             return RuntimeValue(RuntimeValueType.Null)
+
+    def index(self, index: int, index_two: Optional[int] = None):
+        """
+        Access a numeric index of this value
+        """
+        if index_two is None:
+            return self.value[index]
+        else:
+            return self.value[index:index_two]
 
 
 def assert_type(
