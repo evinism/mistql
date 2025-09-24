@@ -52,7 +52,7 @@ def format_number(value: float) -> str:
 
 class RuntimeValue:
     @staticmethod
-    def of(value, lazy=True):
+    def of(value, lazy=False):
         """
         Convert a Python value into a MistQL RuntimeValue
         """
@@ -392,6 +392,9 @@ class RuntimeValue:
         else:
             return self.value[index:index_two]
 
+    def is_lazy(self) -> bool:
+        return False
+
 
 class LazyRuntimeValue(RuntimeValue):
     def __init__(self, type, producer: Callable[[Any], RuntimeValue], python_value=None, modifiers=None):
@@ -399,7 +402,8 @@ class LazyRuntimeValue(RuntimeValue):
         self._python_value = python_value
         self._producer = producer
         self._value = None
-    
+        self._subvalue_cache = {}
+
     @property
     def value(self):
         if self._value is None:
@@ -411,8 +415,45 @@ class LazyRuntimeValue(RuntimeValue):
     def value(self, value):
         self._value = value
 
+    def __len__(self):
+        # We don't need to evaluate the value to get the length
+        return len(self._python_value)
+
+    def access(self, string):
+        """
+        Access a string property of this value
+        """
+        if self.type == RuntimeValueType.Object and string in self._python_value:
+            if string not in self._subvalue_cache:
+                self._subvalue_cache[string] = self.of(self._python_value[string], lazy=True)
+            return self._subvalue_cache[string]
+        else:
+            return RuntimeValue(RuntimeValueType.Null)
+
+    def index(self, index: int, index_two: Optional[int] = None):
+        """
+        Access a numeric index of this value
+        """
+        if index_two is None:
+            if index not in self._subvalue_cache:
+                self._subvalue_cache[index] = self.of(self._python_value[index], lazy=True)
+            return self._subvalue_cache[index]
+        else:
+            # Slices are more complicated and less common
+            # Let's hold off on caching slices for now.
+            return self.of(self._python_value[index:index_two], lazy=True)
+
+    def keys(self):
+        if self.type == RuntimeValueType.Object:
+            return list(self._python_value.keys())
+        else:
+            return []
+
     def __repr__(self):
-        return f"<mistql lazy {self.to_json(permissive=True)}>"
+        return f"<mistql {self.to_json(permissive=True)} lazy>"
+
+    def is_lazy(self) -> bool:
+        return True
 
 
 def assert_type(
