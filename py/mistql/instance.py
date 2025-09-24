@@ -16,15 +16,19 @@ class MistQLInstance:
     _cached_parse: Callable[[str], Any]
 
     def __init__(
-        self, extras: Optional[ExtrasDict] = None, parse_lru_cache_size: int = 4
+        self,
+        extras: Optional[ExtrasDict] = None,
+        parse_lru_cache_size: int = 4,
+        lazy: bool = False,
     ):
         self.extras = extras or {}
         self.parse_lru_cache_size = parse_lru_cache_size
+        self.lazy = lazy
         self._cached_parse = lru_cache(maxsize=parse_lru_cache_size)(parse)
 
     def query(self, query: str, data: Any):
         ast = self._cached_parse(query)
-        data = input_garden_wall(data)
+        data = input_garden_wall(data, self.lazy)
         result = execute_outer(ast, data, self.extras)
         return_value = output_garden_wall(result)
         return return_value

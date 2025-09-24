@@ -34,6 +34,12 @@ MAX_SAFE_INT = 2**53 - 1
 e_zero_regex = re.compile(r"e-0+")
 
 
+# The .value attribute should be of this type
+# Union[float, bool, None, str, list[RuntimeValue], dict[str, RuntimeValue], Pattern, Callable]
+# Sadly, maintainting type inference isn't worth the effort.
+UnderlyingValue = Any
+
+
 def format_number(value: float) -> str:
     if value < UPPER_NUM_FORMATTING_BREAKPOINT and value >= MAX_SAFE_INT:
         return str(int(value))
@@ -51,8 +57,12 @@ def format_number(value: float) -> str:
 
 
 class RuntimeValue:
+    value: UnderlyingValue
+    modifiers: Dict[str, Any]
+    type: RuntimeValueType
+
     @staticmethod
-    def of(value):
+    def of(value, lazy=False):
         """
         Convert a Python value into a MistQL RuntimeValue
         """
@@ -70,16 +80,23 @@ class RuntimeValue:
             return RuntimeValue(RuntimeValueType.Number, value)
         elif isinstance(value, str):
             return RuntimeValue(RuntimeValueType.String, value)
+
+        # For lists and objects we optionally defer evaluation.
         elif isinstance(value, list) or isinstance(value, tuple):
-            return RuntimeValue(
-                RuntimeValueType.Array,
-                [RuntimeValue.of(item) for item in value],
-            )
+            if not lazy:
+                return RuntimeValue(
+                    RuntimeValueType.Array, RuntimeValue._produce_array(value)
+                )
+            else:
+                return LazyRuntimeValue(RuntimeValueType.Array, value)
         elif isinstance(value, dict):
-            return RuntimeValue(
-                RuntimeValueType.Object,
-                {key: RuntimeValue.of(value[key]) for key in value},
-            )
+            if not lazy:
+                return RuntimeValue(
+                    RuntimeValueType.Object,
+                    RuntimeValue._produce_object(value),
+                )
+            else:
+                return LazyRuntimeValue(RuntimeValueType.Object, value)
         elif (
             isinstance(value, date)
             or isinstance(value, datetime)
@@ -90,6 +107,22 @@ class RuntimeValue:
             raise ValueError(
                 "Cannot convert external type to MistQL type: " + str(type(value))
             )
+
+    @staticmethod
+    def _produce_array(python_value, lazy=False):
+        """
+        Produce an UnderlyingValue for an array from a Python value
+        """
+        return [RuntimeValue.of(item, lazy) for item in python_value]
+
+    @staticmethod
+    def _produce_object(python_value, lazy=False):
+        """
+        Produce an UnderlyingValue for an object from a Python value
+        """
+        return {
+            key: RuntimeValue.of(value, lazy) for key, value in python_value.items()
+        }
 
     @staticmethod
     def wrap_function_def(definition: Callable):
@@ -353,6 +386,12 @@ class RuntimeValue:
         # return "<mistql>"
         return f"<mistql {self.to_json(permissive=True)}>"
 
+    def __len__(self):
+        return len(self.value)
+
+    def __iter__(self):
+        return iter(self.value)
+
     def keys(self):
         if self.type == RuntimeValueType.Object:
             return [key for key in self.value]
@@ -361,12 +400,125 @@ class RuntimeValue:
 
     def access(self, string):
         """
-        Access a property of this value
+        Access a string property of this value
         """
         if self.type == RuntimeValueType.Object and string in self.value:
             return self.value[string]
         else:
             return RuntimeValue(RuntimeValueType.Null)
+
+    def index(self, index: int, index_two: Optional[int] = None):
+        """
+        Access a numeric index of this value
+        """
+        if index_two is None:
+            return RuntimeValue.of(self.value[index])
+        else:
+            return RuntimeValue.of(self.value[index:index_two])
+
+    def is_lazy(self) -> bool:
+        return False
+
+
+class LazyRuntimeValue(RuntimeValue):
+    _allowed_lazy_types = {RuntimeValueType.Array, RuntimeValueType.Object}
+
+    def __init__(
+        self,
+        type,
+        python_value=None,
+        modifiers=None,
+    ):
+        if type not in self._allowed_lazy_types:
+            raise OpenAnIssueIfYouGetThisError(
+                f"Cannot create LazyRuntimeValue of type {type}"
+            )
+        super().__init__(type, modifiers=modifiers)
+        self._python_value = python_value
+        self._value: UnderlyingValue = None
+        self._subvalue_cache: Dict[Union[int, str], RuntimeValue] = {}
+
+    def produce(self, python_value):
+        if self.type == RuntimeValueType.Array:
+            return RuntimeValue._produce_array(python_value, lazy=True)
+        elif self.type == RuntimeValueType.Object:
+            return RuntimeValue._produce_object(python_value, lazy=True)
+        else:
+            raise OpenAnIssueIfYouGetThisError(
+                f"Cannot produce LazyRuntimeValue of type {self.type}"
+            )
+
+    @property
+    def value(self):
+        if self._value is None:
+            self._value = self.produce(self._python_value)
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+
+    def __len__(self):
+        # We don't need to evaluate the value to get the length
+        return len(self._python_value)
+
+    def access(self, string):
+        """
+        Access a string property of this value
+        """
+        if self.type == RuntimeValueType.Object and string in self._python_value:
+            # If we've already evaluated the value, we can just use the underlying value
+            if self._value is not None:
+                return self._value[string]
+            # Otherwise, we need to evaluate the value dynamically and cache it.
+            if string not in self._subvalue_cache:
+                self._subvalue_cache[string] = RuntimeValue.of(
+                    self._python_value[string], lazy=True
+                )
+            return self._subvalue_cache[string]
+        else:
+            return RuntimeValue(RuntimeValueType.Null)
+
+    def index(self, index: int, index_two: Optional[int] = None):
+        """
+        Access a numeric index of this value
+        """
+        if self.type != RuntimeValueType.Array:
+            return RuntimeValue(RuntimeValueType.Null)
+
+        # If we've already evaluated the value, we can just use the underlying value
+        if self._value is not None:
+            if index_two is None:
+                # If we extend lazy types to string, we'll need to wrap this in a RuntimeValue
+                # But until then, we're guaranteed that the value is already a RuntimeValue
+                return self._value[index]
+            else:
+                return RuntimeValue.of(self._value[index:index_two], lazy=True)
+
+        # Otherwise, we need to evaluate the value dynamically and cache it.
+        if index_two is None:
+            if index not in self._subvalue_cache:
+                self._subvalue_cache[index] = RuntimeValue.of(
+                    self._python_value[index], lazy=True
+                )
+            return self._subvalue_cache[index]
+        else:
+            # Slices are more complicated and less common
+            # Let's hold off on caching slices for now at higher granularity
+            # than just recomputing value.
+            return RuntimeValue.of(self.value[index:index_two], lazy=True)
+
+    def keys(self):
+        if self.type == RuntimeValueType.Object:
+            return list(self._python_value.keys())
+        else:
+            return []
+
+    def __repr__(self):
+        return f"<mistql {self.to_json(permissive=True)} lazy>"
+
+    def is_lazy(self) -> bool:
+        return True
 
 
 def assert_type(

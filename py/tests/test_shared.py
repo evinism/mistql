@@ -2,7 +2,7 @@ import json
 from typing import Any, List, Optional, Tuple
 
 import pytest
-from mistql import query
+from mistql import MistQLInstance
 
 with open("shared/testdata.json", "rb") as f:
     testdata = json.load(f)
@@ -48,15 +48,17 @@ def get_test_id_for_case(case: Case) -> str:
 
 
 @pytest.mark.parametrize("case", non_skipped_cases, ids=get_test_id_for_case)
-def test_shared(case: Case):
+@pytest.mark.parametrize("lazy", [True, False])
+def test_shared(case: Case, lazy: bool):
+    instance = MistQLInstance(lazy=lazy)
     for target_query, data, expected, expectedSet, throws in case[0]:
         if throws:
             with pytest.raises(Exception):
-                query(target_query, data)
+                instance.query(target_query, data)
         elif expectedSet:
-            assert query(target_query, data) in expectedSet
+            assert instance.query(target_query, data) in expectedSet
         else:
-            assert query(target_query, data) == expected
+            assert instance.query(target_query, data) == expected
 
 
 if len(skipped_cases) > 0:
