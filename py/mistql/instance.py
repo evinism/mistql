@@ -19,7 +19,7 @@ class MistQLInstance:
         self,
         extras: Optional[ExtrasDict] = None,
         parse_lru_cache_size: int = 4,
-        lazy: bool = True,
+        lazy: bool = False,
     ):
         self.extras = extras or {}
         self.parse_lru_cache_size = parse_lru_cache_size
