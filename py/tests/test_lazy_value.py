@@ -139,10 +139,8 @@ def test_resuse_full_value_when_already_evaluated_arrays(monkeypatch):
     assert of_mock.called == 4
 
     # But since it's computed, we shouldn't get any additional calls
-    # (Except with single calls, we under the hood do two additional calls
-    # to cover the case that it's a string, annoyingly)
     assert value.index(0) is value.index(0)
-    assert of_mock.called == 6
+    assert of_mock.called == 4
 
 
 def test_resuse_full_value_when_already_evaluated_object(monkeypatch):

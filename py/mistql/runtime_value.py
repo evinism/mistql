@@ -83,26 +83,18 @@ class RuntimeValue:
 
         # For lists and objects we optionally defer evaluation.
         elif isinstance(value, list) or isinstance(value, tuple):
-
-            def producer(value):
-                return [RuntimeValue.of(item, lazy) for item in value]
-
             if not lazy:
-                return RuntimeValue(RuntimeValueType.Array, producer(value))
+                return RuntimeValue(RuntimeValueType.Array, RuntimeValue._produce_array(value))
             else:
-                return LazyRuntimeValue(RuntimeValueType.Array, producer, value)
+                return LazyRuntimeValue(RuntimeValueType.Array, value)
         elif isinstance(value, dict):
-
-            def producer(value):
-                return {key: RuntimeValue.of(value[key], lazy) for key in value}
-
             if not lazy:
                 return RuntimeValue(
                     RuntimeValueType.Object,
-                    {key: RuntimeValue.of(value[key]) for key in value},
+                    RuntimeValue._produce_object(value),
                 )
             else:
-                return LazyRuntimeValue(RuntimeValueType.Object, producer, value)
+                return LazyRuntimeValue(RuntimeValueType.Object, value)
         elif (
             isinstance(value, date)
             or isinstance(value, datetime)
@@ -113,6 +105,20 @@ class RuntimeValue:
             raise ValueError(
                 "Cannot convert external type to MistQL type: " + str(type(value))
             )
+
+    @staticmethod
+    def _produce_array(python_value, lazy=False):
+        """
+        Produce an UnderlyingValue for an array from a Python value
+        """
+        return [RuntimeValue.of(item, lazy) for item in python_value]
+
+    @staticmethod
+    def _produce_object(python_value, lazy=False):
+        """
+        Produce an UnderlyingValue for an object from a Python value
+        """
+        return {key: RuntimeValue.of(value, lazy) for key, value in python_value.items()}
 
     @staticmethod
     def wrap_function_def(definition: Callable):
@@ -411,24 +417,33 @@ class RuntimeValue:
 
 
 class LazyRuntimeValue(RuntimeValue):
+    _allowed_lazy_types = {RuntimeValueType.Array, RuntimeValueType.Object}
+
     def __init__(
         self,
         type,
-        producer: Callable[[Any], RuntimeValue],
         python_value=None,
         modifiers=None,
     ):
+        if type not in self._allowed_lazy_types:
+            raise OpenAnIssueIfYouGetThisError(f"Cannot create LazyRuntimeValue of type {type}")
         super().__init__(type, modifiers=modifiers)
         self._python_value = python_value
-        # TODO: Should producer be externally provided, or intrinsic to the class?
-        self._producer = producer
         self._value: UnderlyingValue = None
         self._subvalue_cache: Dict[Union[int, str], RuntimeValue] = {}
+
+    def produce(self, python_value):
+        if self.type == RuntimeValueType.Array:
+            return RuntimeValue._produce_array(python_value, lazy=True)
+        elif self.type == RuntimeValueType.Object:
+            return RuntimeValue._produce_object(python_value, lazy=True)
+        else:
+            raise OpenAnIssueIfYouGetThisError(f"Cannot produce LazyRuntimeValue of type {self.type}")
 
     @property
     def value(self):
         if self._value is None:
-            self._value = self._producer(self._python_value)
+            self._value = self.produce(self._python_value)
         return self._value
 
     @value.setter
@@ -460,13 +475,15 @@ class LazyRuntimeValue(RuntimeValue):
         """
         Access a numeric index of this value
         """
-        if self.type != RuntimeValueType.Array and self.type != RuntimeValueType.String:
+        if self.type != RuntimeValueType.Array:
             return RuntimeValue(RuntimeValueType.Null)
 
         # If we've already evaluated the value, we can just use the underlying value
         if self._value is not None:
             if index_two is None:
-                return RuntimeValue.of(self._value[index], lazy=True)
+                # If we extend lazy types to string, we'll need to wrap this in a RuntimeValue
+                # But until then, we're guaranteed that the value is already a RuntimeValue
+                return self._value[index]
             else:
                 return RuntimeValue.of(self._value[index:index_two], lazy=True)
 
