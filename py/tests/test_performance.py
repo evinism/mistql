@@ -37,7 +37,7 @@ def test_performance():
     profiler.disable()
 
     # Print profiling results
-    s = io.StringIO()
-    ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
-    ps.print_stats()
+    ps = pstats.Stats(profiler)
     ps.dump_stats("profile.pstats")
+    ps.strip_dirs()
+    ps.sort_stats("cumulative").print_stats(20)
