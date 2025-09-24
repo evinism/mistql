@@ -41,12 +41,13 @@ impl MistQLRegex {
                 's' => {
                     regex_builder.dot_matches_new_line(true);
                 }
-                'x' => {
-                    regex_builder.ignore_whitespace(true);
-                }
-                'U' => {
-                    regex_builder.swap_greed(true);
-                }
+                // Not supported in the Javascript version, so we ignore these.
+                // 'x' => {
+                //     regex_builder.ignore_whitespace(true);
+                // }
+                // 'U' => {
+                //     regex_builder.swap_greed(true);
+                // }
                 _ => {
                     return Err(regex::Error::Syntax("Invalid flag".to_string()));
                 }
