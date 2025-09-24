@@ -1,7 +1,7 @@
 from typing import List, Mapping, Callable, Union, Dict
 from mistql.runtime_value import RuntimeValue
 from mistql.exceptions import MistQLReferenceError
-from typeguard import typechecked
+from mistql.typeguard_wrapper import typechecked
 
 StackFrame = Dict[str, RuntimeValue]
 Stack = List[StackFrame]

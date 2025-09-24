@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Dict, List, Union, Any
 from mistql.runtime_value import RuntimeValue
 
-from typeguard import typechecked
+from mistql.typeguard_wrapper import typechecked
 
 
 class ExpressionType(Enum):
