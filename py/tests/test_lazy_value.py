@@ -137,9 +137,12 @@ def test_resuse_full_value_when_already_evaluated_arrays(monkeypatch):
     assert of_mock.called == 1
     assert len(value.value) == 3  # This forces the full value to be evaluated
     assert of_mock.called == 4
+
     # But since it's computed, we shouldn't get any additional calls
+    # (Except with single calls, we under the hood do two additional calls
+    # to cover the case that it's a string, annoyingly)
     assert value.index(0) is value.index(0)
-    assert of_mock.called == 4
+    assert of_mock.called == 6
 
 
 def test_resuse_full_value_when_already_evaluated_object(monkeypatch):
@@ -160,7 +163,6 @@ def test_resuse_full_value_when_already_evaluated_object(monkeypatch):
     # But since it's computed, we shouldn't get any additional calls
     assert value.access("a") is value.access("a")
     assert of_mock.called == 4
-
 
 
 # Thrashing tests (because we have two different caches)

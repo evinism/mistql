@@ -37,7 +37,7 @@ e_zero_regex = re.compile(r"e-0+")
 # The .value attribute should be of this type
 # Union[float, bool, None, str, list[RuntimeValue], dict[str, RuntimeValue], Pattern, Callable]
 # Sadly, maintainting type inference isn't worth the effort.
-SubValue = Any
+UnderlyingValue = Any
 
 
 def format_number(value: float) -> str:
@@ -57,7 +57,7 @@ def format_number(value: float) -> str:
 
 
 class RuntimeValue:
-    value: SubValue
+    value: UnderlyingValue
     modifiers: Dict[str, Any]
     type: RuntimeValueType
 
@@ -402,9 +402,9 @@ class RuntimeValue:
         Access a numeric index of this value
         """
         if index_two is None:
-            return self.value[index]
+            return RuntimeValue.of(self.value[index])
         else:
-            return self.value[index:index_two]
+            return RuntimeValue.of(self.value[index:index_two])
 
     def is_lazy(self) -> bool:
         return False
@@ -421,7 +421,7 @@ class LazyRuntimeValue(RuntimeValue):
         super().__init__(type, modifiers=modifiers)
         self._python_value = python_value
         self._producer = producer
-        self._value: SubValue = None
+        self._value: UnderlyingValue = None
         self._subvalue_cache: Dict[Union[int, str], RuntimeValue] = {}
 
     @property
@@ -448,7 +448,7 @@ class LazyRuntimeValue(RuntimeValue):
                 return self._value[string]
             # Otherwise, we need to evaluate the value dynamically and cache it.
             if string not in self._subvalue_cache:
-                self._subvalue_cache[string] = self.of(
+                self._subvalue_cache[string] = RuntimeValue.of(
                     self._python_value[string], lazy=True
                 )
             return self._subvalue_cache[string]
@@ -459,24 +459,27 @@ class LazyRuntimeValue(RuntimeValue):
         """
         Access a numeric index of this value
         """
+        if self.type != RuntimeValueType.Array and self.type != RuntimeValueType.String:
+            return RuntimeValue(RuntimeValueType.Null)
+
         # If we've already evaluated the value, we can just use the underlying value
         if self._value is not None:
             if index_two is None:
-                return self._value[index]
+                return RuntimeValue.of(self._value[index], lazy=True)
             else:
-                return self._value[index:index_two]
+                return RuntimeValue.of(self._value[index:index_two], lazy=True)
 
         # Otherwise, we need to evaluate the value dynamically and cache it.
         if index_two is None:
             if index not in self._subvalue_cache:
-                self._subvalue_cache[index] = self.of(
+                self._subvalue_cache[index] = RuntimeValue.of(
                     self._python_value[index], lazy=True
                 )
             return self._subvalue_cache[index]
         else:
             # Slices are more complicated and less common
             # Let's hold off on caching slices for now.
-            return self.of(self._python_value[index:index_two], lazy=True)
+            return RuntimeValue.of(self._python_value[index:index_two], lazy=True)
 
     def keys(self):
         if self.type == RuntimeValueType.Object:

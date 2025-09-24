@@ -290,7 +290,7 @@ def _index_double(
         index_one_num = len(operand) + index_one_num
     if index_two_num < 0:
         index_two_num = len(operand) + index_two_num
-    return RuntimeValue.of(operand.index(int(index_one_num), int(index_two_num)))
+    return operand.index(int(index_one_num), int(index_two_num))
 
 
 def _index_single(index: RuntimeValue, operand: RuntimeValue):
@@ -303,7 +303,7 @@ def _index_single(index: RuntimeValue, operand: RuntimeValue):
             index_num = len(operand) + index_num
         if index_num < 0 or index_num >= len(operand):
             return RuntimeValue.of(None)
-        return RuntimeValue.of(operand.index(int(index_num)))
+        return operand.index(int(index_num))
     elif operand.type == RVT.Object:
         return operand.access(assert_type(index, RVT.String).value)
     elif operand.type == RVT.Null:
