@@ -420,6 +420,7 @@ class LazyRuntimeValue(RuntimeValue):
     ):
         super().__init__(type, modifiers=modifiers)
         self._python_value = python_value
+        # TODO: Should producer be externally provided, or intrinsic to the class?
         self._producer = producer
         self._value: UnderlyingValue = None
         self._subvalue_cache: Dict[Union[int, str], RuntimeValue] = {}
@@ -478,8 +479,9 @@ class LazyRuntimeValue(RuntimeValue):
             return self._subvalue_cache[index]
         else:
             # Slices are more complicated and less common
-            # Let's hold off on caching slices for now.
-            return RuntimeValue.of(self._python_value[index:index_two], lazy=True)
+            # Let's hold off on caching slices for now at higher granularity
+            # than just recomputing value.
+            return RuntimeValue.of(self.value[index:index_two], lazy=True)
 
     def keys(self):
         if self.type == RuntimeValueType.Object:
