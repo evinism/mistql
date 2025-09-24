@@ -34,7 +34,7 @@ jobs:
       - name: Install Python
         run: uv venv -p ${{ matrix.python-version }}
       - name: Install deps
-        run: uv pip install -e ".[dev]"
+        run: uv pip install -e . --group dev
       - name: Test
         run: uv run pytest --cov=mistql
       - name: Lint
