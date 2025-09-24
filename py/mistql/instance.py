@@ -16,9 +16,10 @@ class MistQLInstance:
     _cached_parse: Callable[[str], Any]
 
     def __init__(
-        self, extras: Optional[ExtrasDict] = None,
+        self,
+        extras: Optional[ExtrasDict] = None,
         parse_lru_cache_size: int = 4,
-        lazy: bool = True
+        lazy: bool = True,
     ):
         self.extras = extras or {}
         self.parse_lru_cache_size = parse_lru_cache_size
