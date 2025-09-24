@@ -19,7 +19,7 @@ from mistql.stack import (
 from mistql.expression import BaseExpression
 from mistql.exceptions import MistQLTypeError, OpenAnIssueIfYouGetThisError
 
-from typeguard import typechecked
+from mistql.typeguard_wrapper import typechecked
 
 
 @typechecked
