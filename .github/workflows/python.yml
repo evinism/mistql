@@ -13,7 +13,7 @@ jobs:
       run:
         working-directory: ./py
     env:
-      TYPEGUARD_ENABLED: 1
+      TYPEGUARD: 1
 
     strategy:
       fail-fast: false

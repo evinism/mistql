@@ -84,7 +84,9 @@ class RuntimeValue:
         # For lists and objects we optionally defer evaluation.
         elif isinstance(value, list) or isinstance(value, tuple):
             if not lazy:
-                return RuntimeValue(RuntimeValueType.Array, RuntimeValue._produce_array(value))
+                return RuntimeValue(
+                    RuntimeValueType.Array, RuntimeValue._produce_array(value)
+                )
             else:
                 return LazyRuntimeValue(RuntimeValueType.Array, value)
         elif isinstance(value, dict):
@@ -118,7 +120,9 @@ class RuntimeValue:
         """
         Produce an UnderlyingValue for an object from a Python value
         """
-        return {key: RuntimeValue.of(value, lazy) for key, value in python_value.items()}
+        return {
+            key: RuntimeValue.of(value, lazy) for key, value in python_value.items()
+        }
 
     @staticmethod
     def wrap_function_def(definition: Callable):
@@ -426,7 +430,9 @@ class LazyRuntimeValue(RuntimeValue):
         modifiers=None,
     ):
         if type not in self._allowed_lazy_types:
-            raise OpenAnIssueIfYouGetThisError(f"Cannot create LazyRuntimeValue of type {type}")
+            raise OpenAnIssueIfYouGetThisError(
+                f"Cannot create LazyRuntimeValue of type {type}"
+            )
         super().__init__(type, modifiers=modifiers)
         self._python_value = python_value
         self._value: UnderlyingValue = None
@@ -438,7 +444,9 @@ class LazyRuntimeValue(RuntimeValue):
         elif self.type == RuntimeValueType.Object:
             return RuntimeValue._produce_object(python_value, lazy=True)
         else:
-            raise OpenAnIssueIfYouGetThisError(f"Cannot produce LazyRuntimeValue of type {self.type}")
+            raise OpenAnIssueIfYouGetThisError(
+                f"Cannot produce LazyRuntimeValue of type {self.type}"
+            )
 
     @property
     def value(self):
