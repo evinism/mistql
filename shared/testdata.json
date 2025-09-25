@@ -332,6 +332,17 @@
                     "b": 2,
                     "c": 3
                   }
+                },
+                {
+                  "query": "{\"a\": {\"b\": {\"c\": 1}}}",
+                  "data": null,
+                  "expected": {
+                    "a": {
+                      "b": {
+                        "c": 1
+                      }
+                    }
+                  }
                 }
               ]
             }
@@ -357,6 +368,11 @@
                   "query": "!![]",
                   "data": null,
                   "expected": false
+                },
+                {
+                  "query": "!![1, 2, 3]",
+                  "data": null,
+                  "expected": true
                 },
                 {
                   "query": "!![0]",
@@ -425,6 +441,11 @@
                 },
                 {
                   "query": "[regex \"x\"]",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "$",
                   "data": null,
                   "throws": true
                 }
@@ -716,14 +737,14 @@
                 {
                   "query": "foo | values | values",
                   "data": {
-                    "foo": {"values": {}}
+                    "foo": { "values": {} }
                   },
                   "throws": true
                 },
                 {
                   "query": "foo | $.values | values",
                   "data": {
-                    "foo": {"values": {}}
+                    "foo": { "values": {} }
                   },
                   "expected": []
                 }
@@ -929,6 +950,11 @@
                   "throws": true
                 },
                 {
+                  "query": "string {\"a\": count}",
+                  "data": null,
+                  "throws": true
+                },
+                {
                   "query": "string (regex \"hi\")",
                   "data": null,
                   "throws": true
@@ -1055,6 +1081,11 @@
                 },
                 {
                   "query": "float [1]",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "float {\"a\": count}",
                   "data": null,
                   "throws": true
                 }
@@ -1351,6 +1382,46 @@
                   "expected": 10
                 }
               ]
+            },
+            {
+              "it": "fails to count non-arrays",
+              "assertions": [
+                {
+                  "query": "count {}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "count \"hi\"",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "count 1",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "count null",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "count {a: 1}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "count count",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "count (regex \"hi\")",
+                  "data": null,
+                  "throws": true
+                }
+              ]
             }
           ]
         },
@@ -1374,7 +1445,12 @@
                   "query": "sum [1, 2, 3, 4]",
                   "data": null,
                   "expected": 10
-                },
+                }
+              ]
+            },
+            {
+              "it": "fails to sum non-arrays and non-numbers",
+              "assertions": [
                 {
                   "query": "sum [1, 2, 3, \"4\"]",
                   "data": null,
@@ -1382,6 +1458,16 @@
                 },
                 {
                   "query": "sum {}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "sum (regex \"hi\")",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "sum {a: 1}",
                   "data": null,
                   "throws": true
                 }
@@ -1423,6 +1509,41 @@
                   "expected": [2, 3, 4]
                 }
               ]
+            },
+            {
+              "it": "fails to map non-arrays",
+              "assertions": [
+                {
+                  "query": "map @ + 1 {}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "map @ + 1 (regex \"hi\")",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "map @ + 1 {a: 1}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "map @ + 1 null",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "map @ + 1 count",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "map @ + 1 1.0",
+                  "data": null,
+                  "throws": true
+                }
+              ]
             }
           ]
         },
@@ -1436,6 +1557,21 @@
                   "query": "filter @ > 1 [1, 2, 3]",
                   "data": {},
                   "expected": [2, 3]
+                },
+                {
+                  "query": "filter false [1, 2, 3, 4]",
+                  "data": {},
+                  "expected": []
+                },
+                {
+                  "query": "filter true [1, 2, 3, 4]",
+                  "data": {},
+                  "expected": [1, 2, 3, 4]
+                },
+                {
+                  "query": "filter true []",
+                  "data": {},
+                  "expected": []
                 }
               ]
             },
@@ -1496,6 +1632,41 @@
                   ]
                 }
               ]
+            },
+            {
+              "it": "fails to filter non-arrays",
+              "assertions": [
+                {
+                  "query": "filter @ > 1 {}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "filter @ > 1 (regex \"hi\")",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "filter @ > 1 {a: 1}",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "allows truthy and falsy non-boolean values for predicate",
+              "assertions": [
+                {
+                  "query": "filter [] [1, 2, 3]",
+                  "data": null,
+                  "expected": []
+                },
+                {
+                  "query": "filter [2] [1, 2, 3]",
+                  "data": null,
+                  "expected": [1, 2, 3]
+                }
+              ]
             }
           ]
         },
@@ -1509,6 +1680,26 @@
                   "query": "reduce @[0] + @[1] 0 @",
                   "data": [1, 4, 5, 7, 8],
                   "expected": 25
+                }
+              ]
+            },
+            {
+              "it": "returns the initial value for empty arrays",
+              "assertions": [
+                {
+                  "query": "reduce @[0] + @[1] \"\" []",
+                  "data": null,
+                  "expected": ""
+                }
+              ]
+            },
+            {
+              "it": "fails to reduce non-arrays",
+              "assertions": [
+                {
+                  "query": "reduce @[0] + @[1] \"\" \"[1, 2, 3]\"",
+                  "data": null,
+                  "throws": true
                 }
               ]
             }
@@ -1549,6 +1740,11 @@
                   "query": "flatten [[1, 2], [3, 4]]",
                   "data": null,
                   "expected": [1, 2, 3, 4]
+                },
+                {
+                  "query": "flatten [[1, 2], [3, 4], [[5, 6]]]",
+                  "data": null,
+                  "expected": [1, 2, 3, 4, [5, 6]]
                 }
               ]
             },
@@ -1574,6 +1770,16 @@
                   "query": "flatten [1, 2, 3]",
                   "data": null,
                   "throws": true
+                },
+                {
+                  "query": "flatten {a: 1}",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "flatten (regex \"hi\")",
+                  "data": null,
+                  "throws": true
                 }
               ]
             }
@@ -1593,6 +1799,26 @@
                     "b": 3,
                     "c": 4
                   }
+                },
+                {
+                  "query": "mapvalues @ + 1 {}",
+                  "data": null,
+                  "expected": {}
+                }
+              ]
+            },
+            {
+              "it": "fails to map values non-objects",
+              "assertions": [
+                {
+                  "query": "mapvalues @ + 1 [1, 2, 3]",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "mapvalues @ + 1 (regex \"hi\")",
+                  "data": null,
+                  "throws": true
                 }
               ]
             }
@@ -1611,6 +1837,36 @@
                     "b": 2,
                     "c": 3
                   }
+                },
+                {
+                  "query": "filtervalues @ > 1 {}",
+                  "data": null,
+                  "expected": {}
+                }
+              ]
+            },
+            {
+              "it": "fails to filter values non-objects",
+              "assertions": [
+                {
+                  "query": "filtervalues @ > 1 [1, 2, 3]",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "allows truthy and falsy non-boolean values for predicate",
+              "assertions": [
+                {
+                  "query": "filtervalues [null] {}",
+                  "data": null,
+                  "expected": {}
+                },
+                {
+                  "query": "filtervalues [null] {a: 1, b: 2}",
+                  "data": null,
+                  "expected": { "a": 1, "b": 2 }
                 }
               ]
             }
@@ -1646,6 +1902,36 @@
                   }
                 }
               ]
+            },
+            {
+              "it": "fails to map keys non-objects",
+              "assertions": [
+                {
+                  "query": "mapkeys @ + \"suffix\" [1, 2, 3]",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "mapkeys @ + \"suffix\" (regex \"hi\")",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "mapkeys @ + \"suffix\" 1",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "mapkeys @ + \"suffix\" null",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "mapkeys @ + \"suffix\" \"hi\"",
+                  "data": null,
+                  "throws": true
+                }
+              ]
             }
           ]
         },
@@ -1661,6 +1947,36 @@
                   "expected": {
                     "c": 3
                   }
+                },
+                {
+                  "query": "filterkeys @ > \"b\" {}",
+                  "data": null,
+                  "expected": {}
+                }
+              ]
+            },
+            {
+              "it": "fails to filter keys non-objects",
+              "assertions": [
+                {
+                  "query": "filterkeys @ > \"b\" [1, 2, 3]",
+                  "data": null,
+                  "throws": true
+                }
+              ]
+            },
+            {
+              "it": "allows truthy and falsy non-boolean values for predicate",
+              "assertions": [
+                {
+                  "query": "filterkeys [null] {a: 1, b: 2}",
+                  "data": null,
+                  "expected": { "a": 1, "b": 2 }
+                },
+                {
+                  "query": "filterkeys [] {a: 1, b: 2}",
+                  "data": null,
+                  "expected": {}
                 }
               ]
             }
@@ -1706,6 +2022,26 @@
                   "query": "[1, 2] + [3, 4]",
                   "data": {},
                   "expected": [1, 2, 3, 4]
+                }
+              ]
+            },
+            {
+              "it": "fails when adding values of different types",
+              "assertions": [
+                {
+                  "query": "\"1\" + 2",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2] + 1",
+                  "data": null,
+                  "throws": true
+                },
+                {
+                  "query": "[1, 2] + \"3\"",
+                  "data": null,
+                  "throws": true
                 }
               ]
             }
@@ -1786,6 +2122,16 @@
                   "query": "1 % 2",
                   "data": {},
                   "expected": 1
+                }
+              ]
+            },
+            {
+              "it": "fails to modulo by zero",
+              "assertions": [
+                {
+                  "query": "1 % 0",
+                  "data": {},
+                  "throws": true
                 }
               ]
             }
@@ -2191,6 +2537,24 @@
                   "query": "find @ > 1 [1, 2, 3]",
                   "data": {},
                   "expected": 2
+                },
+                {
+                  "query": "find animal == \"cat\" @ | apply name",
+                  "data": [
+                    {
+                      "animal": "dog",
+                      "name": "Alfred"
+                    },
+                    {
+                      "animal": "cat",
+                      "name": "Millie"
+                    },
+                    {
+                      "animal": "cat",
+                      "name": "Mulberry"
+                    }
+                  ],
+                  "expected": "Millie"
                 }
               ]
             },
@@ -2201,6 +2565,41 @@
                   "query": "find @ > 4 [1, 2, 3]",
                   "data": {},
                   "expected": null
+                },
+                {
+                  "query": "find true []",
+                  "data": {},
+                  "expected": null
+                }
+              ]
+            },
+            {
+              "it": "fails to find non-arrays",
+              "assertions": [
+                {
+                  "query": "find @ > 1 {}",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "find @ > 1 (regex \"hi\")",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "find @ > 1 1",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "find @ > 1 null",
+                  "data": {},
+                  "throws": true
+                },
+                {
+                  "query": "find @ > 1 \"hi\"",
+                  "data": {},
+                  "throws": true
                 }
               ]
             }
@@ -3504,6 +3903,21 @@
                   "query": "\"hello\" == \"world\"",
                   "data": {},
                   "expected": false
+                },
+                {
+                  "query": "\"\" == \"\"",
+                  "data": {},
+                  "expected": true
+                },
+                {
+                  "query": "\"\" == \"a\"",
+                  "data": {},
+                  "expected": false
+                },
+                {
+                  "query": "\"abc\" == \"ac\"",
+                  "data": {},
+                  "expected": false
                 }
               ]
             },
@@ -3529,6 +3943,11 @@
                   "query": "1.0 == -1",
                   "data": {},
                   "expected": false
+                },
+                {
+                  "query": "1e50 == 1e50",
+                  "data": {},
+                  "expected": true
                 }
               ]
             },
@@ -3884,6 +4303,26 @@
                   "query": "(split \":\" @ | stringjoin \":\") == @",
                   "data": "hello:hi:cattt:",
                   "expected": true
+                }
+              ]
+            },
+            {
+              "it": "casts non-strings to strings",
+              "assertions": [
+                {
+                  "query": "stringjoin \" \" @",
+                  "data": [1, 2, 3],
+                  "expected": "1 2 3"
+                }
+              ]
+            },
+            {
+              "it": "fails to join non-arrays",
+              "assertions": [
+                {
+                  "query": "stringjoin \" \" {}",
+                  "data": {},
+                  "throws": true
                 }
               ]
             }
