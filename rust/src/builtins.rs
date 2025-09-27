@@ -6,24 +6,27 @@
 
 use crate::executor::{execute_contextualized_expression, execute_expression, ExecutionContext, ExecutionError};
 use crate::parser::Expression;
-use crate::types::RuntimeValue;
+use crate::types::{ValueView, ComputableValue};
 use std::collections::HashMap;
+use std::borrow::Cow;
+use serde_json::{Value, Map};
 
 // ============================================================================
 // GLOBAL BUILTINS
 // ============================================================================
 
-pub struct Builtin {
+#[derive(Debug, Clone)]
+pub struct Builtin<'a> {
     name: String,
-    runtime_value: RuntimeValue,
-    callable: fn(&[Expression], &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError>,
+    runtime_value: ValueView<'a>,
+    callable: fn(&[Expression], &mut ExecutionContext) -> Result<ValueView<'a>, ExecutionError>,
 }
 
-impl Builtin {
+impl<'a> Builtin<'a> {
     pub fn new(
         name: String,
-        runtime_value: RuntimeValue,
-        callable: fn(&[Expression], &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError>,
+        runtime_value: ValueView<'a>,
+        callable: fn(&[Expression], &mut ExecutionContext) -> Result<ValueView<'a>, ExecutionError>,
     ) -> Self {
         Self {
             name,
@@ -36,235 +39,90 @@ impl Builtin {
         &self.name
     }
 
-    pub fn runtime_value(&self) -> &RuntimeValue {
+    pub fn runtime_value(&self) -> &ValueView<'a> {
         &self.runtime_value
     }
 
-    pub fn call(&self, arguments: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+    pub fn call(&self, arguments: &[Expression], context: &mut ExecutionContext) -> Result<ValueView<'a>, ExecutionError> {
         (self.callable)(arguments, context)
     }
 }
 
-pub fn get_builtin(s: &str) -> Result<Builtin, ExecutionError> {
-    match s {
-        // Unary operators.
-        "!/unary" => Ok(Builtin::new(
-            "!/unary".to_string(),
-            RuntimeValue::Function("!/unary".to_string()),
-            not,
-        )),
-        "-/unary" => Ok(Builtin::new(
-            "-/unary".to_string(),
-            RuntimeValue::Function("-/unary".to_string()),
-            negate,
-        )),
+pub const BUILTIN_NAMES: HashMap<String, Builtin<'static>> = HashMap::from([
+    // Unary operators.
+    ("!/unary".to_string(), Builtin::new("!/unary".to_string(), ValueView::Function(Cow::Owned("!/unary".to_string())), not)),
+    ("-/unary".to_string(), Builtin::new("-/unary".to_string(), ValueView::Function(Cow::Owned("-/unary".to_string())), negate)),
 
-        // Binary operators.
-        "||" => Ok(Builtin::new("||".to_string(), RuntimeValue::Function("||".to_string()), or)),
-        "&&" => Ok(Builtin::new("&&".to_string(), RuntimeValue::Function("&&".to_string()), and)),
-        "==" => Ok(Builtin::new("==".to_string(), RuntimeValue::Function("==".to_string()), equal)),
-        "!=" => Ok(Builtin::new("!=".to_string(), RuntimeValue::Function("!=".to_string()), notequal)),
-        ">" => Ok(Builtin::new(">".to_string(), RuntimeValue::Function(">".to_string()), greaterthan)),
-        "<" => Ok(Builtin::new("<".to_string(), RuntimeValue::Function("<".to_string()), lessthan)),
-        ">=" => Ok(Builtin::new(
-            ">=".to_string(),
-            RuntimeValue::Function(">=".to_string()),
-            greaterthanorequal,
-        )),
-        "<=" => Ok(Builtin::new(
-            "<=".to_string(),
-            RuntimeValue::Function("<=".to_string()),
-            lessthanorequal,
-        )),
-        "=~" => Ok(Builtin::new(
-            "=~".to_string(),
-            RuntimeValue::Function("=~".to_string()),
-            regex_match,
-        )),
-        "+" => Ok(Builtin::new("+".to_string(), RuntimeValue::Function("+".to_string()), add_operator)),
-        "-" => Ok(Builtin::new(
-            "-".to_string(),
-            RuntimeValue::Function("-".to_string()),
-            subtract_operator,
-        )),
-        "*" => Ok(Builtin::new(
-            "*".to_string(),
-            RuntimeValue::Function("*".to_string()),
-            multiply_operator,
-        )),
-        "/" => Ok(Builtin::new(
-            "/".to_string(),
-            RuntimeValue::Function("/".to_string()),
-            divide_operator,
-        )),
-        "%" => Ok(Builtin::new(
-            "%".to_string(),
-            RuntimeValue::Function("%".to_string()),
-            modulo_operator,
-        )),
+    // Binary operators.
+    ("||".to_string(), Builtin::new("||".to_string(), ValueView::Function(Cow::Owned("||".to_string())), or)),
+    ("&&".to_string(), Builtin::new("&&".to_string(), ValueView::Function(Cow::Owned("&&".to_string())), and)),
+    ("==".to_string(), Builtin::new("==".to_string(), ValueView::Function(Cow::Owned("==".to_string())), equal)),
+    ("!=".to_string(), Builtin::new("!=".to_string(), ValueView::Function(Cow::Owned("!=".to_string())), notequal)),
+    (">".to_string(), Builtin::new(">".to_string(), ValueView::Function(Cow::Owned(">".to_string())), greaterthan)),
+    ("<".to_string(), Builtin::new("<".to_string(), ValueView::Function(Cow::Owned("<".to_string())), lessthan)),
+    (">=".to_string(), Builtin::new(">=".to_string(), ValueView::Function(Cow::Owned(">=".to_string())), greaterthanorequal)),
+    ("<=".to_string(), Builtin::new("<=".to_string(), ValueView::Function(Cow::Owned("<=".to_string())), lessthanorequal)),
+    ("=~".to_string(), Builtin::new("=~".to_string(), ValueView::Function(Cow::Owned("=~".to_string())), regex_match)),
+    ("+".to_string(), Builtin::new("+".to_string(), ValueView::Function(Cow::Owned("+".to_string())), add_operator)),
+    ("-".to_string(), Builtin::new("-".to_string(), ValueView::Function(Cow::Owned("-".to_string())), subtract_operator)),
+    ("*".to_string(), Builtin::new("*".to_string(), ValueView::Function(Cow::Owned("*".to_string())), multiply_operator)),
+    ("/".to_string(), Builtin::new("/".to_string(), ValueView::Function(Cow::Owned("/".to_string())), divide_operator)),
+    ("%".to_string(), Builtin::new("%".to_string(), ValueView::Function(Cow::Owned("%".to_string())), modulo_operator)),
 
-        // Utility functions.
-        "log" => Ok(Builtin::new("log".to_string(), RuntimeValue::Function("log".to_string()), log)),
-        "if" => Ok(Builtin::new(
-            "if".to_string(),
-            RuntimeValue::Function("if".to_string()),
-            if_function,
-        )),
-        "apply" => Ok(Builtin::new(
-            "apply".to_string(),
-            RuntimeValue::Function("apply".to_string()),
-            apply,
-        )),
+    // Utility functions.
+    ("log".to_string(), Builtin::new("log".to_string(), ValueView::Function(Cow::Owned("log".to_string())), log)),
+    ("if".to_string(), Builtin::new("if".to_string(), ValueView::Function(Cow::Owned("if".to_string())), if_function)),
+    ("apply".to_string(), Builtin::new("apply".to_string(), ValueView::Function(Cow::Owned("apply".to_string())), apply)),
 
-        // Array operations.
-        "count" => Ok(Builtin::new(
-            "count".to_string(),
-            RuntimeValue::Function("count".to_string()),
-            count,
-        )),
-        "filter" => Ok(Builtin::new(
-            "filter".to_string(),
-            RuntimeValue::Function("filter".to_string()),
-            filter,
-        )),
-        "map" => Ok(Builtin::new("map".to_string(), RuntimeValue::Function("map".to_string()), map)),
-        "find" => Ok(Builtin::new("find".to_string(), RuntimeValue::Function("find".to_string()), find)),
-        "reverse" => Ok(Builtin::new(
-            "reverse".to_string(),
-            RuntimeValue::Function("reverse".to_string()),
-            reverse,
-        )),
-        "flatten" => Ok(Builtin::new(
-            "flatten".to_string(),
-            RuntimeValue::Function("flatten".to_string()),
-            flatten,
-        )),
-        "sum" => Ok(Builtin::new("sum".to_string(), RuntimeValue::Function("sum".to_string()), sum)),
-        "sort" => Ok(Builtin::new("sort".to_string(), RuntimeValue::Function("sort".to_string()), sort)),
-        "sortby" => Ok(Builtin::new(
-            "sortby".to_string(),
-            RuntimeValue::Function("sortby".to_string()),
-            sortby,
-        )),
-        "reduce" => Ok(Builtin::new(
-            "reduce".to_string(),
-            RuntimeValue::Function("reduce".to_string()),
-            reduce,
-        )),
-        "groupby" => Ok(Builtin::new(
-            "groupby".to_string(),
-            RuntimeValue::Function("groupby".to_string()),
-            groupby,
-        )),
-        "withindices" => Ok(Builtin::new(
-            "withindices".to_string(),
-            RuntimeValue::Function("withindices".to_string()),
-            withindices,
-        )),
-        "sequence" => Ok(Builtin::new(
-            "sequence".to_string(),
-            RuntimeValue::Function("sequence".to_string()),
-            sequence,
-        )),
+    // Array operations.
+    ("count".to_string(), Builtin::new("count".to_string(), ValueView::Function(Cow::Owned("count".to_string())), count)),
+    ("filter".to_string(), Builtin::new("filter".to_string(), ValueView::Function(Cow::Owned("filter".to_string())), filter)),
+    ("map".to_string(), Builtin::new("map".to_string(), ValueView::Function(Cow::Owned("map".to_string())), map)),
+    ("find".to_string(), Builtin::new("find".to_string(), ValueView::Function(Cow::Owned("find".to_string())), find)),
+    ("reverse".to_string(), Builtin::new("reverse".to_string(), ValueView::Function(Cow::Owned("reverse".to_string())), reverse)),
+    ("flatten".to_string(), Builtin::new("flatten".to_string(), ValueView::Function(Cow::Owned("flatten".to_string())), flatten)),
+    ("sum".to_string(), Builtin::new("sum".to_string(), ValueView::Function(Cow::Owned("sum".to_string())), sum)),
+    ("sort".to_string(), Builtin::new("sort".to_string(), ValueView::Function(Cow::Owned("sort".to_string())), sort)),
+    ("sortby".to_string(), Builtin::new("sortby".to_string(), ValueView::Function(Cow::Owned("sortby".to_string())), sortby)),
+    ("reduce".to_string(), Builtin::new("reduce".to_string(), ValueView::Function(Cow::Owned("reduce".to_string())), reduce)),
+    ("groupby".to_string(), Builtin::new("groupby".to_string(), ValueView::Function(Cow::Owned("groupby".to_string())), groupby)),
+    ("withindices".to_string(), Builtin::new("withindices".to_string(), ValueView::Function(Cow::Owned("withindices".to_string())), withindices)),
+    ("sequence".to_string(), Builtin::new("sequence".to_string(), ValueView::Function(Cow::Owned("sequence".to_string())), sequence)),
 
-        // Object operations.
-        "keys" => Ok(Builtin::new("keys".to_string(), RuntimeValue::Function("keys".to_string()), keys)),
-        "values" => Ok(Builtin::new(
-            "values".to_string(),
-            RuntimeValue::Function("values".to_string()),
-            values,
-        )),
-        "entries" => Ok(Builtin::new(
-            "entries".to_string(),
-            RuntimeValue::Function("entries".to_string()),
-            entries,
-        )),
-        "fromentries" => Ok(Builtin::new(
-            "fromentries".to_string(),
-            RuntimeValue::Function("fromentries".to_string()),
-            fromentries,
-        )),
-        "mapkeys" => Ok(Builtin::new(
-            "mapkeys".to_string(),
-            RuntimeValue::Function("mapkeys".to_string()),
-            mapkeys,
-        )),
-        "mapvalues" => Ok(Builtin::new(
-            "mapvalues".to_string(),
-            RuntimeValue::Function("mapvalues".to_string()),
-            mapvalues,
-        )),
-        "filterkeys" => Ok(Builtin::new(
-            "filterkeys".to_string(),
-            RuntimeValue::Function("filterkeys".to_string()),
-            filterkeys,
-        )),
-        "filtervalues" => Ok(Builtin::new(
-            "filtervalues".to_string(),
-            RuntimeValue::Function("filtervalues".to_string()),
-            filtervalues,
-        )),
+    // Object operations.
+    ("keys".to_string(), Builtin::new("keys".to_string(), ValueView::Function(Cow::Owned("keys".to_string())), keys)),
+    ("values".to_string(), Builtin::new("values".to_string(), ValueView::Function(Cow::Owned("values".to_string())), values)),
+    ("entries".to_string(), Builtin::new("entries".to_string(), ValueView::Function(Cow::Owned("entries".to_string())), entries)),
+    ("fromentries".to_string(), Builtin::new("fromentries".to_string(), ValueView::Function(Cow::Owned("fromentries".to_string())), fromentries)),
+    ("mapkeys".to_string(), Builtin::new("mapkeys".to_string(), ValueView::Function(Cow::Owned("mapkeys".to_string())), mapkeys)),
+    ("mapvalues".to_string(), Builtin::new("mapvalues".to_string(), ValueView::Function(Cow::Owned("mapvalues".to_string())), mapvalues)),
+    ("filterkeys".to_string(), Builtin::new("filterkeys".to_string(), ValueView::Function(Cow::Owned("filterkeys".to_string())), filterkeys)),
+    ("filtervalues".to_string(), Builtin::new("filtervalues".to_string(), ValueView::Function(Cow::Owned("filtervalues".to_string())), filtervalues)),
 
-        // String operations.
-        "split" => Ok(Builtin::new(
-            "split".to_string(),
-            RuntimeValue::Function("split".to_string()),
-            split,
-        )),
-        "stringjoin" => Ok(Builtin::new(
-            "stringjoin".to_string(),
-            RuntimeValue::Function("stringjoin".to_string()),
-            stringjoin,
-        )),
-        "replace" => Ok(Builtin::new(
-            "replace".to_string(),
-            RuntimeValue::Function("replace".to_string()),
-            replace,
-        )),
-        "match" => Ok(Builtin::new(
-            "match".to_string(),
-            RuntimeValue::Function("match".to_string()),
-            match_function,
-        )),
-        "regex" => Ok(Builtin::new(
-            "regex".to_string(),
-            RuntimeValue::Function("regex".to_string()),
-            regex,
-        )),
+    // String operations.
+    ("split".to_string(), Builtin::new("split".to_string(), ValueView::Function(Cow::Owned("split".to_string())), split)),
+    ("stringjoin".to_string(), Builtin::new("stringjoin".to_string(), ValueView::Function(Cow::Owned("stringjoin".to_string())), stringjoin)),
+    ("replace".to_string(), Builtin::new("replace".to_string(), ValueView::Function(Cow::Owned("replace".to_string())), replace)),
+    ("match".to_string(), Builtin::new("match".to_string(), ValueView::Function(Cow::Owned("match".to_string())), match_function)),
+    ("regex".to_string(), Builtin::new("regex".to_string(), ValueView::Function(Cow::Owned("regex".to_string())), regex)),
 
-        // Mathematical functions.
-        "range" => Ok(Builtin::new(
-            "range".to_string(),
-            RuntimeValue::Function("range".to_string()),
-            range,
-        )),
-        "summarize" => Ok(Builtin::new(
-            "summarize".to_string(),
-            RuntimeValue::Function("summarize".to_string()),
-            summarize,
-        )),
+    // Mathematical functions.
+    ("range".to_string(), Builtin::new("range".to_string(), ValueView::Function(Cow::Owned("range".to_string())), range)),
+    ("summarize".to_string(), Builtin::new("summarize".to_string(), ValueView::Function(Cow::Owned("summarize".to_string())), summarize)),
 
-        // Indexing.
-        "index" => Ok(Builtin::new(
-            "index".to_string(),
-            RuntimeValue::Function("index".to_string()),
-            index,
-        )),
+    // Indexing.
+    ("index".to_string(), Builtin::new("index".to_string(), ValueView::Function(Cow::Owned("index".to_string())), index)),
 
-        // Type conversion.
-        "string" => Ok(Builtin::new(
-            "string".to_string(),
-            RuntimeValue::Function("string".to_string()),
-            string,
-        )),
-        "float" => Ok(Builtin::new(
-            "float".to_string(),
-            RuntimeValue::Function("float".to_string()),
-            float,
-        )),
+    // Type conversion.
+    ("string".to_string(), Builtin::new("string".to_string(), ValueView::Function(Cow::Owned("string".to_string())), string)),
+    ("float".to_string(), Builtin::new("float".to_string(), ValueView::Function(Cow::Owned("float".to_string())), float)),
 
-        _ => Err(ExecutionError::Custom(format!("Unknown builtin function: {}", s))),
-    }
+    // Dot operator.
+    (".".to_string(), Builtin::new(".".to_string(), ValueView::Function(Cow::Owned(".".to_string())), dot_operator)),
+]);
+
+pub fn get_builtin<'a>(s: &str) -> Result<Builtin<'a>, ExecutionError> {
+    BUILTIN_NAMES.get(s).cloned().ok_or(ExecutionError::Custom(format!("Builtin not found: {}", s)))
 }
 
 // Check if a function name conflicts with stock builtins
@@ -272,65 +130,12 @@ pub fn is_stock_builtin(name: &str) -> bool {
     get_builtin(name).is_ok()
 }
 
-pub const BUILTIN_NAMES: [&str; 50] = [
-    "!/unary",
-    "-/unary",
-    "||",
-    "&&",
-    "==",
-    "!=",
-    ">",
-    "<",
-    ">=",
-    "<=",
-    "=~",
-    "+",
-    "-",
-    "*",
-    "/",
-    "%",
-    "log",
-    "if",
-    "apply",
-    "count",
-    "filter",
-    "map",
-    "find",
-    "reverse",
-    "flatten",
-    "sum",
-    "sort",
-    "sortby",
-    "reduce",
-    "groupby",
-    "withindices",
-    "sequence",
-    "keys",
-    "values",
-    "entries",
-    "fromentries",
-    "mapkeys",
-    "mapvalues",
-    "filterkeys",
-    "filtervalues",
-    "split",
-    "stringjoin",
-    "replace",
-    "match",
-    "regex",
-    "range",
-    "summarize",
-    "index",
-    "string",
-    "float",
-];
-
 // ============================================================================
 // CUSTOM FUNCTION REGISTRY
 // ============================================================================
 
 // Custom function signature - matches builtin functions
-pub type CustomFunction = fn(&[Expression], &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError>;
+pub type CustomFunction<'a> = fn(&[Expression], &mut ExecutionContext) -> Result<ValueView<'a>, ExecutionError>;
 
 // Metadata for custom functions
 #[derive(Debug, Clone)]
@@ -343,12 +148,11 @@ pub struct FunctionMetadata {
 
 // Registry for custom functions
 #[derive(Debug, Clone)]
-pub struct CustomFunctionRegistry {
-    pub functions: HashMap<String, CustomFunction>,
+pub struct CustomFunctionRegistry<'a> {
+    pub functions: HashMap<String, CustomFunction<'a>>,
     metadata: HashMap<String, FunctionMetadata>,
 }
-
-impl CustomFunctionRegistry {
+impl<'a> CustomFunctionRegistry<'a> {
     pub fn new() -> Self {
         Self {
             functions: HashMap::new(),
@@ -356,7 +160,7 @@ impl CustomFunctionRegistry {
         }
     }
 
-    pub fn register_function(&mut self, name: String, function: CustomFunction, metadata: FunctionMetadata) -> Result<(), ExecutionError> {
+    pub fn register_function(&mut self, name: String, function: CustomFunction<'a>, metadata: FunctionMetadata) -> Result<(), ExecutionError> {
         // Check for conflicts with stock builtins
         if is_stock_builtin(&name) {
             return Err(ExecutionError::Custom(format!(
@@ -370,7 +174,7 @@ impl CustomFunctionRegistry {
         Ok(())
     }
 
-    pub fn execute(&self, name: &str, args: &[Expression], context: &mut ExecutionContext) -> Option<Result<RuntimeValue, ExecutionError>> {
+    pub fn execute(&self, name: &str, args: &[Expression], context: &mut ExecutionContext) -> Option<Result<ValueView<'a>, ExecutionError>> {
         self.functions.get(name).map(|function| function(args, context))
     }
 
@@ -401,33 +205,33 @@ pub fn validate_args(name: &str, args: &[Expression], min_args: usize, max_args:
 }
 
 // Assert that a value is a number and return it.
-pub fn assert_number(value: RuntimeValue) -> Result<f64, ExecutionError> {
-    match value {
-        RuntimeValue::Number(n) => Ok(n),
+pub fn assert_number(value: &ValueView<'_>) -> Result<f64, ExecutionError> {
+    match value.as_computable() {
+        Ok(ComputableValue::Number(n)) => Ok(n),
         _ => Err(ExecutionError::TypeMismatch(format!("Expected number, got {}", value.get_type()))),
     }
 }
 
 // Assert that a value is an array and return it.
-pub fn assert_array(value: RuntimeValue) -> Result<Vec<RuntimeValue>, ExecutionError> {
-    match value {
-        RuntimeValue::Array(arr) => Ok(arr),
+pub fn assert_array<'s, 'a>(value: &'s ValueView<'a>) -> Result<&'s [Value], ExecutionError> {
+    match value.as_computable() {
+        Ok(ComputableValue::Array(arr)) => Ok(arr),
         _ => Err(ExecutionError::TypeMismatch(format!("Expected array, got {}", value.get_type()))),
     }
 }
 
 // Assert that a value is an object and return it.
-pub fn assert_object(value: RuntimeValue) -> Result<HashMap<String, RuntimeValue>, ExecutionError> {
-    match value {
-        RuntimeValue::Object(obj) => Ok(obj),
-        _ => Err(ExecutionError::TypeMismatch(format!("Expected object, got {}", value.get_type()))),
+pub fn assert_object<'s, 'a>(value: &'s ValueView<'a>) -> Result<&'s Map<String, Value>, ExecutionError> {
+    match value.as_computable() {
+        Ok(ComputableValue::Object(obj)) => Ok(obj),
+        _ => Err(ExecutionError::TypeMismatch(format!("Expected array, got {}", value.get_type()))),
     }
 }
 
 // Assert that a value is a string and return it.
-pub fn assert_string(value: RuntimeValue) -> Result<String, ExecutionError> {
-    match value {
-        RuntimeValue::String(s) => Ok(s),
+pub fn assert_string(value: &ValueView<'_>) -> Result<String, ExecutionError> {
+    match value.as_computable() {
+        Ok(ComputableValue::String(s)) => Ok(s),
         _ => Err(ExecutionError::TypeMismatch(format!("Expected string, got {}", value.get_type()))),
     }
 }
@@ -436,10 +240,10 @@ pub fn assert_string(value: RuntimeValue) -> Result<String, ExecutionError> {
 // UNARY OPERATORS
 // ============================================================================
 
-pub fn not(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+pub fn not(args: &[Expression], context: &mut ExecutionContext) -> Result<ValueView<'_>, ExecutionError> {
     validate_args("!/unary", args, 1, Some(1))?;
     let value = execute_expression(&args[0], context)?;
-    Ok(RuntimeValue::Boolean(!value.truthy()))
+    Ok(ValueView::from(ComputableValue::Boolean(!value.truthy())))
 }
 
 pub fn negate(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
@@ -1666,7 +1470,7 @@ fn index_double(start: RuntimeValue, end: RuntimeValue, operand: RuntimeValue) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::RuntimeValueType;
+    use crate::types::MistQLValueType;
 
     fn create_test_context() -> ExecutionContext {
         let data = RuntimeValue::Object({
@@ -2113,7 +1917,7 @@ mod tests {
             for entry in arr {
                 if let RuntimeValue::Array(pair) = entry {
                     assert_eq!(pair.len(), 2);
-                    assert_eq!(pair[0].get_type(), RuntimeValueType::String);
+                    assert_eq!(pair[0].get_type(), MistQLValueType::String);
                 } else {
                     panic!("Expected array pair");
                 }
@@ -2351,7 +2155,7 @@ mod tests {
         ];
 
         let result = regex(&args, &mut context).unwrap();
-        assert_eq!(result.get_type(), RuntimeValueType::Regex);
+        assert_eq!(result.get_type(), MistQLValueType::Regex);
     }
 
     // ============================================================================

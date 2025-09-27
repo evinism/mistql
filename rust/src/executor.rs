@@ -5,21 +5,21 @@
 
 use crate::builtins::{is_stock_builtin, CustomFunction, CustomFunctionRegistry, FunctionMetadata};
 use crate::parser::Expression;
-use crate::types::RuntimeValue;
+use crate::types::{ValueView, ComputableValue};
 use std::collections::HashMap;
+use std::borrow::Cow;
 
 // A single frame in the execution stack containing variable bindings.
-pub type StackFrame = HashMap<String, RuntimeValue>;
+pub type StackFrame<'a> = HashMap<String, ValueView<'a>>;
 
 // The execution stack containing nested variable scopes.
-pub type ExecutionStack = Vec<StackFrame>;
+pub type ExecutionStack<'a> = Vec<StackFrame<'a>>;
 
 // Execution context containing the stack, custom functions, and root data.
 #[derive(Debug, Clone)]
-pub struct ExecutionContext {
-    stack: ExecutionStack,
+pub struct ExecutionContext<'a> {
+    stack: ExecutionStack<'a>,
     custom_functions: CustomFunctionRegistry,
-    root_data: RuntimeValue,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -27,10 +27,11 @@ pub enum ExecutionError {
     VariableNotFound(String),
     NotCallable(String),
     TypeMismatch(String),
+    CannotCompare(String),
     DivisionByZero,
     InvalidOperation(String),
     CannotConvertToJSON(String),
-    CannotConvertToRuntimeValue(String),
+    CannotConvertToComputableValue(String),
     Custom(String),
 }
 
@@ -44,10 +45,11 @@ impl std::fmt::Display for ExecutionError {
                 actual_type
             ),
             ExecutionError::TypeMismatch(msg) => write!(f, "Type mismatch: {}", msg),
+            ExecutionError::CannotCompare(msg) => write!(f, "Cannot compare: {}", msg),
             ExecutionError::DivisionByZero => write!(f, "Division by zero"),
             ExecutionError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
             ExecutionError::CannotConvertToJSON(msg) => write!(f, "Cannot convert to JSON: {}", msg),
-            ExecutionError::CannotConvertToRuntimeValue(msg) => write!(f, "Cannot convert to RuntimeValue: {}", msg),
+            ExecutionError::CannotConvertToComputableValue(msg) => write!(f, "Cannot convert to ComputableValue: {}", msg),
             ExecutionError::Custom(msg) => write!(f, "{}", msg),
         }
     }
@@ -55,23 +57,22 @@ impl std::fmt::Display for ExecutionError {
 
 impl std::error::Error for ExecutionError {}
 
-impl ExecutionContext {
-    pub fn new(data: RuntimeValue) -> Self {
+impl<'a> ExecutionContext<'a> {
+    pub fn new(data: ValueView<'a>) -> Self {
         let mut context = Self {
             stack: Vec::new(),
             custom_functions: CustomFunctionRegistry::new(),
-            root_data: data.clone(),
         };
 
         context.build_initial_stack(data);
         context
     }
 
-    pub fn with_builtins(data: RuntimeValue) -> Self {
+    pub fn with_builtins(data: ValueView<'a>) -> Self {
         Self::new(data)
     }
 
-    pub fn with_custom_functions(data: RuntimeValue, custom_functions: CustomFunctionRegistry) -> Self {
+    pub fn with_custom_functions(data: ValueView<'a>, custom_functions: CustomFunctionRegistry) -> Self {
         let mut context = Self::new(data);
         context.custom_functions = custom_functions;
         context
@@ -92,7 +93,7 @@ impl ExecutionContext {
         self.custom_functions.has_function(name)
     }
 
-    fn build_initial_stack(&mut self, data: RuntimeValue) {
+    fn build_initial_stack(&mut self, data: ValueView<'a>) {
         // Frame 0: $ variable containing the root data and builtin functions
         let mut dollar_frame = HashMap::new();
         dollar_frame.insert("@".to_string(), data.clone());
@@ -101,26 +102,23 @@ impl ExecutionContext {
         for builtin_name in crate::builtins::BUILTIN_NAMES.iter() {
             let builtin = crate::builtins::get_builtin(builtin_name).unwrap();
 
-            dollar_frame.insert(builtin.name().to_string(), builtin.runtime_value().clone());
+            dollar_frame.insert(builtin.name().to_string(), ValueView::from(builtin.runtime_value().clone()));
         }
 
         let mut functions_frame = HashMap::new();
-        functions_frame.insert("$".to_string(), RuntimeValue::Object(dollar_frame));
+        functions_frame.insert("$".to_string(), ValueView::from(dollar_frame));
         self.stack.push(functions_frame);
-
-        // Frame 1: Data context (object keys become variables).
-        self.push_context(data);
     }
 
-    pub fn push_context(&mut self, value: RuntimeValue) {
+    pub fn push_context(&mut self, value: ValueView<'a>) {
         let mut new_frame = HashMap::new();
 
         // Always add @ variable.
         new_frame.insert("@".to_string(), value.clone());
 
         // If the value is an object, populate keys as variables.
-        if let RuntimeValue::Object(obj) = &value {
-            for (key, val) in obj {
+        if let ValueView::Json(obj) = &value {
+            for (key, val) in obj.iter_object().unwrap() {
                 if is_valid_identifier(key) {
                     new_frame.insert(key.clone(), val.clone());
                 }
@@ -131,6 +129,7 @@ impl ExecutionContext {
     }
 
     pub fn pop_context(&mut self) -> Result<(), ExecutionError> {
+        // TODO: Does this need to be updated, since we removed builtins?
         if self.stack.len() <= 2 {
             return Err(ExecutionError::Custom("Cannot pop initial stack frames".to_string()));
         }
@@ -139,7 +138,7 @@ impl ExecutionContext {
     }
 
     // Find a variable in the execution stack.
-    pub fn find_variable(&self, name: &str, absolute: bool) -> Result<RuntimeValue, ExecutionError> {
+    pub fn find_variable(&self, name: &'a str, absolute: bool) -> Result<ValueView<'a>, ExecutionError> {
         if absolute {
             // For absolute references (like $), only search in the first frame.
             if let Some(frame) = self.stack.first() {
@@ -158,29 +157,25 @@ impl ExecutionContext {
 
         // If not found in stack, check custom functions
         if self.custom_functions.has_function(name) {
-            return Ok(RuntimeValue::Function(name.to_string()));
+            return Ok(ValueView::Function(Cow::Borrowed(name)));
         }
 
         // Finally, check if it's a stock builtin
         if is_stock_builtin(name) {
-            return Ok(RuntimeValue::Function(name.to_string()));
+            return Ok(ValueView::Function(Cow::Borrowed(name)));
         }
 
         Err(ExecutionError::VariableNotFound(name.to_string()))
     }
 
     // Get the current @ context value.
-    pub fn get_current_context(&self) -> Result<&RuntimeValue, ExecutionError> {
+    pub fn get_current_context(&self) -> Result<&ValueView<'a>, ExecutionError> {
         for frame in self.stack.iter().rev() {
             if let Some(value) = frame.get("@") {
                 return Ok(value);
             }
         }
         Err(ExecutionError::VariableNotFound("@".to_string()))
-    }
-
-    pub fn get_root_data(&self) -> &RuntimeValue {
-        &self.root_data
     }
 
     pub fn stack_depth(&self) -> usize {
@@ -206,7 +201,7 @@ fn is_valid_identifier(s: &str) -> bool {
     chars.all(|c| c.is_alphanumeric() || c == '_')
 }
 
-pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
     match expr {
         Expression::ValueExpression { value } => Ok(value.clone()),
         Expression::RefExpression { name, absolute } => context.find_variable(name, *absolute),
@@ -222,7 +217,7 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> 
 // Helper function to execute an expression in a contextualized way
 // If the expression is a function reference, it creates a function call with @ as argument
 // Otherwise, it evaluates the expression directly
-pub fn execute_contextualized_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+pub fn execute_contextualized_expression(expr: &Expression, context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
     match expr {
         Expression::RefExpression { name, absolute } => {
             // Check if this is a function reference
@@ -249,7 +244,7 @@ pub fn execute_contextualized_expression(expr: &Expression, context: &mut Execut
     }
 }
 
-fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_array(items: &[Expression], context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
     let mut result = Vec::new();
     for item in items {
         let value = execute_expression(item, context)?;
@@ -260,7 +255,7 @@ fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result
 
 fn execute_object(
     entries: &std::collections::HashMap<String, Expression>,
-    context: &mut ExecutionContext,
+    context: &mut ExecutionContext<'a>,
 ) -> Result<RuntimeValue, ExecutionError> {
     let mut result = std::collections::HashMap::new();
     for (key, expr) in entries {
@@ -273,7 +268,7 @@ fn execute_object(
 fn execute_function_call(
     function: &Expression,
     arguments: &[Expression],
-    context: &mut ExecutionContext,
+    context: &mut ExecutionContext<'a>,
 ) -> Result<RuntimeValue, ExecutionError> {
     let func_value = execute_expression(function, context)?;
 
@@ -298,7 +293,7 @@ fn execute_function_call(
     }
 }
 
-fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
     if stages.is_empty() {
         return Err(ExecutionError::Custom("Empty pipeline".to_string()));
     }
@@ -373,7 +368,7 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
     Ok(data)
 }
 
-fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
     let obj_value = execute_expression(object, context)?;
 
     match obj_value {
@@ -393,10 +388,10 @@ fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionC
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::RuntimeValueType;
+    use crate::types::MistQLValueType;
     use std::collections::HashMap;
 
-    fn create_test_context() -> ExecutionContext {
+    fn create_test_context() -> ExecutionContext<'a> {
         let data = RuntimeValue::Object({
             let mut map = HashMap::new();
             map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
@@ -404,13 +399,13 @@ mod tests {
             map
         });
 
-        ExecutionContext::new(data)
+        ExecutionContext<'a>::new(data)
     }
 
     #[test]
     fn test_execution_context_creation() {
         let data = RuntimeValue::String("test".to_string());
-        let context = ExecutionContext::new(data.clone());
+        let context = ExecutionContext<'a>::new(data.clone());
 
         assert_eq!(context.get_root_data(), &data);
         assert!(context.stack_depth() >= 2); // builtins+$ and data frames
@@ -422,7 +417,7 @@ mod tests {
 
         // Test @ variable
         let at_value = context.find_variable("@", false).unwrap();
-        assert_eq!(at_value.get_type(), RuntimeValueType::Object);
+        assert_eq!(at_value.get_type(), MistQLValueType::Object);
 
         // Test object key variables
         let name_value = context.find_variable("name", false).unwrap();
@@ -538,7 +533,7 @@ mod execution_tests {
     use super::*;
     use std::collections::HashMap;
 
-    fn create_test_context() -> ExecutionContext {
+    fn create_test_context() -> ExecutionContext<'a> {
         let data = RuntimeValue::Object({
             let mut map = HashMap::new();
             map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
@@ -554,7 +549,7 @@ mod execution_tests {
             map
         });
 
-        ExecutionContext::with_builtins(data)
+        ExecutionContext<'a>::with_builtins(data)
     }
 
     #[test]
@@ -933,7 +928,7 @@ mod execution_tests {
             }),
         ]);
 
-        let mut context = ExecutionContext::with_builtins(data);
+        let mut context = ExecutionContext<'a>::with_builtins(data);
 
         // Test filter with contextualized expressions: filter (@.age > 26) @
         let condition = Expression::function_call(
@@ -985,7 +980,7 @@ mod execution_tests {
             }),
         ]);
 
-        let mut context = ExecutionContext::with_builtins(data);
+        let mut context = ExecutionContext<'a>::with_builtins(data);
 
         // Test map with contextualized expressions: map @.name @
         let transformation = Expression::DotAccessExpression {
@@ -1015,7 +1010,7 @@ mod custom_function_tests {
     use super::*;
     use std::collections::HashMap;
 
-    fn create_test_context() -> ExecutionContext {
+    fn create_test_context() -> ExecutionContext<'a> {
         let data = RuntimeValue::Object({
             let mut map = HashMap::new();
             map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
@@ -1031,7 +1026,7 @@ mod custom_function_tests {
             map
         });
 
-        ExecutionContext::with_builtins(data)
+        ExecutionContext<'a>::with_builtins(data)
     }
 
     #[test]
@@ -1039,7 +1034,7 @@ mod custom_function_tests {
         let mut context = create_test_context();
 
         // Define a custom function that doubles a number
-        fn custom_double(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        fn custom_double(args: &[Expression], context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
             crate::builtins::validate_args("custom_double", args, 1, Some(1))?;
             let value = execute_expression(&args[0], context)?;
 
@@ -1081,7 +1076,7 @@ mod custom_function_tests {
         let mut context = create_test_context();
 
         // Define a custom function that adds 10 to a number
-        fn add_ten(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        fn add_ten(args: &[Expression], context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
             crate::builtins::validate_args("add_ten", args, 1, Some(1))?;
             let value = execute_expression(&args[0], context)?;
 
@@ -1124,7 +1119,7 @@ mod custom_function_tests {
     fn test_custom_function_conflict_with_stock_builtin() {
         let mut context = create_test_context();
 
-        fn dummy_function(_args: &[Expression], _context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        fn dummy_function(_args: &[Expression], _context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
             Ok(RuntimeValue::Null)
         }
 
@@ -1168,7 +1163,7 @@ mod custom_function_tests {
         let mut context = create_test_context();
 
         // Define a custom function that squares a number
-        fn square(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        fn square(args: &[Expression], context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
             crate::builtins::validate_args("square", args, 1, Some(1))?;
             let value = execute_expression(&args[0], context)?;
 

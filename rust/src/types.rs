@@ -6,8 +6,39 @@
 use crate::executor::ExecutionError;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
+use std::rc::Rc;
+
+// The 8 core MistQL types
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum MistQLValueType {
+    Null,
+    Boolean,
+    Number,
+    String,
+    Object,
+    Array,
+    Function,
+    Regex,
+}
+
+impl fmt::Display for MistQLValueType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MistQLValueType::Null => write!(f, "null"),
+            MistQLValueType::Boolean => write!(f, "boolean"),
+            MistQLValueType::Number => write!(f, "number"),
+            MistQLValueType::String => write!(f, "string"),
+            MistQLValueType::Object => write!(f, "object"),
+            MistQLValueType::Array => write!(f, "array"),
+            MistQLValueType::Function => write!(f, "function"),
+            MistQLValueType::Regex => write!(f, "regex"),
+        }
+    }
+}
 
 // Custom regex wrapper that implements Serialize/Deserialize/
 #[derive(Debug, Clone)]
@@ -140,230 +171,245 @@ impl<'de> Deserialize<'de> for MistQLRegex {
     }
 }
 
-// The 8 core MistQL types
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum RuntimeValueType {
-    Null,
-    Boolean,
-    Number,
-    String,
-    Object,
-    Array,
-    Function,
-    Regex,
+pub enum Accessor<'a> {
+    Key(&'a str),
+    Index(usize),
 }
-
-impl fmt::Display for RuntimeValueType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RuntimeValueType::Null => write!(f, "null"),
-            RuntimeValueType::Boolean => write!(f, "boolean"),
-            RuntimeValueType::Number => write!(f, "number"),
-            RuntimeValueType::String => write!(f, "string"),
-            RuntimeValueType::Object => write!(f, "object"),
-            RuntimeValueType::Array => write!(f, "array"),
-            RuntimeValueType::Function => write!(f, "function"),
-            RuntimeValueType::Regex => write!(f, "regex"),
-        }
+impl<'a> From<&'a str> for Accessor<'a> {
+    fn from(key: &'a str) -> Self {
+        Accessor::Key(key)
+    }
+}
+impl<'a> From<usize> for Accessor<'a> {
+    fn from(index: usize) -> Self {
+        Accessor::Index(index)
     }
 }
 
-// MistQL runtime value representing all possible data types
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum RuntimeValue {
-    Null,
-    Boolean(bool),
-    Number(f64),
-    String(String),
-    Object(HashMap<String, RuntimeValue>),
-    Array(Vec<RuntimeValue>),
-    Function(String),
-    Regex(MistQLRegex),
+#[derive(Debug, Clone)]
+pub enum JsonView<'a> {
+    Borrowed(&'a Value),
+    Owned(Rc<Value>),
 }
 
-impl RuntimeValue {
-    pub fn get_type(&self) -> RuntimeValueType {
+impl<'a> JsonView<'a> {
+    pub fn as_value(&self) -> &Value {
         match self {
-            RuntimeValue::Null => RuntimeValueType::Null,
-            RuntimeValue::Boolean(_) => RuntimeValueType::Boolean,
-            RuntimeValue::Number(_) => RuntimeValueType::Number,
-            RuntimeValue::String(_) => RuntimeValueType::String,
-            RuntimeValue::Object(_) => RuntimeValueType::Object,
-            RuntimeValue::Array(_) => RuntimeValueType::Array,
-            RuntimeValue::Function(_) => RuntimeValueType::Function,
-            RuntimeValue::Regex(_) => RuntimeValueType::Regex,
+            JsonView::Borrowed(value) => value,
+            JsonView::Owned(value) => value.as_ref(),
+        }
+    }
+
+    pub fn get<'s, A>(&'s self, accessor: A) -> Option<JsonView<'s>>
+    where
+        A: Into<Accessor<'s>>,
+    {
+        match accessor.into() {
+            Accessor::Key(k) => self.as_value().get(k).map(JsonView::from),
+            Accessor::Index(i) => self.as_value().get(i).map(JsonView::from),
+        }
+    }
+    pub fn keys(&self) -> Vec<&str> {
+        self.as_value().as_object().unwrap().keys().map(|k| k.as_str()).collect()
+    }
+    pub fn iter_object(&self) -> Option<impl '_ + Iterator<Item = (&str, JsonView<'_>)>> {
+        self.as_value()
+            .as_object()
+            .map(|m: &Map<String, Value>| m.iter().map(|(k, v)| (k.as_str(), JsonView::from(v))))
+    }
+    pub fn iter_array(&self) -> Option<impl '_ + Iterator<Item = JsonView<'_>>> {
+        self.as_value().as_array().map(|arr: &Vec<Value>| arr.iter().map(JsonView::from))
+    }
+    pub fn to_owned_value(&self) -> Value {
+        self.as_value().clone()
+    }
+}
+impl<'a> From<&'a Value> for JsonView<'a> {
+    fn from(value: &'a Value) -> Self {
+        JsonView::Borrowed(value)
+    }
+}
+impl<'a> From<Value> for JsonView<'a> {
+    fn from(value: Value) -> Self {
+        JsonView::Owned(Rc::new(value))
+    }
+}
+impl<'a> fmt::Display for JsonView<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.as_value().fmt(f)
+    }
+}
+impl<'a> PartialEq for JsonView<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        ValueView::from(self).as_computable().unwrap() == ValueView::from(other).as_computable().unwrap()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ValueView<'a> {
+    Json(JsonView<'a>),
+    Function(Cow<'a, str>),
+    Regex(&'a MistQLRegex),
+}
+impl<'a> ValueView<'a> {
+    pub fn as_json(&self) -> Option<&JsonView<'a>> {
+        if let ValueView::Json(json) = self {
+            Some(json)
+        } else {
+            None
+        }
+    }
+    pub fn as_value(&self) -> Option<&Value> {
+        if let ValueView::Json(json) = self {
+            Some(json.as_value())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_type(&self) -> MistQLValueType {
+        match self {
+            ValueView::Json(json) => match json.as_value() {
+                Value::Null => MistQLValueType::Null,
+                Value::Bool(_) => MistQLValueType::Boolean,
+                Value::Number(_) => MistQLValueType::Number,
+                Value::String(_) => MistQLValueType::String,
+                Value::Array(_) => MistQLValueType::Array,
+                Value::Object(_) => MistQLValueType::Object,
+            },
+            ValueView::Function(_) => MistQLValueType::Function,
+            ValueView::Regex(_) => MistQLValueType::Regex,
         }
     }
 
     pub fn truthy(&self) -> bool {
         match self {
-            RuntimeValue::Null => false,
-            RuntimeValue::Boolean(b) => *b,
-            RuntimeValue::Number(n) => *n != 0.0,
-            RuntimeValue::String(s) => !s.is_empty(),
-            RuntimeValue::Object(o) => !o.is_empty(),
-            RuntimeValue::Array(a) => !a.is_empty(),
-            RuntimeValue::Function(_) => true,
-            RuntimeValue::Regex(_) => true,
+            ValueView::Json(json) => match json.as_value() {
+                Value::Null => false,
+                Value::Bool(b) => *b,
+                Value::Number(n) => n.as_f64().unwrap() != 0.0,
+                Value::String(s) => !s.is_empty(),
+                Value::Array(arr) => !arr.is_empty(),
+                Value::Object(obj) => !obj.is_empty(),
+            },
+            ValueView::Function(_) => true,
+            ValueView::Regex(_) => true,
         }
     }
 
     pub fn comparable(&self) -> bool {
-        matches!(self, RuntimeValue::Boolean(_) | RuntimeValue::Number(_) | RuntimeValue::String(_))
-    }
-}
-
-impl fmt::Display for RuntimeValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: lol.
-        // Always use permissive mode for display to ensure graceful output
-        match self.to_serde_value(true) {
-            Ok(value) => value.fmt(f),
-            // Should never happen, but just in case.
-            Err(_) => write!(f, "non-external"),
-        }
-    }
-}
-
-impl PartialEq for RuntimeValue {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (RuntimeValue::Null, RuntimeValue::Null) => true,
-            (RuntimeValue::Boolean(a), RuntimeValue::Boolean(b)) => a == b,
-            (RuntimeValue::Number(a), RuntimeValue::Number(b)) => a == b,
-            (RuntimeValue::String(a), RuntimeValue::String(b)) => a == b,
-            (RuntimeValue::Object(a), RuntimeValue::Object(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for (key, value) in a {
-                    if let Some(other_value) = b.get(key) {
-                        if value != other_value {
-                            return false;
-                        }
-                    } else {
-                        return false;
-                    }
-                }
-                true
-            }
-            (RuntimeValue::Array(a), RuntimeValue::Array(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                a.iter().zip(b.iter()).all(|(a, b)| a == b)
-            }
-            (RuntimeValue::Function(a), RuntimeValue::Function(b)) => a == b, // Referential equality
-            (RuntimeValue::Regex(a), RuntimeValue::Regex(b)) => a.pattern() == b.pattern() && a.flags() == b.flags(),
-            _ => false,
-        }
-    }
-}
-
-impl Eq for RuntimeValue {}
-
-impl RuntimeValue {
-    pub fn to_serde_value(&self, permissive: bool) -> Result<serde_json::Value, ExecutionError> {
         match self {
-            RuntimeValue::Null => Ok(serde_json::Value::Null),
-            RuntimeValue::Boolean(b) => Ok(serde_json::Value::Bool(*b)),
-            RuntimeValue::Number(n) => match serde_json::Number::from_f64(*n) {
-                Some(number) => Ok(serde_json::Value::Number(number)),
-                None => Err(ExecutionError::CannotConvertToJSON(format!("float conversion failed on {}", n))),
+            ValueView::Json(json) => match json.as_value() {
+                Value::Null => false,
+                Value::Bool(_) => true,
+                Value::Number(_) => true,
+                Value::String(_) => true,
+                Value::Array(_) => true,
+                Value::Object(_) => true,
             },
-            RuntimeValue::String(s) => Ok(serde_json::Value::String(s.clone())),
-            RuntimeValue::Array(arr) => {
-                let mut result = Vec::new();
-                for v in arr {
-                    result.push(v.to_serde_value(permissive)?);
-                }
-                Ok(serde_json::Value::Array(result))
-            }
-            RuntimeValue::Object(obj) => {
-                let mut map = serde_json::Map::new();
-                for (key, value) in obj {
-                    map.insert(key.clone(), value.to_serde_value(permissive)?);
-                }
-                Ok(serde_json::Value::Object(map))
-            }
-            RuntimeValue::Function(_) => {
-                if permissive {
-                    Ok(serde_json::Value::String("[function]".to_string()))
-                } else {
-                    Err(ExecutionError::CannotConvertToJSON("function in non-permissive mode".to_string()))
-                }
-            }
-            RuntimeValue::Regex(_) => {
-                if permissive {
-                    Ok(serde_json::Value::String("[regex]".to_string()))
-                } else {
-                    Err(ExecutionError::CannotConvertToJSON("regex in non-permissive mode".to_string()))
-                }
-            }
+            ValueView::Function(_) => false,
+            ValueView::Regex(_) => false,
         }
-    }
-
-    pub fn to_serde_value_default(&self) -> Result<serde_json::Value, ExecutionError> {
-        self.to_serde_value(false)
     }
 
     // Compare two values for ordering (<, >, <=, >=)
-    pub fn compare(&self, other: &Self) -> Result<std::cmp::Ordering, String> {
+    pub fn compare(&self, other: &Self) -> Result<std::cmp::Ordering, ExecutionError> {
         if self.get_type() != other.get_type() {
-            return Err("Cannot compare MistQL values of different types".to_string());
+            return Err(ExecutionError::CannotCompare(
+                "Cannot compare MistQL values of different types".to_string(),
+            ));
         }
-
         if !self.comparable() {
-            return Err(format!("Cannot compare MistQL values of type {}", self.get_type()));
+            return Err(ExecutionError::CannotCompare(format!(
+                "Cannot compare MistQL values of type {}",
+                self.get_type()
+            )));
         }
+        match (self.as_computable().unwrap(), other.as_computable().unwrap()) {
+            (ComputableValue::Boolean(a), ComputableValue::Boolean(b)) => Ok(a.cmp(&b)),
+            (ComputableValue::Number(a), ComputableValue::Number(b)) => a
+                .partial_cmp(&b)
+                .ok_or_else(|| ExecutionError::CannotCompare("Invalid number comparison".to_string())),
+            (ComputableValue::String(a), ComputableValue::String(b)) => Ok(a.cmp(&b)),
+            _ => Err(ExecutionError::TypeMismatch(format!(
+                "Cannot compare MistQL values of type {}",
+                self.get_type()
+            ))),
+        }
+    }
 
-        match (self, other) {
-            (RuntimeValue::Boolean(a), RuntimeValue::Boolean(b)) => Ok(a.cmp(b)),
-            (RuntimeValue::Number(a), RuntimeValue::Number(b)) => a.partial_cmp(b).ok_or_else(|| "Invalid number comparison".to_string()),
-            (RuntimeValue::String(a), RuntimeValue::String(b)) => Ok(a.cmp(b)),
-            _ => Err(format!("Cannot compare MistQL values of type {}", self.get_type())),
+    pub fn as_computable<'s>(&'s self) -> Result<ComputableValue<'s>, ExecutionError> {
+        match self {
+            ValueView::Json(json) => match json.as_value() {
+                Value::Null => Ok(ComputableValue::Null),
+                Value::Bool(b) => Ok(ComputableValue::Boolean(*b)),
+                Value::Number(n) => {
+                    match n.as_f64() {
+                        Some(f) => Ok(ComputableValue::Number(f)),
+                        // Going against the docs, see comment:
+                        // https://www.mistql.com/docs/reference/types
+                        // Likely the original decision was because JSON does not support NaN or Infinity.
+                        None => Err(ExecutionError::CannotConvertToComputableValue(
+                            "encountered a non-f64 number".to_string(),
+                        )),
+                    }
+                }
+                Value::String(s) => Ok(ComputableValue::String(s.clone())),
+                Value::Array(_) => Ok(ComputableValue::Array(json.as_value().as_array().unwrap())),
+                Value::Object(_) => Ok(ComputableValue::Object(json.as_value().as_object().unwrap())),
+            },
+            ValueView::Function(name) => Ok(ComputableValue::Function(name.to_string())),
+            ValueView::Regex(regex) => Ok(ComputableValue::Regex(regex)),
         }
     }
 
     // Convert to string for serialization (use escape characters)
     pub fn to_string_serialize(&self) -> String {
-        match self {
+        let computable = self.as_computable().unwrap();
+        match computable {
             // Needs JavaScript-like number formatting for MistQL compatibility
-            RuntimeValue::Number(n) => self.format_number_as_string(*n),
+            ComputableValue::Number(n) => self.format_number_as_string(n),
             // Needs string-escaping for serialization
-            RuntimeValue::String(s) => format!("\"{}\"", s),
-            RuntimeValue::Array(arr) => {
-                let items: Vec<String> = arr.iter().map(|v| v.to_string_serialize()).collect();
+            ComputableValue::String(s) => format!("\"{}\"", s),
+            ComputableValue::Array(arr) => {
+                let items: Vec<String> = arr.iter().map(|v| ValueView::from(v).to_string_serialize()).collect();
                 format!("[{}]", items.join(","))
             }
-            RuntimeValue::Object(obj) => {
-                let items: Vec<String> = obj.iter().map(|(k, v)| format!("\"{}\":{}", k, v.to_string_serialize())).collect();
+            ComputableValue::Object(obj) => {
+                let items: Vec<String> = obj
+                    .iter()
+                    .map(|(k, v)| format!("\"{}\":{}", k, ValueView::from(v).to_string_serialize()))
+                    .collect();
                 format!("{{{}}}", items.join(","))
             }
-            RuntimeValue::Null => "null".to_string(),
-            RuntimeValue::Boolean(b) => b.to_string(),
-            RuntimeValue::Function(_) => "[function]".to_string(),
-            RuntimeValue::Regex(_) => "[regex]".to_string(),
+            ComputableValue::Null => "null".to_string(),
+            ComputableValue::Boolean(b) => b.to_string(),
+            ComputableValue::Function(_) => "[function]".to_string(),
+            ComputableValue::Regex(_) => "[regex]".to_string(),
         }
     }
 
     // Convert to string for display (don't use escape characters)
     pub fn to_string_display(&self) -> String {
-        match self {
-            RuntimeValue::String(s) => s.clone(),
-            RuntimeValue::Number(n) => self.format_number_as_string(*n),
-            RuntimeValue::Boolean(b) => b.to_string(),
-            RuntimeValue::Null => "null".to_string(),
-            RuntimeValue::Array(arr) => {
-                let items: Vec<String> = arr.iter().map(|v| v.to_string_display()).collect();
+        let computable = self.as_computable().unwrap();
+        match computable {
+            ComputableValue::String(s) => s.clone(),
+            ComputableValue::Number(n) => self.format_number_as_string(n),
+            ComputableValue::Boolean(b) => b.to_string(),
+            ComputableValue::Null => "null".to_string(),
+            ComputableValue::Array(arr) => {
+                let items: Vec<String> = arr.iter().map(|v| ValueView::from(v).to_string_display()).collect();
                 format!("[{}]", items.join(","))
             }
-            RuntimeValue::Object(obj) => {
-                let items: Vec<String> = obj.iter().map(|(k, v)| format!("\"{}\":{}", k, v.to_string_display())).collect();
+            ComputableValue::Object(obj) => {
+                let items: Vec<String> = obj
+                    .iter()
+                    .map(|(k, v)| format!("\"{}\":{}", k, ValueView::from(v).to_string_display()))
+                    .collect();
                 format!("{{{}}}", items.join(","))
             }
-            RuntimeValue::Function(_) => "[function]".to_string(),
-            RuntimeValue::Regex(_) => "[regex]".to_string(),
+            ComputableValue::Function(_) => "[function]".to_string(),
+            ComputableValue::Regex(_) => "[regex]".to_string(),
         }
     }
 
@@ -397,68 +443,146 @@ impl RuntimeValue {
             trimmed.to_string()
         }
     }
-
-    // Access object property
-    pub fn access(&self, key: &str) -> RuntimeValue {
+}
+impl<'a> From<JsonView<'a>> for ValueView<'a> {
+    fn from(json: JsonView<'a>) -> Self {
+        ValueView::Json(json)
+    }
+}
+impl<'a> From<&'a JsonView<'a>> for ValueView<'a> {
+    fn from(json: &'a JsonView<'a>) -> Self {
+        ValueView::Json(json.clone())
+    }
+}
+impl<'a> From<&'a MistQLRegex> for ValueView<'a> {
+    fn from(regex: &'a MistQLRegex) -> Self {
+        ValueView::Regex(regex)
+    }
+}
+impl<'a> From<&'a Value> for ValueView<'a> {
+    fn from(value: &'a Value) -> Self {
+        ValueView::Json(JsonView::from(value))
+    }
+}
+impl<'a> From<Value> for ValueView<'a> {
+    fn from(value: Value) -> Self {
+        ValueView::Json(JsonView::from(value))
+    }
+}
+impl<'a> From<bool> for ValueView<'a> {
+    fn from(b: bool) -> Self {
+        ValueView::from(Value::Bool(b))
+    }
+}
+impl<'a> From<f64> for ValueView<'a> {
+    fn from(n: f64) -> Self {
+        ValueView::from(Value::from(n))
+    }
+}
+impl<'a> From<String> for ValueView<'a> {
+    fn from(s: String) -> Self {
+        ValueView::from(Value::from(s))
+    }
+}
+impl<'a> From<&'a str> for ValueView<'a> {
+    fn from(s: &'a str) -> Self {
+        ValueView::from(Value::from(s))
+    }
+}
+impl<'a> From<&'a Vec<Value>> for ValueView<'a> {
+    fn from(arr: &'a Vec<Value>) -> Self {
+        ValueView::from(Value::Array(arr.clone()))
+    }
+}
+impl<'a> From<&'a Map<String, Value>> for ValueView<'a> {
+    fn from(obj: &'a Map<String, Value>) -> Self {
+        ValueView::from(Value::Object(obj.clone()))
+    }
+}
+impl<'a> From<&'a ComputableValue<'a>> for ValueView<'a> {
+    fn from(c: ComputableValue<'a>) -> Self {
+        match c {
+            ComputableValue::Null => ValueView::from(Value::Null),
+            ComputableValue::Boolean(b) => ValueView::from(b),
+            ComputableValue::Number(n) => ValueView::from(n),
+            ComputableValue::String(s) => ValueView::from(s),
+            ComputableValue::Array(arr) => ValueView::from(arr),
+            ComputableValue::Object(obj) => ValueView::from(obj),
+            ComputableValue::Function(s) => ValueView::Function(Cow::Borrowed(&s)),
+            ComputableValue::Regex(regex) => ValueView::Regex(regex),
+        }
+    }
+}
+impl<'a> From<HashMap<String, ValueView<'a>>> for ValueView<'a> {
+    fn from(obj: HashMap<String, ValueView<'a>>) -> Self {
+        let a = obj.into_iter().map(|(k, v)| (k, v.as_value().unwrap().clone()));
+        let o = Value::from_iter(a);
+        ValueView::Json(JsonView::from(o))
+    }
+}
+impl<'a> fmt::Display for ValueView<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeValue::Object(obj) => obj.get(key).cloned().unwrap_or(RuntimeValue::Null),
-            _ => RuntimeValue::Null,
-        }
-    }
-
-    // Get object keys
-    pub fn keys(&self) -> Vec<String> {
-        match self {
-            RuntimeValue::Object(obj) => obj.keys().cloned().collect(),
-            _ => Vec::new(),
+            ValueView::Json(json) => json.as_value().fmt(f),
+            ValueView::Function(name) => write!(f, "{}", name),
+            ValueView::Regex(regex) => write!(f, "{}", regex.pattern()),
         }
     }
 }
+impl<'a> PartialEq for ValueView<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_computable().unwrap() == other.as_computable().unwrap()
+    }
+}
 
-impl TryFrom<&serde_json::Value> for RuntimeValue {
-    type Error = ExecutionError;
+#[derive(Debug, Clone)]
+pub enum ComputableValue<'a> {
+    Null,
+    Boolean(bool),
+    Number(f64),
+    String(String),
+    Array(&'a Vec<Value>),
+    Object(&'a Map<String, Value>),
+    Function(String),
+    Regex(&'a MistQLRegex),
+}
 
-    fn try_from(value: &serde_json::Value) -> Result<Self, Self::Error> {
-        match value {
-            serde_json::Value::Null => Ok(RuntimeValue::Null),
-            serde_json::Value::Bool(b) => Ok(RuntimeValue::Boolean(*b)),
-            serde_json::Value::Number(n) => {
-                match n.as_f64() {
-                    Some(f) => Ok(RuntimeValue::Number(f)),
-                    // Going against the docs, see comment:
-                    // https://www.mistql.com/docs/reference/types
-                    // Likely the original decision was because JSON does not support NaN or Infinity.
-                    None => Err(ExecutionError::CannotConvertToRuntimeValue(
-                        "number in non-permissive mode".to_string(),
-                    )),
+impl<'a> PartialEq for ComputableValue<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (ComputableValue::Null, ComputableValue::Null) => true,
+            (ComputableValue::Boolean(a), ComputableValue::Boolean(b)) => a == b,
+            (ComputableValue::Number(a), ComputableValue::Number(b)) => a == b,
+            (ComputableValue::String(a), ComputableValue::String(b)) => a == b,
+            (ComputableValue::Array(a), ComputableValue::Array(b)) => {
+                if a.len() != b.len() {
+                    return false;
                 }
+                a.iter().zip(b.iter()).all(|(a, b)| ValueView::from(a) == ValueView::from(b))
             }
-            serde_json::Value::String(s) => Ok(RuntimeValue::String(s.clone())),
-            serde_json::Value::Array(arr) => {
-                let values = arr
-                    .iter()
-                    .map(TryFrom::try_from)
-                    .collect::<Result<Vec<RuntimeValue>, ExecutionError>>()?;
-                Ok(RuntimeValue::Array(values))
-            }
-            serde_json::Value::Object(obj) => {
-                let mut map = HashMap::new();
-                for (key, value) in obj {
-                    map.insert(key.clone(), TryFrom::try_from(value)?);
+            (ComputableValue::Object(a), ComputableValue::Object(b)) => {
+                if a.len() != b.len() {
+                    return false;
                 }
-                Ok(RuntimeValue::Object(map))
+                for (key, value) in a.iter() {
+                    if let Some(other_value) = b.get(key) {
+                        if ValueView::from(value) != ValueView::from(other_value) {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+                true
             }
+            (ComputableValue::Function(a), ComputableValue::Function(b)) => a == b,
+            (ComputableValue::Regex(a), ComputableValue::Regex(b)) => a.pattern() == b.pattern() && a.flags() == b.flags(),
+            _ => false,
         }
     }
 }
 
-impl TryFrom<serde_json::Value> for RuntimeValue {
-    type Error = ExecutionError;
-
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
-        TryFrom::try_from(&value)
-    }
-}
+impl<'a> Eq for ComputableValue<'a> {}
 
 #[cfg(test)]
 mod tests {
@@ -466,301 +590,142 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn test_runtime_value_creation() {
-        // Test null
-        let null_val = RuntimeValue::Null;
-        assert_eq!(null_val.get_type(), RuntimeValueType::Null);
-        assert!(!null_val.truthy());
-
-        // Test boolean
-        let bool_val = RuntimeValue::Boolean(true);
-        assert_eq!(bool_val.get_type(), RuntimeValueType::Boolean);
-        assert!(bool_val.truthy());
-
-        // Test number
-        let num_val = RuntimeValue::Number(42.0);
-        assert_eq!(num_val.get_type(), RuntimeValueType::Number);
-        assert!(num_val.truthy());
-
-        // Test string
-        let str_val = RuntimeValue::String("hello".to_string());
-        assert_eq!(str_val.get_type(), RuntimeValueType::String);
-        assert!(str_val.truthy());
-
-        // Test empty string
-        let empty_str = RuntimeValue::String("".to_string());
-        assert!(!empty_str.truthy());
-    }
-
-    #[test]
-    fn test_serde_conversion() {
+    fn test_value_view_creation() {
         let json_val = json!({
-            "name": "John",
+            "name": "John🚀🌟",
             "age": 30,
             "active": true,
-            "scores": [1, 2, 3]
+            "scores": [1, 2, 3, 5.0, 42.0, -10.5, 0.0],
+            "null": null,
+            "object": {
+                "key": "value"
+            }
         });
 
-        let runtime_val: RuntimeValue = (&json_val).try_into().unwrap();
-        assert_eq!(runtime_val.get_type(), RuntimeValueType::Object);
-
-        let back_to_json = runtime_val.to_serde_value_default().unwrap();
+        let runtime_val = ValueView::from(&json_val);
+        assert_eq!(runtime_val.get_type(), MistQLValueType::Object);
+        let runtime_name = runtime_val.as_json().unwrap().get_key("name").unwrap();
+        let runtime_active = runtime_val.as_json().unwrap().get_key("active").unwrap();
+        let runtime_scores = runtime_val.as_json().unwrap().get_key("scores").unwrap();
+        let runtime_null = runtime_val.as_json().unwrap().get_key("null").unwrap();
+        let runtime_object = runtime_val.as_json().unwrap().get_key("object").unwrap();
 
         // Test that the conversion preserves the structure and values
-        assert_eq!(back_to_json["name"], json_val["name"]);
-        assert_eq!(back_to_json["active"], json_val["active"]);
-
-        // For numbers, we need to handle the precision difference
-        if let (Some(back_age), Some(orig_age)) = (back_to_json["age"].as_f64(), json_val["age"].as_f64()) {
-            assert_eq!(back_age, orig_age);
-        } else {
-            panic!("Age conversion failed");
-        }
+        assert_eq!(runtime_name.as_value(), &json_val["name"]);
+        assert_eq!(runtime_active.as_value(), &json_val["active"]);
+        assert_eq!(runtime_scores.as_value(), &json_val["scores"]);
+        assert_eq!(runtime_null.as_value(), &json_val["null"]);
+        assert_eq!(runtime_object.as_value(), &json_val["object"]);
     }
-
-    #[test]
-    fn test_object_access() {
-        let mut obj = std::collections::HashMap::new();
-        obj.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-        obj.insert("age".to_string(), RuntimeValue::Number(30.0));
-
-        let runtime_obj = RuntimeValue::Object(obj);
-
-        assert_eq!(runtime_obj.access("name"), RuntimeValue::String("John".to_string()));
-        assert_eq!(runtime_obj.access("age"), RuntimeValue::Number(30.0));
-        assert_eq!(runtime_obj.access("missing"), RuntimeValue::Null);
-    }
-}
-
-#[cfg(test)]
-mod basic_types {
-    use super::*;
 
     #[test]
     fn test_null_type() {
-        let null_val = RuntimeValue::Null;
-        assert_eq!(null_val.get_type(), RuntimeValueType::Null);
-        assert!(!null_val.truthy());
-        assert!(!null_val.comparable());
+        let null = ValueView::from(json!(null));
+        assert_eq!(null.get_type(), MistQLValueType::Null);
+        assert!(!null.truthy());
+        assert!(!null.comparable());
+        assert!(null.to_string_display() == "null");
+        assert!(null.to_string_serialize() == "null");
+        assert_eq!(null.clone(), null.clone());
     }
 
     #[test]
     fn test_boolean_type() {
-        let true_val = RuntimeValue::Boolean(true);
-        let false_val = RuntimeValue::Boolean(false);
-
-        assert_eq!(true_val.get_type(), RuntimeValueType::Boolean);
-        assert_eq!(false_val.get_type(), RuntimeValueType::Boolean);
-
-        assert!(true_val.truthy());
-        assert!(!false_val.truthy());
-        assert!(true_val.comparable());
-        assert!(false_val.comparable());
+        let true_val = ValueView::from(json!(true));
+        let false_val = ValueView::from(json!(false));
+        assert_eq!(true_val.get_type(), MistQLValueType::Boolean);
+        assert_eq!(false_val.get_type(), MistQLValueType::Boolean);
+        assert!(true_val.to_string_display() == "true");
+        assert!(false_val.to_string_display() == "false");
+        assert!(true_val.to_string_serialize() == "true");
+        assert!(false_val.to_string_serialize() == "false");
+        assert_eq!(true_val.clone(), true_val.clone());
+        assert_ne!(true_val.clone(), false_val.clone());
     }
 
     #[test]
     fn test_number_type() {
-        let pos_num = RuntimeValue::Number(42.0);
-        let neg_num = RuntimeValue::Number(-10.5);
-        let zero = RuntimeValue::Number(0.0);
-
-        assert_eq!(pos_num.get_type(), RuntimeValueType::Number);
-        assert_eq!(neg_num.get_type(), RuntimeValueType::Number);
-        assert_eq!(zero.get_type(), RuntimeValueType::Number);
-
-        assert!(pos_num.truthy());
-        assert!(neg_num.truthy());
-        assert!(!zero.truthy());
-        assert!(pos_num.comparable());
-        assert!(neg_num.comparable());
-        assert!(zero.comparable());
+        let num1 = ValueView::from(json!(1.0));
+        assert_eq!(num1.get_type(), MistQLValueType::Number);
+        assert!(num1.truthy());
+        assert!(num1.comparable());
+        assert!(num1.to_string_display() == "1.0");
+        assert!(num1.to_string_serialize() == "1.0");
+        let num2 = ValueView::from(json!(1e-49));
+        assert!(num2.to_string_display() == "1e-49");
+        assert_eq!(num1.clone(), num1.clone());
+        assert_ne!(num1.clone(), num2.clone());
     }
 
     #[test]
     fn test_string_type() {
-        let non_empty = RuntimeValue::String("hello".to_string());
-        let empty = RuntimeValue::String("".to_string());
-        let unicode = RuntimeValue::String("🚀🌟".to_string());
-
-        assert_eq!(non_empty.get_type(), RuntimeValueType::String);
-        assert_eq!(empty.get_type(), RuntimeValueType::String);
-        assert_eq!(unicode.get_type(), RuntimeValueType::String);
-
-        assert!(non_empty.truthy());
-        assert!(!empty.truthy());
-        assert!(unicode.truthy());
-        assert!(non_empty.comparable());
-        assert!(empty.comparable());
-        assert!(unicode.comparable());
+        let str = ValueView::from(json!("test"));
+        assert_eq!(str.get_type(), MistQLValueType::String);
+        assert!(str.truthy());
+        assert!(str.comparable());
+        assert!(str.to_string_display() == "test");
+        assert!(str.to_string_serialize() == "test");
+        assert_eq!(str.clone(), str.clone());
+        assert_ne!(str.clone(), ValueView::from(json!("test2")));
     }
 
     #[test]
     fn test_object_type() {
-        let mut obj = HashMap::new();
-        obj.insert("key".to_string(), RuntimeValue::String("value".to_string()));
-        let non_empty_obj = RuntimeValue::Object(obj);
-
-        let empty_obj = RuntimeValue::Object(HashMap::new());
-
-        assert_eq!(non_empty_obj.get_type(), RuntimeValueType::Object);
-        assert_eq!(empty_obj.get_type(), RuntimeValueType::Object);
-
-        assert!(non_empty_obj.truthy());
-        assert!(!empty_obj.truthy());
-        assert!(!non_empty_obj.comparable());
-        assert!(!empty_obj.comparable());
+        let obj = ValueView::from(json!({"a": 1.0, "b": "test"}));
+        assert_eq!(obj.get_type(), MistQLValueType::Object);
+        assert!(!obj.truthy());
+        assert!(!obj.comparable());
+        assert_eq!(obj.as_json().unwrap().keys(), vec!["a", "b"]);
+        assert!(obj.to_string_display() == "{a: 1.0, b: test}");
+        assert!(obj.to_string_serialize() == "{\"a\": 1.0, \"b\": \"test\"}");
+        assert_eq!(obj.clone(), obj.clone());
+        assert_ne!(obj.clone(), ValueView::from(json!({"a": 1.0, "b": "test2"})));
     }
 
     #[test]
     fn test_array_type() {
-        let non_empty_arr = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
-        let empty_arr = RuntimeValue::Array(vec![]);
-
-        assert_eq!(non_empty_arr.get_type(), RuntimeValueType::Array);
-        assert_eq!(empty_arr.get_type(), RuntimeValueType::Array);
-
-        assert!(non_empty_arr.truthy());
-        assert!(!empty_arr.truthy());
-        assert!(!non_empty_arr.comparable());
-        assert!(!empty_arr.comparable());
+        let arr = ValueView::from(json!([1.0, "test"]));
+        assert_eq!(arr.get_type(), MistQLValueType::Array);
+        assert!(!arr.truthy());
+        assert!(!arr.comparable());
+        assert_eq!(arr.as_json().unwrap().keys(), vec!["0", "1"]);
+        assert!(arr.to_string_display() == "[1.0, test]");
+        assert!(arr.to_string_serialize() == "[1.0, \"test\"]");
+        assert_eq!(arr.clone(), arr.clone());
+        assert_ne!(arr.clone(), ValueView::from(json!([1.0, "test2"])));
     }
 
     #[test]
     fn test_function_type() {
-        let func = RuntimeValue::Function("test_func".to_string());
+        let func = ValueView::from(json!("test_func"));
 
-        assert_eq!(func.get_type(), RuntimeValueType::Function);
+        assert_eq!(func.get_type(), MistQLValueType::Function);
         assert!(func.truthy());
         assert!(!func.comparable());
+        assert!(func.to_string_display() == "test_func");
+        assert!(func.to_string_serialize() == "test_func");
+        assert_eq!(func.clone(), func.clone());
+        assert_ne!(func.clone(), ValueView::from(json!("test_func2")));
     }
 
     #[test]
     fn test_regex_type() {
-        let regex = RuntimeValue::Regex(MistQLRegex::new("test", "").unwrap());
+        let regex = MistQLRegex::new("test", "").unwrap();
+        let v = ValueView::from(&regex);
 
-        assert_eq!(regex.get_type(), RuntimeValueType::Regex);
-        assert!(regex.truthy());
-        assert!(!regex.comparable());
+        assert_eq!(v.get_type(), MistQLValueType::Regex);
+        assert!(v.truthy());
+        assert!(!v.comparable());
+        assert!(v.to_string_display() == "test");
+        assert!(v.to_string_serialize() == "test");
+        assert_eq!(v.clone(), v.clone());
+        assert_ne!(v.clone(), ValueView::from(&MistQLRegex::new("test2", "").unwrap()));
     }
-}
-
-#[cfg(test)]
-mod equality_tests {
-    use super::*;
-
-    #[test]
-    fn test_null_equality() {
-        let null1 = RuntimeValue::Null;
-        let null2 = RuntimeValue::Null;
-        assert_eq!(null1, null2);
-    }
-
-    #[test]
-    fn test_boolean_equality() {
-        let true1 = RuntimeValue::Boolean(true);
-        let true2 = RuntimeValue::Boolean(true);
-        let false1 = RuntimeValue::Boolean(false);
-
-        assert_eq!(true1, true2);
-        assert_ne!(true1, false1);
-    }
-
-    #[test]
-    fn test_number_equality() {
-        let num1 = RuntimeValue::Number(42.0);
-        let num2 = RuntimeValue::Number(42.0);
-        let num3 = RuntimeValue::Number(43.0);
-
-        assert_eq!(num1, num2);
-        assert_ne!(num1, num3);
-    }
-
-    #[test]
-    fn test_string_equality() {
-        let str1 = RuntimeValue::String("hello".to_string());
-        let str2 = RuntimeValue::String("hello".to_string());
-        let str3 = RuntimeValue::String("world".to_string());
-
-        assert_eq!(str1, str2);
-        assert_ne!(str1, str3);
-    }
-
-    #[test]
-    fn test_object_equality() {
-        let mut obj1 = HashMap::new();
-        obj1.insert("a".to_string(), RuntimeValue::Number(1.0));
-        obj1.insert("b".to_string(), RuntimeValue::String("test".to_string()));
-
-        let mut obj2 = HashMap::new();
-        obj2.insert("a".to_string(), RuntimeValue::Number(1.0));
-        obj2.insert("b".to_string(), RuntimeValue::String("test".to_string()));
-
-        let mut obj3 = HashMap::new();
-        obj3.insert("a".to_string(), RuntimeValue::Number(1.0));
-        obj3.insert("b".to_string(), RuntimeValue::String("different".to_string()));
-
-        let runtime_obj1 = RuntimeValue::Object(obj1);
-        let runtime_obj2 = RuntimeValue::Object(obj2);
-        let runtime_obj3 = RuntimeValue::Object(obj3);
-
-        assert_eq!(runtime_obj1, runtime_obj2);
-        assert_ne!(runtime_obj1, runtime_obj3);
-    }
-
-    #[test]
-    fn test_array_equality() {
-        let arr1 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
-
-        let arr2 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
-
-        let arr3 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("different".to_string())]);
-
-        assert_eq!(arr1, arr2);
-        assert_ne!(arr1, arr3);
-    }
-
-    #[test]
-    fn test_function_equality() {
-        let func1 = RuntimeValue::Function("test".to_string());
-        let func2 = RuntimeValue::Function("test".to_string());
-        let func3 = RuntimeValue::Function("different".to_string());
-
-        assert_eq!(func1, func2);
-        assert_ne!(func1, func3);
-    }
-
-    #[test]
-    fn test_regex_equality() {
-        let regex1 = RuntimeValue::Regex(MistQLRegex::new("test", "").unwrap());
-        let regex2 = RuntimeValue::Regex(MistQLRegex::new("test", "").unwrap());
-        let regex3 = RuntimeValue::Regex(MistQLRegex::new("different", "").unwrap());
-
-        assert_eq!(regex1, regex2);
-        assert_ne!(regex1, regex3);
-    }
-
-    #[test]
-    fn test_cross_type_inequality() {
-        let null = RuntimeValue::Null;
-        let bool_val = RuntimeValue::Boolean(true);
-        let num = RuntimeValue::Number(1.0);
-        let str_val = RuntimeValue::String("1".to_string());
-
-        assert_ne!(null, bool_val);
-        assert_ne!(bool_val, num);
-        assert_ne!(num, str_val);
-        assert_ne!(str_val, null);
-    }
-}
-
-#[cfg(test)]
-mod comparison_tests {
-    use super::*;
 
     #[test]
     fn test_boolean_comparison() {
-        let true_val = RuntimeValue::Boolean(true);
-        let false_val = RuntimeValue::Boolean(false);
+        let true_val = ValueView::from(json!(true));
+        let false_val = ValueView::from(json!(false));
 
         assert_eq!(false_val.compare(&true_val).unwrap(), std::cmp::Ordering::Less);
         assert_eq!(true_val.compare(&false_val).unwrap(), std::cmp::Ordering::Greater);
@@ -769,9 +734,9 @@ mod comparison_tests {
 
     #[test]
     fn test_number_comparison() {
-        let small = RuntimeValue::Number(10.0);
-        let large = RuntimeValue::Number(20.0);
-        let same = RuntimeValue::Number(10.0);
+        let small = ValueView::from(json!(10.0));
+        let large = ValueView::from(json!(20.0));
+        let same = ValueView::from(json!(10.0));
 
         assert_eq!(small.compare(&large).unwrap(), std::cmp::Ordering::Less);
         assert_eq!(large.compare(&small).unwrap(), std::cmp::Ordering::Greater);
@@ -780,9 +745,9 @@ mod comparison_tests {
 
     #[test]
     fn test_string_comparison() {
-        let a = RuntimeValue::String("apple".to_string());
-        let b = RuntimeValue::String("banana".to_string());
-        let same = RuntimeValue::String("apple".to_string());
+        let a = ValueView::from(json!("apple"));
+        let b = ValueView::from(json!("banana"));
+        let same = ValueView::from(json!("apple"));
 
         assert_eq!(a.compare(&b).unwrap(), std::cmp::Ordering::Less);
         assert_eq!(b.compare(&a).unwrap(), std::cmp::Ordering::Greater);
@@ -791,8 +756,8 @@ mod comparison_tests {
 
     #[test]
     fn test_unicode_string_comparison() {
-        let emoji1 = RuntimeValue::String("🚀".to_string());
-        let emoji2 = RuntimeValue::String("🌟".to_string());
+        let emoji1 = ValueView::from(json!("🚀"));
+        let emoji2 = ValueView::from(json!("🌟"));
 
         // Unicode comparison should work
         let result = emoji1.compare(&emoji2);
@@ -801,11 +766,13 @@ mod comparison_tests {
 
     #[test]
     fn test_incomparable_types() {
-        let null = RuntimeValue::Null;
-        let obj = RuntimeValue::Object(HashMap::new());
-        let arr = RuntimeValue::Array(vec![]);
-        let func = RuntimeValue::Function("test".to_string());
-        let regex = RuntimeValue::Regex(MistQLRegex::new("test", "").unwrap());
+        let null = ValueView::from(json!(null));
+        let obj = ValueView::from(json!({}));
+        let arr = ValueView::from(json!([]));
+
+        let func = ValueView::from(json!("test"));
+        let regex_obj = MistQLRegex::new("test", "").unwrap();
+        let regex = ValueView::from(&regex_obj);
 
         // Null should not be comparable
         assert!(null.compare(&null).is_err());
@@ -825,315 +792,45 @@ mod comparison_tests {
 
     #[test]
     fn test_different_type_comparison() {
-        let bool_val = RuntimeValue::Boolean(true);
-        let num = RuntimeValue::Number(1.0);
-        let str_val = RuntimeValue::String("1".to_string());
+        let bool_val = ValueView::from(json!(true));
+        let num = ValueView::from(json!(1.0));
+        let str_val = ValueView::from(json!("1"));
 
         assert!(bool_val.compare(&num).is_err());
         assert!(num.compare(&str_val).is_err());
         assert!(str_val.compare(&bool_val).is_err());
     }
-}
-
-#[cfg(test)]
-mod serde_conversion_tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn test_null_conversion() {
-        let json_null = json!(null);
-        let runtime_null: RuntimeValue = (&json_null).try_into().unwrap();
-        assert_eq!(runtime_null, RuntimeValue::Null);
-
-        let back_to_json = runtime_null.to_serde_value_default().unwrap();
-        let back_to_json: serde_json::Value = back_to_json.try_into().unwrap();
-        assert_eq!(back_to_json, json_null);
-    }
-
-    #[test]
-    fn test_boolean_conversion() {
-        let json_true = json!(true);
-        let json_false = json!(false);
-
-        let runtime_true: RuntimeValue = (&json_true).try_into().unwrap();
-        let runtime_false: RuntimeValue = (&json_false).try_into().unwrap();
-
-        assert_eq!(runtime_true, RuntimeValue::Boolean(true));
-        assert_eq!(runtime_false, RuntimeValue::Boolean(false));
-
-        assert_eq!(runtime_true.to_serde_value_default().unwrap(), json_true);
-        assert_eq!(runtime_false.to_serde_value_default().unwrap(), json_false);
-    }
-
-    #[test]
-    fn test_number_conversion() {
-        let json_int = json!(42);
-        let json_float = json!(3.14);
-        let json_negative = json!(-100);
-
-        let runtime_int: RuntimeValue = (&json_int).try_into().unwrap();
-        let runtime_float: RuntimeValue = (&json_float).try_into().unwrap();
-        let runtime_negative: RuntimeValue = (&json_negative).try_into().unwrap();
-
-        assert_eq!(runtime_int, RuntimeValue::Number(42.0));
-        assert_eq!(runtime_float, RuntimeValue::Number(3.14));
-        assert_eq!(runtime_negative, RuntimeValue::Number(-100.0));
-
-        // Note: When converting back to JSON, integers become floats
-        // This is expected behavior since RuntimeValue stores all numbers as f64
-        let back_int = runtime_int.to_serde_value_default().unwrap();
-        let back_float = runtime_float.to_serde_value_default().unwrap();
-        let back_negative = runtime_negative.to_serde_value_default().unwrap();
-
-        // Test that the numeric values are preserved
-        assert_eq!(back_int.as_f64().unwrap(), 42.0);
-        assert_eq!(back_float.as_f64().unwrap(), 3.14);
-        assert_eq!(back_negative.as_f64().unwrap(), -100.0);
-    }
-
-    #[test]
-    fn test_string_conversion() {
-        let json_str = json!("hello world");
-        let json_empty = json!("");
-        let json_unicode = json!("🚀🌟");
-
-        let runtime_str: RuntimeValue = (&json_str).try_into().unwrap();
-        let runtime_empty: RuntimeValue = (&json_empty).try_into().unwrap();
-        let runtime_unicode: RuntimeValue = (&json_unicode).try_into().unwrap();
-
-        assert_eq!(runtime_str, RuntimeValue::String("hello world".to_string()));
-        assert_eq!(runtime_empty, RuntimeValue::String("".to_string()));
-        assert_eq!(runtime_unicode, RuntimeValue::String("🚀🌟".to_string()));
-
-        assert_eq!(runtime_str.to_serde_value_default().unwrap(), json_str);
-        assert_eq!(runtime_empty.to_serde_value_default().unwrap(), json_empty);
-        assert_eq!(runtime_unicode.to_serde_value_default().unwrap(), json_unicode);
-    }
-
-    #[test]
-    fn test_array_conversion() {
-        let json_arr = json!([1, "test", true, null]);
-        let runtime_arr: RuntimeValue = (&json_arr).try_into().unwrap();
-
-        let expected = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::String("test".to_string()),
-            RuntimeValue::Boolean(true),
-            RuntimeValue::Null,
-        ]);
-
-        assert_eq!(runtime_arr, expected);
-
-        // Test that the conversion preserves the structure and values
-        let back_to_json = runtime_arr.to_serde_value_default().unwrap();
-        if let Some(back_array) = back_to_json.as_array() {
-            assert_eq!(back_array.len(), 4);
-            assert_eq!(back_array[0].as_f64().unwrap(), 1.0);
-            assert_eq!(back_array[1].as_str().unwrap(), "test");
-            assert_eq!(back_array[2].as_bool().unwrap(), true);
-            assert!(back_array[3].is_null());
-        } else {
-            panic!("Expected array");
-        }
-    }
-
-    #[test]
-    fn test_object_conversion() {
-        let json_obj = json!({
-            "name": "John",
-            "age": 30,
-            "active": true,
-            "scores": [1, 2, 3]
-        });
-
-        let runtime_obj: RuntimeValue = (&json_obj).try_into().unwrap();
-        let back_to_json = runtime_obj.to_serde_value_default().unwrap();
-
-        // Test that the conversion preserves the structure and values
-        assert_eq!(back_to_json["name"], json_obj["name"]);
-        assert_eq!(back_to_json["active"], json_obj["active"]);
-
-        // For numbers, test the numeric value rather than exact JSON type
-        assert_eq!(back_to_json["age"].as_f64().unwrap(), 30.0);
-        assert_eq!(json_obj["age"].as_i64().unwrap(), 30);
-
-        // For arrays, test the structure
-        if let (Some(back_scores), Some(orig_scores)) = (back_to_json["scores"].as_array(), json_obj["scores"].as_array()) {
-            assert_eq!(back_scores.len(), orig_scores.len());
-            for (back_score, orig_score) in back_scores.iter().zip(orig_scores.iter()) {
-                assert_eq!(back_score.as_f64().unwrap(), orig_score.as_i64().unwrap() as f64);
-            }
-        } else {
-            panic!("Expected arrays");
-        }
-    }
-
-    #[test]
-    fn test_nested_structure_conversion() {
-        let json_nested = json!({
-            "users": [
-                {"name": "Alice", "age": 25},
-                {"name": "Bob", "age": 30}
-            ],
-            "metadata": {
-                "count": 2,
-                "active": true
-            }
-        });
-
-        let runtime_nested: RuntimeValue = (&json_nested).try_into().unwrap();
-        let back_to_json = runtime_nested.to_serde_value_default().unwrap();
-
-        // Test that the structure is preserved
-        assert_eq!(back_to_json["metadata"]["active"], json_nested["metadata"]["active"]);
-        assert_eq!(back_to_json["metadata"]["count"].as_f64().unwrap(), 2.0);
-
-        // Test users array structure
-        if let (Some(back_users), Some(orig_users)) = (back_to_json["users"].as_array(), json_nested["users"].as_array()) {
-            assert_eq!(back_users.len(), orig_users.len());
-            for (back_user, orig_user) in back_users.iter().zip(orig_users.iter()) {
-                assert_eq!(back_user["name"], orig_user["name"]);
-                assert_eq!(back_user["age"].as_f64().unwrap(), orig_user["age"].as_i64().unwrap() as f64);
-            }
-        } else {
-            panic!("Expected users arrays");
-        }
-    }
-
-    #[test]
-    fn test_function_and_regex_serialization() {
-        let func = RuntimeValue::Function("test_func".to_string());
-        let regex = RuntimeValue::Regex(MistQLRegex::new("test", "i").unwrap());
-
-        // Test permissive mode
-        let func_json = func.to_serde_value(true).unwrap(); // Use permissive mode
-        let regex_json = regex.to_serde_value(true).unwrap(); // Use permissive mode
-
-        assert_eq!(func_json, json!("[function]"));
-        assert_eq!(regex_json, json!("[regex]"));
-
-        // Test non-permissive mode (should return errors)
-        assert!(func.to_serde_value(false).is_err());
-        assert!(regex.to_serde_value(false).is_err());
-    }
-}
-
-#[cfg(test)]
-mod type_conversion_tests {
-    use super::*;
-
-    #[test]
-    fn test_to_string_conversion() {
-        // String to string
-        let str_val = RuntimeValue::String("hello".to_string());
-        assert_eq!(str_val.to_string_serialize(), "\"hello\"");
-
-        // Number to string
-        let int_num = RuntimeValue::Number(42.0);
-        assert_eq!(int_num.to_string_serialize(), "42");
-
-        let float_num = RuntimeValue::Number(3.14);
-        assert_eq!(float_num.to_string_serialize(), "3.14");
-
-        // Other types use JSON serialization
-        let bool_val = RuntimeValue::Boolean(true);
-        assert_eq!(bool_val.to_string_serialize(), "true");
-
-        let null = RuntimeValue::Null;
-        assert_eq!(null.to_string_serialize(), "null");
-    }
-
-    #[test]
-    fn test_to_string_complex_types() {
-        let obj = RuntimeValue::Object({
-            let mut map = HashMap::new();
-            map.insert("key".to_string(), RuntimeValue::String("value".to_string()));
-            map
-        });
-
-        let arr = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
-
-        // These should serialize to JSON
-        let obj_str = obj.to_string_serialize();
-        assert!(obj_str.contains("key"));
-        assert!(obj_str.contains("value"));
-
-        let arr_str = arr.to_string_serialize();
-        assert!(arr_str.contains("1"));
-        assert!(arr_str.contains("test"));
-    }
-}
-
-#[cfg(test)]
-mod object_operation_tests {
-    use super::*;
 
     #[test]
     fn test_object_access() {
-        let mut obj = HashMap::new();
-        obj.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-        obj.insert("age".to_string(), RuntimeValue::Number(30.0));
-        obj.insert("active".to_string(), RuntimeValue::Boolean(true));
+        let json_val = json!({
+            "name": "John",
+            "age": 30.0,
+            "active": true
+        });
+        let runtime_obj = ValueView::from(&json_val);
+        let runtime_name = runtime_obj.as_json().unwrap().get_key("name").unwrap();
+        let runtime_age = runtime_obj.as_json().unwrap().get_key("age").unwrap();
+        let runtime_active = runtime_obj.as_json().unwrap().get_key("active").unwrap();
+        let runtime_missing = runtime_obj.as_json().unwrap().get_key("missing").unwrap();
 
-        let runtime_obj = RuntimeValue::Object(obj);
+        assert_eq!(runtime_name.as_value(), &json_val["name"]);
+        assert_eq!(runtime_age.as_value(), &json_val["age"]);
+        assert_eq!(runtime_active.as_value(), &json_val["active"]);
+        assert_eq!(runtime_missing.as_value(), &json_val["missing"]);
 
-        assert_eq!(runtime_obj.access("name"), RuntimeValue::String("John".to_string()));
-        assert_eq!(runtime_obj.access("age"), RuntimeValue::Number(30.0));
-        assert_eq!(runtime_obj.access("active"), RuntimeValue::Boolean(true));
-        assert_eq!(runtime_obj.access("missing"), RuntimeValue::Null);
-    }
-
-    #[test]
-    fn test_object_access_non_object() {
-        let str_val = RuntimeValue::String("hello".to_string());
-        let num_val = RuntimeValue::Number(42.0);
-        let null_val = RuntimeValue::Null;
-
-        assert_eq!(str_val.access("key"), RuntimeValue::Null);
-        assert_eq!(num_val.access("key"), RuntimeValue::Null);
-        assert_eq!(null_val.access("key"), RuntimeValue::Null);
-    }
-
-    #[test]
-    fn test_object_keys() {
-        let mut obj = HashMap::new();
-        obj.insert("a".to_string(), RuntimeValue::Number(1.0));
-        obj.insert("b".to_string(), RuntimeValue::Number(2.0));
-        obj.insert("c".to_string(), RuntimeValue::Number(3.0));
-
-        let runtime_obj = RuntimeValue::Object(obj);
-        let mut keys = runtime_obj.keys();
-        keys.sort(); // Sort for consistent testing
-
-        assert_eq!(keys, vec!["a", "b", "c"]);
-    }
-
-    #[test]
-    fn test_object_keys_non_object() {
-        let str_val = RuntimeValue::String("hello".to_string());
-        let num_val = RuntimeValue::Number(42.0);
-        let null_val = RuntimeValue::Null;
-
-        assert_eq!(str_val.keys(), Vec::<String>::new());
-        assert_eq!(num_val.keys(), Vec::<String>::new());
-        assert_eq!(null_val.keys(), Vec::<String>::new());
+        assert_eq!(runtime_obj.as_json().unwrap().keys(), vec!["name", "age", "active"]);
     }
 
     #[test]
     fn test_empty_object() {
-        let empty_obj = RuntimeValue::Object(HashMap::new());
+        let empty_obj = ValueView::from(json!({}));
+        let runtime_missing = empty_obj.as_json().unwrap().get_key("missing").unwrap();
 
-        assert_eq!(empty_obj.access("any_key"), RuntimeValue::Null);
-        assert_eq!(empty_obj.keys(), Vec::<String>::new());
-        assert!(!empty_obj.truthy());
+        assert_eq!(runtime_missing.as_value(), &json!(null));
+        assert_eq!(empty_obj.as_json().unwrap().keys(), Vec::<String>::new());
+        assert!(!empty_obj.clone().truthy());
     }
-}
-
-#[cfg(test)]
-mod regex_tests {
-    use super::*;
-    use serde_json::json;
 
     #[test]
     fn test_regex_creation() {
@@ -1162,15 +859,6 @@ mod regex_tests {
     }
 
     #[test]
-    fn test_regex_serialization() {
-        let regex = MistQLRegex::new("test", "i").unwrap();
-        let runtime_regex = RuntimeValue::Regex(regex);
-
-        let json = runtime_regex.to_serde_value(true).unwrap(); // Use permissive mode
-        assert_eq!(json, json!("[regex]"));
-    }
-
-    #[test]
     fn test_invalid_regex() {
         let result = MistQLRegex::new("[invalid", "");
         assert!(result.is_err());
@@ -1185,25 +873,20 @@ mod regex_tests {
         assert!(compiled.is_match("123"));
         assert!(!compiled.is_match("abc"));
     }
-}
-
-#[cfg(test)]
-mod edge_case_tests {
-    use super::*;
 
     #[test]
     fn test_unicode_strings() {
-        let unicode_str = RuntimeValue::String("Hello 世界 🌍".to_string());
-        assert_eq!(unicode_str.get_type(), RuntimeValueType::String);
+        let unicode_str = ValueView::from(json!("Hello 世界 🌍"));
+        assert_eq!(unicode_str.get_type(), MistQLValueType::String);
         assert!(unicode_str.truthy());
         assert_eq!(unicode_str.to_string_serialize(), "\"Hello 世界 🌍\"");
     }
 
     #[test]
     fn test_empty_structures() {
-        let empty_str = RuntimeValue::String("".to_string());
-        let empty_arr = RuntimeValue::Array(vec![]);
-        let empty_obj = RuntimeValue::Object(HashMap::new());
+        let empty_str = ValueView::from(json!(""));
+        let empty_arr = ValueView::from(json!([]));
+        let empty_obj = ValueView::from(json!({}));
 
         assert!(!empty_str.truthy());
         assert!(!empty_arr.truthy());
@@ -1212,46 +895,23 @@ mod edge_case_tests {
 
     #[test]
     fn test_nested_empty_structures() {
-        let nested_empty = RuntimeValue::Array(vec![
-            RuntimeValue::Array(vec![]),
-            RuntimeValue::Object(HashMap::new()),
-            RuntimeValue::String("".to_string()),
-        ]);
+        let nested_empty = ValueView::from(json!(vec![json!([]), json!({}), json!("")]));
 
         // The array itself is truthy because it's not empty
         assert!(nested_empty.truthy());
 
         // But its elements are falsy
-        if let RuntimeValue::Array(arr) = &nested_empty {
-            assert!(!arr[0].truthy()); // Empty array
-            assert!(!arr[1].truthy()); // Empty object
-            assert!(!arr[2].truthy()); // Empty string
-        }
-    }
-
-    #[test]
-    fn test_deep_nesting() {
-        let mut level3 = HashMap::new();
-        level3.insert("value".to_string(), RuntimeValue::String("deep".to_string()));
-
-        let level2 = RuntimeValue::Object(level3);
-        let level1 = RuntimeValue::Array(vec![level2]);
-
-        let root = RuntimeValue::Object({
-            let mut map = HashMap::new();
-            map.insert("nested".to_string(), level1);
-            map
-        });
-
-        assert!(root.truthy());
-        assert_eq!(root.get_type(), RuntimeValueType::Object);
+        let arr = nested_empty.as_json().unwrap().as_value().as_array().unwrap();
+        assert!(!ValueView::from(&arr[0]).truthy()); // Empty array
+        assert!(!ValueView::from(&arr[1]).truthy()); // Empty object
+        assert!(!ValueView::from(&arr[2]).truthy()); // Empty string
     }
 
     #[test]
     fn test_special_string_values() {
-        let newline_str = RuntimeValue::String("\n".to_string());
-        let tab_str = RuntimeValue::String("\t".to_string());
-        let space_str = RuntimeValue::String(" ".to_string());
+        let newline_str = ValueView::from(json!("\n"));
+        let tab_str = ValueView::from(json!("\t"));
+        let space_str = ValueView::from(json!(" "));
 
         // All non-empty strings are truthy
         assert!(newline_str.truthy());
@@ -1261,8 +921,8 @@ mod edge_case_tests {
 
     #[test]
     fn test_number_edge_cases() {
-        let zero = RuntimeValue::Number(0.0);
-        let negative_zero = RuntimeValue::Number(-0.0);
+        let zero = ValueView::from(json!(0.0));
+        let negative_zero = ValueView::from(json!(-0.0));
 
         assert!(!zero.truthy());
         assert!(!negative_zero.truthy());
