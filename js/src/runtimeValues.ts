@@ -30,7 +30,13 @@ export const castToString = (value: RuntimeValue): RuntimeValue => {
   } else if (type === "regex" || typeof value === "function") {
     throw new Error("Cannot cast type " + type + " to string");
   } else {
-    return JSON.stringify(value);
+    return JSON.stringify(value, (_, value) => {
+      const type = getType(value);
+      if (type === "regex" || typeof value === "function") {
+        throw new Error("Cannot cast type " + type + " to string");
+      }
+      return value;
+    });
   }
 };
 
