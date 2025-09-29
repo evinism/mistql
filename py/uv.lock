@@ -266,7 +266,7 @@ wheels = [
 
 [[package]]
 name = "mistql"
-version = "0.4.12"
+version = "0.5.0b1"
 source = { editable = "." }
 dependencies = [
     { name = "json-lines" },

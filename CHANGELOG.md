@@ -6,6 +6,19 @@ In the future, this is expected to change. It's likely that at 0.5.0, we will de
 
 Format [Keep A ChangeLog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.5.0-beta.1]
+
+### Changed
+- [185](https://github.com/evinism/mistql/pull/185)
+ JS: Updated `filterkeys`, `filtervalues`, `matchkeys`,`matchvalues` to reject non-objects.
+- [203](https://github.com/evinism/mistql/pull/203)Python: Made typeguard opt-in via env var.
+- [201](https://github.com/evinism/mistql/pull/201)Python: Enabled an LRU cache for the parser.
+- [202](https://github.com/evinism/mistql/pull/202)Python: Enabled lazy conversion and evaluation of input objects via an opt-in instance flag.
+
+### Fixed
+- [185](https://github.com/evinism/mistql/pull/185) Made `string` throw errors for deeply-nested non-stringable values.
+- [185](https://github.com/evinism/mistql/pull/185) JS: Modulo operator now throws an error for division by zero.
+
 ## [0.4.12]
 
 ### Changed
