@@ -1,4 +1,4 @@
-__version__ = "0.4.12"
+__version__ = "0.5.0b1"
 
 from .query import query  # noqa: F401
 from .instance import MistQLInstance  # noqa: F401

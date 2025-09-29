@@ -7,7 +7,7 @@ packages = ["mistql"]
 
 [project]
 name = "mistql"
-version = "0.4.12"
+version = "0.5.0b1"
 description = "Python implementation of MistQL query language"
 readme = "README.md"
 requires-python = ">=3.8.1"
