@@ -96,6 +96,13 @@ const divide = numericBinaryOperator((a, b) => {
   return a / b;
 });
 
+const modulo = numericBinaryOperator((a, b) => {
+  if (b === 0) {
+    throw new RuntimeError("Modulo by zero");
+  }
+  return a % b;
+});
+
 export default {
   apply,
   count,
@@ -139,7 +146,7 @@ export default {
   "-": numericBinaryOperator((a, b) => a - b),
   "*": numericBinaryOperator((a, b) => a * b),
   "/": divide,
-  "%": numericBinaryOperator((a, b) => a % b),
+  "%": modulo,
   "||": or,
   "&&": and,
   "==": equal,
