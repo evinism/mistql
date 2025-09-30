@@ -116,5 +116,29 @@ module.exports = {
           onBrokenMarkdownLinks: "warn",
         },
       },
+      algolia: {
+        // The application ID provided by Algolia
+        appId: "NMB57RP4HI",
+
+        // Public API key: it is safe to commit it
+        apiKey: "cf54fa9b60aa7c52dbfc2f5c8f5d96f1",
+
+        indexName: "MistQL Docs Website",
+
+        // Optional: see doc section below
+        contextualSearch: true,
+
+        // Optional: Algolia search parameters
+        searchParameters: {},
+
+        // Optional: path for search page that enabled by default (`false` to disable it)
+        searchPagePath: "search",
+
+        // Optional: whether the insights feature is enabled or not on Docsearch (`false` by default)
+        insights: false,
+
+        // Optional: whether you want to use the new Ask AI feature (undefined by default)
+        //askAi: "YOUR_ALGOLIA_ASSISTANT_ID",
+      },
     }),
 };
