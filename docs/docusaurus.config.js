@@ -1,5 +1,5 @@
-const lightCodeTheme = require("prism-react-renderer/themes/github");
-const darkCodeTheme = require("prism-react-renderer/themes/dracula");
+const lightCodeTheme = require("prism-react-renderer").themes.github;
+const darkCodeTheme = require("prism-react-renderer").themes.dracula;
 
 // With JSDoc @type annotations, IDEs can provide config autocompletion
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
@@ -9,7 +9,6 @@ module.exports = {
   url: "https://mistql.com",
   baseUrl: "/",
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
   favicon: "img/icon128.png",
   organizationName: "evinism", // Usually your GitHub org/user name.
   projectName: "mistql", // Usually your repo name.
@@ -111,6 +110,11 @@ module.exports = {
       prism: {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
+      },
+      markdown: {
+        hooks: {
+          onBrokenMarkdownLinks: "warn",
+        },
       },
     }),
 };
