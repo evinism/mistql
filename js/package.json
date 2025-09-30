@@ -12,7 +12,7 @@
     "bin"
   ],
   "bin": {
-    "mq": "./bin/mq.js"
+    "mq": "bin/mq.js"
   },
   "exports": {
     ".": {
