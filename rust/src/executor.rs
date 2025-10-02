@@ -19,7 +19,7 @@ pub type ExecutionStack<'a> = Vec<StackFrame<'a>>;
 #[derive(Debug, Clone)]
 pub struct ExecutionContext<'a> {
     stack: ExecutionStack<'a>,
-    custom_functions: CustomFunctionRegistry,
+    custom_functions: CustomFunctionRegistry<'a>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -72,7 +72,7 @@ impl<'a> ExecutionContext<'a> {
         Self::new(data)
     }
 
-    pub fn with_custom_functions(data: ValueView<'a>, custom_functions: CustomFunctionRegistry) -> Self {
+    pub fn with_custom_functions(data: ValueView<'a>, custom_functions: CustomFunctionRegistry<'a>) -> Self {
         let mut context = Self::new(data);
         context.custom_functions = custom_functions;
         context
@@ -82,7 +82,7 @@ impl<'a> ExecutionContext<'a> {
     pub fn register_custom_function(
         &mut self,
         name: String,
-        function: CustomFunction,
+        function: CustomFunction<'a>,
         metadata: FunctionMetadata,
     ) -> Result<(), ExecutionError> {
         self.custom_functions.register_function(name, function, metadata)?;
@@ -99,10 +99,10 @@ impl<'a> ExecutionContext<'a> {
         dollar_frame.insert("@".to_string(), data.clone());
 
         // Add all builtin functions to the $ frame
-        for builtin_name in crate::builtins::BUILTIN_NAMES.iter() {
+        for builtin_name in crate::builtins::BUILTIN_NAMES.keys() {
             let builtin = crate::builtins::get_builtin(builtin_name).unwrap();
 
-            dollar_frame.insert(builtin.name().to_string(), ValueView::from(builtin.runtime_value().clone()));
+            dollar_frame.insert(builtin.name().to_string(), builtin.runtime_value().clone());
         }
 
         let mut functions_frame = HashMap::new();
@@ -117,13 +117,11 @@ impl<'a> ExecutionContext<'a> {
         new_frame.insert("@".to_string(), value.clone());
 
         // If the value is an object, populate keys as variables.
-        if let ValueView::Json(obj) = &value {
-            for (key, val) in obj.iter_object().unwrap() {
-                if is_valid_identifier(key) {
-                    new_frame.insert(key.clone(), val.clone());
-                }
+        value.iter_object_items().unwrap().for_each(|(key, val)| {
+            if is_valid_identifier(key) {
+                new_frame.insert(key.to_string(), val.clone());
             }
-        }
+        });
 
         self.stack.push(new_frame);
     }
@@ -201,7 +199,7 @@ fn is_valid_identifier(s: &str) -> bool {
     chars.all(|c| c.is_alphanumeric() || c == '_')
 }
 
-pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
+pub fn execute_expression<'a>(expr: &Expression, context: &mut ExecutionContext<'_>) -> Result<ValueView<'a>, ExecutionError> {
     match expr {
         Expression::ValueExpression { value } => Ok(value.clone()),
         Expression::RefExpression { name, absolute } => context.find_variable(name, *absolute),
@@ -217,12 +215,12 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext<'a>)
 // Helper function to execute an expression in a contextualized way
 // If the expression is a function reference, it creates a function call with @ as argument
 // Otherwise, it evaluates the expression directly
-pub fn execute_contextualized_expression(expr: &Expression, context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
+pub fn execute_contextualized_expression<'a>(expr: &Expression, context: &mut ExecutionContext<'_>) -> Result<ValueView<'a>, ExecutionError> {
     match expr {
         Expression::RefExpression { name, absolute } => {
             // Check if this is a function reference
             let func_value = context.find_variable(name, *absolute)?;
-            if matches!(func_value, RuntimeValue::Function(_)) {
+            if matches!(func_value, ValueView::Function(_)) {
                 // Create a function call with @ as argument
                 let func_call = Expression::FnExpression {
                     function: Box::new(expr.clone()),
@@ -244,25 +242,25 @@ pub fn execute_contextualized_expression(expr: &Expression, context: &mut Execut
     }
 }
 
-fn execute_array(items: &[Expression], context: &mut ExecutionContext<'a>) -> Result<RuntimeValue, ExecutionError> {
+fn execute_array<'a>(items: &[Expression], context: &mut ExecutionContext<'_>) -> Result<ValueView<'a>, ExecutionError> {
     let mut result = Vec::new();
     for item in items {
         let value = execute_expression(item, context)?;
-        result.push(value);
+        result.push(value.as_value().unwrap().clone());
     }
-    Ok(RuntimeValue::Array(result))
+    Ok(ValueView::from(&result))
 }
 
-fn execute_object(
+fn execute_object<'a>(
     entries: &std::collections::HashMap<String, Expression>,
-    context: &mut ExecutionContext<'a>,
-) -> Result<RuntimeValue, ExecutionError> {
+    context: &mut ExecutionContext<'_>,
+) -> Result<ValueView<'a>, ExecutionError> {
     let mut result = std::collections::HashMap::new();
     for (key, expr) in entries {
         let value = execute_expression(expr, context)?;
         result.insert(key.clone(), value);
     }
-    Ok(RuntimeValue::Object(result))
+    Ok(ValueView::Object(result))
 }
 
 fn execute_function_call(

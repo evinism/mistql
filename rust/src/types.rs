@@ -186,6 +186,9 @@ impl<'a> From<usize> for Accessor<'a> {
     }
 }
 
+// Read-only wrapper of a long-lived serde_json::Value OR a newly allocated
+// serde_json::Value that we anticipate will live for longer than the original
+// owner.
 #[derive(Debug, Clone)]
 pub enum JsonView<'a> {
     Borrowed(&'a Value),
@@ -212,16 +215,13 @@ impl<'a> JsonView<'a> {
     pub fn keys(&self) -> Vec<&str> {
         self.as_value().as_object().unwrap().keys().map(|k| k.as_str()).collect()
     }
-    pub fn iter_object(&self) -> Option<impl '_ + Iterator<Item = (&str, JsonView<'_>)>> {
+    pub fn iter_object_items(&self) -> Option<impl Iterator<Item = (&str, JsonView<'_>)> + '_> {
         self.as_value()
             .as_object()
             .map(|m: &Map<String, Value>| m.iter().map(|(k, v)| (k.as_str(), JsonView::from(v))))
     }
-    pub fn iter_array(&self) -> Option<impl '_ + Iterator<Item = JsonView<'_>>> {
+    pub fn iter_array(&self) -> Option<impl Iterator<Item = JsonView<'_>> + '_> {
         self.as_value().as_array().map(|arr: &Vec<Value>| arr.iter().map(JsonView::from))
-    }
-    pub fn to_owned_value(&self) -> Value {
-        self.as_value().clone()
     }
 }
 impl<'a> From<&'a Value> for JsonView<'a> {
@@ -245,7 +245,7 @@ impl<'a> PartialEq for JsonView<'a> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum ValueView<'a> {
     Json(JsonView<'a>),
     Function(Cow<'a, str>),
@@ -262,6 +262,34 @@ impl<'a> ValueView<'a> {
     pub fn as_value(&self) -> Option<&Value> {
         if let ValueView::Json(json) = self {
             Some(json.as_value())
+        } else {
+            None
+        }
+    }
+
+    pub fn get<'s, A>(&'s self, key: A) -> Option<ValueView<'s>>
+    where
+        A: Into<Accessor<'s>>,
+    {
+        if let ValueView::Json(json) = self {
+            match key.into() {
+                Accessor::Key(k) => json.get(k).map(ValueView::from),
+                Accessor::Index(i) => json.get(i).map(ValueView::from),
+            }
+        } else {
+            None
+        }
+    }
+    pub fn iter_object_items(&self) -> Option<impl Iterator<Item = (&str, ValueView<'_>)> + '_> {
+        if let ValueView::Json(json) = self {
+            json.iter_object_items().map(|items| items.map(|(k, v)| (k, ValueView::from(v))))
+        } else {
+            None
+        }
+    }
+    pub fn iter_array(&self) -> Option<impl Iterator<Item = ValueView<'_>> + '_> {
+        if let ValueView::Json(json) = self {
+            json.iter_array().map(|items| items.map(|v| ValueView::from(v)))
         } else {
             None
         }
@@ -338,7 +366,7 @@ impl<'a> ValueView<'a> {
         }
     }
 
-    pub fn as_computable<'s>(&'s self) -> Result<ComputableValue<'s>, ExecutionError> {
+    pub fn as_computable(&self) -> Result<ComputableValue<'_>, ExecutionError> {
         match self {
             ValueView::Json(json) => match json.as_value() {
                 Value::Null => Ok(ComputableValue::Null),
@@ -354,11 +382,11 @@ impl<'a> ValueView<'a> {
                         )),
                     }
                 }
-                Value::String(s) => Ok(ComputableValue::String(s.clone())),
-                Value::Array(_) => Ok(ComputableValue::Array(json.as_value().as_array().unwrap())),
-                Value::Object(_) => Ok(ComputableValue::Object(json.as_value().as_object().unwrap())),
+                Value::String(s) => Ok(ComputableValue::String(s.into())),
+                Value::Array(arr) => Ok(ComputableValue::Array(arr)),
+                Value::Object(obj) => Ok(ComputableValue::Object(obj)),
             },
-            ValueView::Function(name) => Ok(ComputableValue::Function(name.to_string())),
+            ValueView::Function(name) => Ok(ComputableValue::Function(name.clone())),
             ValueView::Regex(regex) => Ok(ComputableValue::Regex(regex)),
         }
     }
@@ -393,7 +421,7 @@ impl<'a> ValueView<'a> {
     pub fn to_string_display(&self) -> String {
         let computable = self.as_computable().unwrap();
         match computable {
-            ComputableValue::String(s) => s.clone(),
+            ComputableValue::String(s) => s.to_string(),
             ComputableValue::Number(n) => self.format_number_as_string(n),
             ComputableValue::Boolean(b) => b.to_string(),
             ComputableValue::Null => "null".to_string(),
@@ -449,8 +477,8 @@ impl<'a> From<JsonView<'a>> for ValueView<'a> {
         ValueView::Json(json)
     }
 }
-impl<'a> From<&'a JsonView<'a>> for ValueView<'a> {
-    fn from(json: &'a JsonView<'a>) -> Self {
+impl<'a> From<&JsonView<'a>> for ValueView<'a> {
+    fn from(json: &JsonView<'a>) -> Self {
         ValueView::Json(json.clone())
     }
 }
@@ -459,9 +487,9 @@ impl<'a> From<&'a MistQLRegex> for ValueView<'a> {
         ValueView::Regex(regex)
     }
 }
-impl<'a> From<&'a Value> for ValueView<'a> {
-    fn from(value: &'a Value) -> Self {
-        ValueView::Json(JsonView::from(value))
+impl<'a> From<&Value> for ValueView<'a> {
+    fn from(value: &Value) -> Self {
+        ValueView::Json(JsonView::from(value.clone()))
     }
 }
 impl<'a> From<Value> for ValueView<'a> {
@@ -484,40 +512,58 @@ impl<'a> From<String> for ValueView<'a> {
         ValueView::from(Value::from(s))
     }
 }
-impl<'a> From<&'a str> for ValueView<'a> {
-    fn from(s: &'a str) -> Self {
+impl<'a> From<&str> for ValueView<'a> {
+    fn from(s: &str) -> Self {
         ValueView::from(Value::from(s))
     }
 }
-impl<'a> From<&'a Vec<Value>> for ValueView<'a> {
-    fn from(arr: &'a Vec<Value>) -> Self {
+impl<'a> From<&Cow<'_, str>> for ValueView<'a> {
+    fn from(s: &Cow<'_, str>) -> Self {
+        ValueView::from(Value::from(s.as_ref()))
+    }
+}
+impl<'a> From<&Vec<Value>> for ValueView<'a> {
+    fn from(arr: &Vec<Value>) -> Self {
         ValueView::from(Value::Array(arr.clone()))
     }
 }
-impl<'a> From<&'a Map<String, Value>> for ValueView<'a> {
-    fn from(obj: &'a Map<String, Value>) -> Self {
+impl<'a> From<&Vec<ValueView<'_>>> for ValueView<'a> {
+    fn from(arr: &Vec<ValueView<'_>>) -> Self {
+        ValueView::from(Value::Array(arr.iter().map(|v| v.as_value().unwrap().clone()).collect()))
+    }
+}
+impl<'a> From<&Map<String, Value>> for ValueView<'a> {
+    fn from(obj: &Map<String, Value>) -> Self {
         ValueView::from(Value::Object(obj.clone()))
     }
 }
-impl<'a> From<&'a ComputableValue<'a>> for ValueView<'a> {
-    fn from(c: ComputableValue<'a>) -> Self {
+impl<'a, 's> From<&'s ComputableValue<'_>> for ValueView<'a>
+where
+    's: 'a,
+{
+    fn from(c: &'s ComputableValue<'_>) -> Self {
         match c {
             ComputableValue::Null => ValueView::from(Value::Null),
-            ComputableValue::Boolean(b) => ValueView::from(b),
-            ComputableValue::Number(n) => ValueView::from(n),
-            ComputableValue::String(s) => ValueView::from(s),
-            ComputableValue::Array(arr) => ValueView::from(arr),
-            ComputableValue::Object(obj) => ValueView::from(obj),
-            ComputableValue::Function(s) => ValueView::Function(Cow::Borrowed(&s)),
+            ComputableValue::Boolean(b) => ValueView::from(Value::Bool(*b)),
+            ComputableValue::Number(n) => ValueView::from(Value::from(*n)),
+            ComputableValue::String(s) => ValueView::from(Value::from(s.as_ref())),
+            ComputableValue::Array(arr) => ValueView::from(*arr),
+            ComputableValue::Object(obj) => ValueView::from(*obj),
+            ComputableValue::Function(s) => ValueView::Function(Cow::Borrowed(s)),
             ComputableValue::Regex(regex) => ValueView::Regex(regex),
         }
     }
 }
-impl<'a> From<HashMap<String, ValueView<'a>>> for ValueView<'a> {
-    fn from(obj: HashMap<String, ValueView<'a>>) -> Self {
+impl<'a> From<HashMap<String, ValueView<'_>>> for ValueView<'a> {
+    fn from(obj: HashMap<String, ValueView<'_>>) -> Self {
         let a = obj.into_iter().map(|(k, v)| (k, v.as_value().unwrap().clone()));
         let o = Value::from_iter(a);
         ValueView::Json(JsonView::from(o))
+    }
+}
+impl<'a> From<&HashMap<String, ValueView<'_>>> for ValueView<'a> {
+    fn from(obj: &HashMap<String, ValueView<'_>>) -> Self {
+        ValueView::from(obj.clone())
     }
 }
 impl<'a> fmt::Display for ValueView<'a> {
@@ -535,15 +581,15 @@ impl<'a> PartialEq for ValueView<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum ComputableValue<'a> {
     Null,
     Boolean(bool),
     Number(f64),
-    String(String),
+    String(Cow<'a, str>),
     Array(&'a Vec<Value>),
     Object(&'a Map<String, Value>),
-    Function(String),
+    Function(Cow<'a, str>),
     Regex(&'a MistQLRegex),
 }
 
@@ -604,11 +650,11 @@ mod tests {
 
         let runtime_val = ValueView::from(&json_val);
         assert_eq!(runtime_val.get_type(), MistQLValueType::Object);
-        let runtime_name = runtime_val.as_json().unwrap().get_key("name").unwrap();
-        let runtime_active = runtime_val.as_json().unwrap().get_key("active").unwrap();
-        let runtime_scores = runtime_val.as_json().unwrap().get_key("scores").unwrap();
-        let runtime_null = runtime_val.as_json().unwrap().get_key("null").unwrap();
-        let runtime_object = runtime_val.as_json().unwrap().get_key("object").unwrap();
+        let runtime_name = runtime_val.as_json().unwrap().get("name").unwrap();
+        let runtime_active = runtime_val.as_json().unwrap().get("active").unwrap();
+        let runtime_scores = runtime_val.as_json().unwrap().get("scores").unwrap();
+        let runtime_null = runtime_val.as_json().unwrap().get("null").unwrap();
+        let runtime_object = runtime_val.as_json().unwrap().get("object").unwrap();
 
         // Test that the conversion preserves the structure and values
         assert_eq!(runtime_name.as_value(), &json_val["name"]);
@@ -809,10 +855,10 @@ mod tests {
             "active": true
         });
         let runtime_obj = ValueView::from(&json_val);
-        let runtime_name = runtime_obj.as_json().unwrap().get_key("name").unwrap();
-        let runtime_age = runtime_obj.as_json().unwrap().get_key("age").unwrap();
-        let runtime_active = runtime_obj.as_json().unwrap().get_key("active").unwrap();
-        let runtime_missing = runtime_obj.as_json().unwrap().get_key("missing").unwrap();
+        let runtime_name = runtime_obj.as_json().unwrap().get("name").unwrap();
+        let runtime_age = runtime_obj.as_json().unwrap().get("age").unwrap();
+        let runtime_active = runtime_obj.as_json().unwrap().get("active").unwrap();
+        let runtime_missing = runtime_obj.as_json().unwrap().get("missing").unwrap();
 
         assert_eq!(runtime_name.as_value(), &json_val["name"]);
         assert_eq!(runtime_age.as_value(), &json_val["age"]);
@@ -825,7 +871,7 @@ mod tests {
     #[test]
     fn test_empty_object() {
         let empty_obj = ValueView::from(json!({}));
-        let runtime_missing = empty_obj.as_json().unwrap().get_key("missing").unwrap();
+        let runtime_missing = empty_obj.as_json().unwrap().get("missing").unwrap();
 
         assert_eq!(runtime_missing.as_value(), &json!(null));
         assert_eq!(empty_obj.as_json().unwrap().keys(), Vec::<String>::new());
