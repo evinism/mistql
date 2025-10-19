@@ -7,9 +7,10 @@ use crate::builtins::{is_stock_builtin, CustomFunction, CustomFunctionRegistry, 
 use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 // A single frame in the execution stack containing variable bindings.
-pub type StackFrame = HashMap<String, RuntimeValue>;
+pub type StackFrame = HashMap<String, Rc<RuntimeValue>>;
 
 // The execution stack containing nested variable scopes.
 pub type ExecutionStack = Vec<StackFrame>;
@@ -19,7 +20,6 @@ pub type ExecutionStack = Vec<StackFrame>;
 pub struct ExecutionContext {
     stack: ExecutionStack,
     custom_functions: CustomFunctionRegistry,
-    root_data: RuntimeValue,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,22 +56,21 @@ impl std::fmt::Display for ExecutionError {
 impl std::error::Error for ExecutionError {}
 
 impl ExecutionContext {
-    pub fn new(data: RuntimeValue) -> Self {
+    pub fn new(data: Rc<RuntimeValue>) -> Self {
         let mut context = Self {
             stack: Vec::new(),
             custom_functions: CustomFunctionRegistry::new(),
-            root_data: data.clone(),
         };
 
-        context.build_initial_stack(data);
+        context.build_initial_stack(data.clone());
         context
     }
 
-    pub fn with_builtins(data: RuntimeValue) -> Self {
+    pub fn with_builtins(data: Rc<RuntimeValue>) -> Self {
         Self::new(data)
     }
 
-    pub fn with_custom_functions(data: RuntimeValue, custom_functions: CustomFunctionRegistry) -> Self {
+    pub fn with_custom_functions(data: Rc<RuntimeValue>, custom_functions: CustomFunctionRegistry) -> Self {
         let mut context = Self::new(data);
         context.custom_functions = custom_functions;
         context
@@ -92,7 +91,7 @@ impl ExecutionContext {
         self.custom_functions.has_function(name)
     }
 
-    fn build_initial_stack(&mut self, data: RuntimeValue) {
+    fn build_initial_stack(&mut self, data: Rc<RuntimeValue>) {
         // Frame 0: $ variable containing the root data and builtin functions
         let mut dollar_frame = HashMap::new();
         dollar_frame.insert("@".to_string(), data.clone());
@@ -101,28 +100,25 @@ impl ExecutionContext {
         for builtin_name in crate::builtins::BUILTIN_NAMES.iter() {
             let builtin = crate::builtins::get_builtin(builtin_name).unwrap();
 
-            dollar_frame.insert(builtin.name().to_string(), builtin.runtime_value().clone());
+            dollar_frame.insert(builtin.name().to_string(), Rc::new(RuntimeValue::Function(builtin_name.to_string())));
         }
 
         let mut functions_frame = HashMap::new();
-        functions_frame.insert("$".to_string(), RuntimeValue::Object(dollar_frame));
+        functions_frame.insert("$".to_string(), Rc::new(RuntimeValue::Object(Rc::new(dollar_frame))));
         self.stack.push(functions_frame);
-
-        // Frame 1: Data context (object keys become variables).
-        self.push_context(data);
     }
 
-    pub fn push_context(&mut self, value: RuntimeValue) {
-        let mut new_frame = HashMap::new();
+    pub fn push_context(&mut self, value: Rc<RuntimeValue>) {
+        let mut new_frame: HashMap<String, Rc<RuntimeValue>> = HashMap::new();
 
         // Always add @ variable.
         new_frame.insert("@".to_string(), value.clone());
 
         // If the value is an object, populate keys as variables.
-        if let RuntimeValue::Object(obj) = &value {
-            for (key, val) in obj {
+        if let RuntimeValue::Object(obj) = &*value {
+            for (key, val) in obj.iter() {
                 if is_valid_identifier(key) {
-                    new_frame.insert(key.clone(), val.clone());
+                    new_frame.insert(key.to_string(), val.clone());
                 }
             }
         }
@@ -131,6 +127,7 @@ impl ExecutionContext {
     }
 
     pub fn pop_context(&mut self) -> Result<(), ExecutionError> {
+        // TODO: Might need to be 1.
         if self.stack.len() <= 2 {
             return Err(ExecutionError::Custom("Cannot pop initial stack frames".to_string()));
         }
@@ -139,7 +136,7 @@ impl ExecutionContext {
     }
 
     // Find a variable in the execution stack.
-    pub fn find_variable(&self, name: &str, absolute: bool) -> Result<RuntimeValue, ExecutionError> {
+    pub fn find_variable(&self, name: &str, absolute: bool) -> Result<Rc<RuntimeValue>, ExecutionError> {
         if absolute {
             // For absolute references (like $), only search in the first frame.
             if let Some(frame) = self.stack.first() {
@@ -158,29 +155,25 @@ impl ExecutionContext {
 
         // If not found in stack, check custom functions
         if self.custom_functions.has_function(name) {
-            return Ok(RuntimeValue::Function(name.to_string()));
+            return Ok(Rc::new(RuntimeValue::Function(name.to_string())));
         }
 
         // Finally, check if it's a stock builtin
         if is_stock_builtin(name) {
-            return Ok(RuntimeValue::Function(name.to_string()));
+            return Ok(Rc::new(RuntimeValue::Function(name.to_string())));
         }
 
         Err(ExecutionError::VariableNotFound(name.to_string()))
     }
 
     // Get the current @ context value.
-    pub fn get_current_context(&self) -> Result<&RuntimeValue, ExecutionError> {
+    pub fn get_current_context(&self) -> Result<&Rc<RuntimeValue>, ExecutionError> {
         for frame in self.stack.iter().rev() {
             if let Some(value) = frame.get("@") {
                 return Ok(value);
             }
         }
         Err(ExecutionError::VariableNotFound("@".to_string()))
-    }
-
-    pub fn get_root_data(&self) -> &RuntimeValue {
-        &self.root_data
     }
 
     pub fn stack_depth(&self) -> usize {
@@ -206,9 +199,9 @@ fn is_valid_identifier(s: &str) -> bool {
     chars.all(|c| c.is_alphanumeric() || c == '_')
 }
 
-pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
     match expr {
-        Expression::ValueExpression { value } => Ok(value.clone()),
+        Expression::ValueExpression { value } => Ok(Rc::new(value.clone().into())),
         Expression::RefExpression { name, absolute } => context.find_variable(name, *absolute),
         Expression::FnExpression { function, arguments } => execute_function_call(function, arguments, context),
         Expression::ArrayExpression { items } => execute_array(items, context),
@@ -219,71 +212,41 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> 
     }
 }
 
-// Helper function to execute an expression in a contextualized way
-// If the expression is a function reference, it creates a function call with @ as argument
-// Otherwise, it evaluates the expression directly
-pub fn execute_contextualized_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
-    match expr {
-        Expression::RefExpression { name, absolute } => {
-            // Check if this is a function reference
-            let func_value = context.find_variable(name, *absolute)?;
-            if matches!(func_value, RuntimeValue::Function(_)) {
-                // Create a function call with @ as argument
-                let func_call = Expression::FnExpression {
-                    function: Box::new(expr.clone()),
-                    arguments: vec![Expression::RefExpression {
-                        name: "@".to_string(),
-                        absolute: false,
-                    }],
-                };
-                execute_expression(&func_call, context)
-            } else {
-                // Not a function, evaluate directly
-                execute_expression(expr, context)
-            }
-        }
-        _ => {
-            // Not a function reference, evaluate directly
-            execute_expression(expr, context)
-        }
-    }
-}
-
-fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
     let mut result = Vec::new();
     for item in items {
         let value = execute_expression(item, context)?;
         result.push(value);
     }
-    Ok(RuntimeValue::Array(result))
+    Ok(Rc::new(RuntimeValue::Array(Rc::new(result))))
 }
 
 fn execute_object(
     entries: &std::collections::HashMap<String, Expression>,
     context: &mut ExecutionContext,
-) -> Result<RuntimeValue, ExecutionError> {
+) -> Result<Rc<RuntimeValue>, ExecutionError> {
     let mut result = std::collections::HashMap::new();
     for (key, expr) in entries {
         let value = execute_expression(expr, context)?;
         result.insert(key.clone(), value);
     }
-    Ok(RuntimeValue::Object(result))
+    Ok(Rc::new(RuntimeValue::Object(Rc::new(result))))
 }
 
 fn execute_function_call(
     function: &Expression,
     arguments: &[Expression],
     context: &mut ExecutionContext,
-) -> Result<RuntimeValue, ExecutionError> {
+) -> Result<Rc<RuntimeValue>, ExecutionError> {
     let func_value = execute_expression(function, context)?;
 
-    match func_value {
+    match &*func_value {
         RuntimeValue::Function(func_name) => {
             // First try custom functions
             if context.custom_functions.has_function(&func_name) {
                 // We know the function exists, so we can safely execute it
-                if let Some(function) = context.custom_functions.functions.get(&func_name) {
-                    function(arguments, context)
+                if let Some(function) = context.custom_functions.functions.get(func_name) {
+                    Ok((*function)(arguments, context)?)
                 } else {
                     // This should never happen since we just checked has_function
                     Err(ExecutionError::Custom(format!("Custom function '{}' not found", func_name)))
@@ -291,14 +254,14 @@ fn execute_function_call(
             } else {
                 // Fall back to stock builtins
                 let builtin = crate::builtins::get_builtin(&func_name).unwrap();
-                builtin.call(arguments, context)
+                Ok(builtin.execute(arguments, context)?)
             }
         }
         _ => Err(ExecutionError::NotCallable(func_value.get_type().to_string())),
     }
 }
 
-fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
     if stages.is_empty() {
         return Err(ExecutionError::Custom("Empty pipeline".to_string()));
     }
@@ -313,7 +276,7 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
             Expression::FnExpression { function, arguments } => {
                 // For function calls, append data as the last argument.
                 let mut new_args = arguments.clone();
-                new_args.push(Expression::ValueExpression { value: data.clone() });
+                new_args.push(Expression::RefExpression { name: "@".to_string(), absolute: false });
 
                 let new_call = Expression::FnExpression {
                     function: function.clone(),
@@ -323,11 +286,11 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
             }
             Expression::RefExpression { name, absolute } => {
                 // For function references, create a function call with data as argument.
-                let func_value = context.find_variable(name, *absolute)?;
-                if matches!(func_value, RuntimeValue::Function(_)) {
+                let func_value = context.find_variable(name, *absolute)?.clone();
+                if matches!(&*func_value, RuntimeValue::Function(_)) {
                     let new_call = Expression::FnExpression {
                         function: Box::new(stage.clone()),
-                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                        arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
                     };
                     execute_expression(&new_call, context)?
                 } else {
@@ -338,10 +301,10 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
             Expression::DotAccessExpression { object: _, field: _ } => {
                 // For dot access, check if it resolves to a function.
                 let func_value = execute_expression(stage, context)?;
-                if matches!(func_value, RuntimeValue::Function(_)) {
+                if matches!(&*func_value, RuntimeValue::Function(_)) {
                     let new_call = Expression::FnExpression {
-                        function: Box::new(Expression::ValueExpression { value: func_value }),
-                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                        function: Box::new(stage.clone()),
+                        arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
                     };
                     execute_expression(&new_call, context)?
                 } else {
@@ -352,11 +315,11 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
             _ => {
                 // For other expressions, execute and check if result is a function.
                 let stage_result = execute_expression(stage, context)?;
-                if matches!(stage_result, RuntimeValue::Function(_)) {
+                if matches!(&*stage_result, RuntimeValue::Function(_)) {
                     // If the result is a function, execute it with data as argument.
                     let new_call = Expression::FnExpression {
-                        function: Box::new(Expression::ValueExpression { value: stage_result }),
-                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                        function: Box::new(stage.clone()),
+                        arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
                     };
                     execute_expression(&new_call, context)?
                 } else {
@@ -373,14 +336,14 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
     Ok(data)
 }
 
-fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
     let obj_value = execute_expression(object, context)?;
 
-    match obj_value {
-        RuntimeValue::Object(obj) => Ok(obj.get(field).cloned().unwrap_or(RuntimeValue::Null)),
+    match &*obj_value {
+        RuntimeValue::Object(obj) => Ok(obj.get(field).cloned().unwrap_or(Rc::new(RuntimeValue::Null))),
         RuntimeValue::Null => {
             // Null coalescing: property access on null returns null.
-            Ok(RuntimeValue::Null)
+            Ok(Rc::new(RuntimeValue::Null))
         }
         _ => Err(ExecutionError::TypeMismatch(format!(
             "Cannot access property '{}' on type {}",

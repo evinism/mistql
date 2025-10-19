@@ -5,6 +5,7 @@
 
 use crate::query_runtime;
 use crate::types::RuntimeValue;
+use std::rc::Rc;
 use serde_json::Value;
 
 // Test case structure matching the shared testdata.json format
@@ -21,9 +22,9 @@ pub struct TestCase {
 pub struct TestAssertion {
     pub assertion_number: usize,
     pub query: String,
-    pub data: RuntimeValue,
-    pub expected: Option<RuntimeValue>,
-    pub expected_set: Option<Vec<RuntimeValue>>,
+    pub data: Rc<RuntimeValue>,
+    pub expected: Option<Rc<RuntimeValue>>,
+    pub expected_set: Option<Vec<Rc<RuntimeValue>>>,
     pub throws: Option<String>,
 }
 
@@ -45,10 +46,10 @@ pub struct TestFailure {
     pub describe_inner: String,
     pub it_description: String,
     pub query: String,
-    pub data: RuntimeValue,
-    pub expected: Option<RuntimeValue>,
-    pub expected_set: Option<Vec<RuntimeValue>>,
-    pub actual: Option<RuntimeValue>,
+    pub data: Rc<RuntimeValue>,
+    pub expected: Option<Rc<RuntimeValue>>,
+    pub expected_set: Option<Vec<Rc<RuntimeValue>>>,
+    pub actual: Option<Rc<RuntimeValue>>,
     pub error: Option<String>,
 }
 
@@ -98,10 +99,10 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
                                                     assertions.push(TestAssertion {
                                                         assertion_number: assertion_counter,
                                                         query: query.to_string(),
-                                                        data: data.try_into().unwrap(),
-                                                        expected: expected.map(|e| e.try_into().unwrap()),
+                                                        data: RuntimeValue::from_serde_value(&data).unwrap(),
+                                                        expected: expected.map(|e| RuntimeValue::from_serde_value(&e).unwrap()),
                                                         expected_set: expected_set
-                                                            .map(|e| e.as_array().unwrap().iter().map(|v| v.try_into().unwrap()).collect()),
+                                                            .map(|e| e.as_array().unwrap().iter().map(|v| RuntimeValue::from_serde_value(&v).unwrap()).collect()),
                                                         throws: throws.map(|s| s.to_string()),
                                                     });
                                                     assertion_counter += 1;
@@ -134,7 +135,7 @@ pub fn load_test_data() -> Result<Vec<TestCase>, Box<dyn std::error::Error>> {
 pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>), String> {
     if let Some(expected_error) = &assertion.throws {
         // Test should throw an error
-        match query_runtime(&assertion.query, &assertion.data) {
+        match query_runtime(&assertion.query, assertion.data.clone()) {
             Ok(actual_result) => {
                 match actual_result.to_serde_value(false) {
                     Ok(actual_value) => {
@@ -154,7 +155,7 @@ pub fn run_assertion(assertion: &TestAssertion) -> Result<(bool, Option<Value>),
         }
     } else {
         // Test should succeed and return expected value
-        match query_runtime(&assertion.query, &assertion.data) {
+        match query_runtime(&assertion.query, assertion.data.clone()) {
             Ok(result) => {
                 // Convert to JSON only for reporting
                 let actual_value = Some(result.to_serde_value(false).unwrap_or_else(|_| serde_json::Value::Null));
@@ -226,7 +227,7 @@ pub fn run_test_suite() -> Result<TestResults, Box<dyn std::error::Error>> {
                         data: assertion.data.clone(),
                         expected: assertion.expected.clone(),
                         expected_set: assertion.expected_set.clone(),
-                        actual: actual.map(|a| a.try_into().unwrap()),
+                        actual: actual.map(|a| RuntimeValue::from_serde_value(&a).unwrap()),
                         error: None,
                     });
                 }
@@ -257,15 +258,15 @@ impl std::fmt::Display for TestFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "FAIL #{}: {}::{}::{}", self.assertion_number, self.describe_block, self.describe_inner, self.it_description)?;
         writeln!(f, "  Query: {}", self.query)?;
-        writeln!(f, "  Data: {}", serde_json::to_string_pretty(&self.data).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
+        writeln!(f, "  Data: {}", &self.data.to_string_display())?;
         if let Some(expected) = &self.expected {
-            writeln!(f, "  Expected: {}", serde_json::to_string_pretty(expected).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
+            writeln!(f, "  Expected: {}", expected.to_string_display())?;
         }
         if let Some(expected_set) = &self.expected_set {
-            writeln!(f, "  Expected Set: {}", serde_json::to_string_pretty(expected_set).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
+            writeln!(f, "  Expected Set: {}", expected_set.iter().map(|v| v.to_string_display()).collect::<Vec<String>>().join(", "))?;
         }
         if let Some(actual) = &self.actual {
-            writeln!(f, "  Actual: {}", serde_json::to_string_pretty(actual).unwrap_or_else(|_| "Invalid JSON".to_string()))?;
+            writeln!(f, "  Actual: {}", actual.to_string_display())?;
         }
         if let Some(error) = &self.error {
             writeln!(f, "  Error: {}", error)?;

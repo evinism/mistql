@@ -3,6 +3,7 @@
 //! This is the Rust implementation of MistQL, designed for embedding across multiple domains.
 //! It serves as a powerful common expression language with strong cross-platform behavior semantics.
 
+use std::rc::Rc;
 use crate::executor::ExecutionError;
 pub mod builtins;
 pub mod executor;
@@ -85,16 +86,16 @@ pub enum MistQLError {
 /// let result = query_runtime("@ | map square | sum", &data).unwrap();
 /// // This calculates: [5, 3, 4] | map square | sum = [25, 9, 16] | sum = 50
 /// ```
-pub fn query<T>(query_str: &str, data: T) -> Result<RuntimeValue, MistQLError>
+pub fn query<T>(query_str: &str, data: T) -> Result<Rc<RuntimeValue>, MistQLError>
 where
-    T: TryInto<RuntimeValue, Error = ExecutionError>,
+    T: TryInto<Rc<RuntimeValue>, Error = ExecutionError>,
 {
-    let runtime_data = data.try_into().map_err(|e| MistQLError::Runtime(e.to_string()))?;
-    query_runtime(query_str, &runtime_data)
+    let runtime_data= data.try_into().map_err(|e: ExecutionError| MistQLError::Runtime(e.to_string()))?.into();
+    query_runtime(query_str, runtime_data)
 }
 
 // Query function that works directly with RuntimeValue - preferred for internal use
-pub fn query_runtime(query_str: &str, data: &RuntimeValue) -> Result<RuntimeValue, MistQLError> {
+pub fn query_runtime(query_str: &str, data: Rc<RuntimeValue>) -> Result<Rc<RuntimeValue>, MistQLError> {
     use crate::executor::{execute_expression, ExecutionContext};
     use crate::parser::Parser;
 
@@ -102,7 +103,7 @@ pub fn query_runtime(query_str: &str, data: &RuntimeValue) -> Result<RuntimeValu
     let expr = Parser::parse(query_str).map_err(MistQLError::Parser)?;
 
     // Create execution context with builtins
-    let mut context = ExecutionContext::with_builtins(data.clone());
+    let mut context = ExecutionContext::with_builtins(data.clone().into());
 
     // Execute the expression
     let result = execute_expression(&expr, &mut context).map_err(|e| MistQLError::Runtime(e.to_string()))?;

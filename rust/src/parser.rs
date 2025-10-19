@@ -3,7 +3,6 @@
 //! This module implements a parser for MistQL expressions using nom parser combinators.
 //! It converts MistQL syntax into an Abstract Syntax Tree (AST) that can be executed.
 
-use crate::types::RuntimeValue;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -16,6 +15,14 @@ use nom::{
 use std::collections::HashMap;
 
 // AST expression types for MistQL
+#[derive(Debug, Clone, PartialEq)]
+pub enum LiteralValue {
+    Number(f64),
+    String(String),
+    Boolean(bool),
+    Null,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     // Function call: `function arg1 arg2`
@@ -30,7 +37,7 @@ pub enum Expression {
     },
     // Literal value: `42`, `"hello"`, `true`, `null`
     ValueExpression {
-        value: RuntimeValue,
+        value: LiteralValue,
     },
     // Array literal: `[1, 2, 3]`
     ArrayExpression {
@@ -63,7 +70,7 @@ impl Expression {
         }
     }
 
-    pub fn value(value: RuntimeValue) -> Self {
+    pub fn value(value: LiteralValue) -> Self {
         Expression::ValueExpression { value }
     }
 
@@ -131,14 +138,14 @@ fn parse_integer(input: &str) -> IResult<&str, &str> {
 }
 
 // Parse a number (integer or float)
-fn parse_number(input: &str) -> IResult<&str, RuntimeValue> {
+fn parse_number(input: &str) -> IResult<&str, LiteralValue> {
     map(recognize(pair(opt(char('-')), alt((parse_float, parse_integer)))), |s: &str| {
-        s.parse::<f64>().map(RuntimeValue::Number).unwrap_or(RuntimeValue::Number(0.0))
+        s.parse::<f64>().map(LiteralValue::Number).unwrap_or(LiteralValue::Number(0.0))
     })(input)
 }
 
 // Parse a string literal with proper escape handling
-fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
+fn parse_string(input: &str) -> IResult<&str, LiteralValue> {
     let (remaining, _) = char('"')(input)?;
 
     let mut result = String::new();
@@ -148,7 +155,7 @@ fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
         match c {
             '"' => {
                 // End of string
-                return Ok((chars.as_str(), RuntimeValue::String(result)));
+                return Ok((chars.as_str(), LiteralValue::String(result)));
             }
             '\\' => {
                 // Handle escape sequences
@@ -201,15 +208,15 @@ fn parse_string(input: &str) -> IResult<&str, RuntimeValue> {
     Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)))
 }
 
-fn parse_boolean(input: &str) -> IResult<&str, RuntimeValue> {
+fn parse_boolean(input: &str) -> IResult<&str, LiteralValue> {
     alt((
-        value(RuntimeValue::Boolean(true), tag("true")),
-        value(RuntimeValue::Boolean(false), tag("false")),
+        value(LiteralValue::Boolean(true), tag("true")),
+        value(LiteralValue::Boolean(false), tag("false")),
     ))(input)
 }
 
-fn parse_null(input: &str) -> IResult<&str, RuntimeValue> {
-    value(RuntimeValue::Null, tag("null"))(input)
+fn parse_null(input: &str) -> IResult<&str, LiteralValue> {
+    value(LiteralValue::Null, tag("null"))(input)
 }
 
 fn parse_literal(input: &str) -> IResult<&str, Expression> {
@@ -261,7 +268,7 @@ fn parse_object_entry(input: &str) -> IResult<&str, (String, Expression)> {
     separated_pair(
         alt((
             map(parse_string, |rv| match rv {
-                RuntimeValue::String(s) => s,
+                LiteralValue::String(s) => s,
                 _ => unreachable!(),
             }),
             map(parse_identifier, |s| s.to_string()),
@@ -569,7 +576,7 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, (Expression, bool)> {
             Ok((remaining, (expr, false)))
         } else {
             // Empty indexing: []
-            Ok((remaining, (Expression::value(RuntimeValue::Null), false)))
+            Ok((remaining, (Expression::value(LiteralValue::Null), false)))
         }
     } else {
         // We have colons - this is slicing
@@ -577,14 +584,14 @@ fn parse_indexing_innards(input: &str) -> IResult<&str, (Expression, bool)> {
         let start = if let Some(expr) = first_expr {
             expr
         } else {
-            Expression::value(RuntimeValue::Null)
+            Expression::value(LiteralValue::Null)
         };
 
         let end = if let Some((_, expr_opt)) = colon_expressions.first() {
             // TODO: Can we avoid clone?
-            expr_opt.clone().unwrap_or_else(|| Expression::value(RuntimeValue::Null))
+            expr_opt.clone().unwrap_or_else(|| Expression::value(LiteralValue::Null))
         } else {
-            Expression::value(RuntimeValue::Null)
+            Expression::value(LiteralValue::Null)
         };
 
         Ok((
@@ -631,22 +638,22 @@ mod tests {
     #[test]
     fn test_parse_literals() {
         // Test numbers
-        assert_eq!(Parser::parse("42").unwrap(), Expression::value(RuntimeValue::Number(42.0)));
-        assert_eq!(Parser::parse("3.14").unwrap(), Expression::value(RuntimeValue::Number(3.14)));
-        assert_eq!(Parser::parse("-10").unwrap(), Expression::value(RuntimeValue::Number(-10.0)));
+        assert_eq!(Parser::parse("42").unwrap(), Expression::value(LiteralValue::Number(42.0)));
+        assert_eq!(Parser::parse("3.14").unwrap(), Expression::value(LiteralValue::Number(3.14)));
+        assert_eq!(Parser::parse("-10").unwrap(), Expression::value(LiteralValue::Number(-10.0)));
 
         // Test strings
         assert_eq!(
             Parser::parse("\"hello\"").unwrap(),
-            Expression::value(RuntimeValue::String("hello".to_string()))
+            Expression::value(LiteralValue::String("hello".to_string()))
         );
 
         // Test booleans
-        assert_eq!(Parser::parse("true").unwrap(), Expression::value(RuntimeValue::Boolean(true)));
-        assert_eq!(Parser::parse("false").unwrap(), Expression::value(RuntimeValue::Boolean(false)));
+        assert_eq!(Parser::parse("true").unwrap(), Expression::value(LiteralValue::Boolean(true)));
+        assert_eq!(Parser::parse("false").unwrap(), Expression::value(LiteralValue::Boolean(false)));
 
         // Test null
-        assert_eq!(Parser::parse("null").unwrap(), Expression::value(RuntimeValue::Null));
+        assert_eq!(Parser::parse("null").unwrap(), Expression::value(LiteralValue::Null));
     }
 
     #[test]
@@ -674,9 +681,9 @@ mod tests {
 
         // Test array with elements
         let expected = Expression::array(vec![
-            Expression::value(RuntimeValue::Number(1.0)),
-            Expression::value(RuntimeValue::Number(2.0)),
-            Expression::value(RuntimeValue::Number(3.0)),
+            Expression::value(LiteralValue::Number(1.0)),
+            Expression::value(LiteralValue::Number(2.0)),
+            Expression::value(LiteralValue::Number(3.0)),
         ]);
         assert_eq!(Parser::parse("[1, 2, 3]").unwrap(), expected);
     }
@@ -688,8 +695,8 @@ mod tests {
 
         // Test object with entries
         let mut expected_map = HashMap::new();
-        expected_map.insert("name".to_string(), Expression::value(RuntimeValue::String("John".to_string())));
-        expected_map.insert("age".to_string(), Expression::value(RuntimeValue::Number(30.0)));
+        expected_map.insert("name".to_string(), Expression::value(LiteralValue::String("John".to_string())));
+        expected_map.insert("age".to_string(), Expression::value(LiteralValue::Number(30.0)));
         let expected = Expression::object(expected_map);
 
         assert_eq!(Parser::parse("{\"name\": \"John\", \"age\": 30}").unwrap(), expected);
@@ -746,7 +753,7 @@ mod tests {
 
     #[test]
     fn test_parse_parenthetical() {
-        let expected = Expression::parenthetical(Expression::value(RuntimeValue::Number(42.0)));
+        let expected = Expression::parenthetical(Expression::value(LiteralValue::Number(42.0)));
         assert_eq!(Parser::parse("(42)").unwrap(), expected);
     }
 
@@ -755,14 +762,14 @@ mod tests {
         // Test logical NOT with boolean
         let expected = Expression::function_call(
             Expression::reference("!/unary", true),
-            vec![Expression::value(RuntimeValue::Boolean(true))],
+            vec![Expression::value(LiteralValue::Boolean(true))],
         );
         assert_eq!(Parser::parse("!true").unwrap(), expected);
 
         // Test logical NOT with number
         let expected = Expression::function_call(
             Expression::reference("!/unary", true),
-            vec![Expression::value(RuntimeValue::Number(42.0))],
+            vec![Expression::value(LiteralValue::Number(42.0))],
         );
         assert_eq!(Parser::parse("!42").unwrap(), expected);
 
@@ -777,11 +784,11 @@ mod tests {
     #[test]
     fn test_parse_unary_negate() {
         // Test unary minus with number
-        let expected = Expression::value(RuntimeValue::Number(-42.0));
+        let expected = Expression::value(LiteralValue::Number(-42.0));
         assert_eq!(Parser::parse("-42").unwrap(), expected);
 
         // Test unary minus with float
-        let expected = Expression::value(RuntimeValue::Number(-3.14));
+        let expected = Expression::value(LiteralValue::Number(-3.14));
         assert_eq!(Parser::parse("-3.14").unwrap(), expected);
 
         // Test unary minus with reference (bare identifier)
@@ -796,7 +803,7 @@ mod tests {
             Expression::reference("!/unary", true),
             vec![Expression::function_call(
                 Expression::reference("!/unary", true),
-                vec![Expression::value(RuntimeValue::Boolean(true))],
+                vec![Expression::value(LiteralValue::Boolean(true))],
             )],
         );
         assert_eq!(Parser::parse("!!true").unwrap(), expected);
@@ -804,7 +811,7 @@ mod tests {
         // Test NOT with negate
         let expected = Expression::function_call(
             Expression::reference("!/unary", true),
-            vec![Expression::value(RuntimeValue::Number(-42.0))],
+            vec![Expression::value(LiteralValue::Number(-42.0))],
         );
         assert_eq!(Parser::parse("!-42").unwrap(), expected);
 
@@ -813,7 +820,7 @@ mod tests {
             Expression::reference("-/unary", false),
             vec![Expression::function_call(
                 Expression::reference("!/unary", true),
-                vec![Expression::value(RuntimeValue::Boolean(false))],
+                vec![Expression::value(LiteralValue::Boolean(false))],
             )],
         );
         assert_eq!(Parser::parse("-!false").unwrap(), expected);
@@ -824,13 +831,13 @@ mod tests {
         // Test with spaces around operators
         let expected = Expression::function_call(
             Expression::reference("!/unary", true),
-            vec![Expression::value(RuntimeValue::Boolean(true))],
+            vec![Expression::value(LiteralValue::Boolean(true))],
         );
         assert_eq!(Parser::parse("! true").unwrap(), expected);
 
         let expected = Expression::function_call(
             Expression::reference("-/unary", false),
-            vec![Expression::value(RuntimeValue::Number(42.0))],
+            vec![Expression::value(LiteralValue::Number(42.0))],
         );
         assert_eq!(Parser::parse("- 42").unwrap(), expected);
     }
@@ -840,13 +847,13 @@ mod tests {
         // Test unary operator with parenthetical expression
         let expected = Expression::function_call(
             Expression::reference("!/unary", true),
-            vec![Expression::parenthetical(Expression::value(RuntimeValue::Number(42.0)))],
+            vec![Expression::parenthetical(Expression::value(LiteralValue::Number(42.0)))],
         );
         assert_eq!(Parser::parse("!(42)").unwrap(), expected);
 
         let expected = Expression::function_call(
             Expression::reference("-/unary", false),
-            vec![Expression::parenthetical(Expression::value(RuntimeValue::Number(10.0)))],
+            vec![Expression::parenthetical(Expression::value(LiteralValue::Number(10.0)))],
         );
         assert_eq!(Parser::parse("-(10)").unwrap(), expected);
     }
@@ -860,7 +867,7 @@ mod tests {
         // -sum 1 == (-sum) 1
         let expected = Expression::function_call(
             Expression::function_call(Expression::reference("-/unary", false), vec![Expression::reference("sum", false)]),
-            vec![Expression::value(RuntimeValue::Number(1.0))],
+            vec![Expression::value(LiteralValue::Number(1.0))],
         );
         assert_eq!(Parser::parse("-sum 1").unwrap(), expected);
 
@@ -869,7 +876,7 @@ mod tests {
             Expression::reference("-/unary", false),
             vec![Expression::parenthetical(Expression::function_call(
                 Expression::reference("sum", false),
-                vec![Expression::value(RuntimeValue::Number(1.0))],
+                vec![Expression::value(LiteralValue::Number(1.0))],
             ))],
         );
         assert_eq!(Parser::parse("-(sum 1)").unwrap(), expected);
@@ -889,8 +896,8 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("+", false),
             vec![
-                Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Number(2.0)),
+                Expression::value(LiteralValue::Number(1.0)),
+                Expression::value(LiteralValue::Number(2.0)),
             ],
         );
         assert_eq!(Parser::parse("1 + 2").unwrap(), expected);
@@ -899,8 +906,8 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("*", false),
             vec![
-                Expression::value(RuntimeValue::Number(3.0)),
-                Expression::value(RuntimeValue::Number(4.0)),
+                Expression::value(LiteralValue::Number(3.0)),
+                Expression::value(LiteralValue::Number(4.0)),
             ],
         );
         assert_eq!(Parser::parse("3 * 4").unwrap(), expected);
@@ -909,8 +916,8 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("==", false),
             vec![
-                Expression::value(RuntimeValue::Number(5.0)),
-                Expression::value(RuntimeValue::Number(5.0)),
+                Expression::value(LiteralValue::Number(5.0)),
+                Expression::value(LiteralValue::Number(5.0)),
             ],
         );
         assert_eq!(Parser::parse("5 == 5").unwrap(), expected);
@@ -923,12 +930,12 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("+", false),
             vec![
-                Expression::value(RuntimeValue::Number(1.0)),
+                Expression::value(LiteralValue::Number(1.0)),
                 Expression::function_call(
                     Expression::reference("*", false),
                     vec![
-                        Expression::value(RuntimeValue::Number(2.0)),
-                        Expression::value(RuntimeValue::Number(3.0)),
+                        Expression::value(LiteralValue::Number(2.0)),
+                        Expression::value(LiteralValue::Number(3.0)),
                     ],
                 ),
             ],
@@ -964,11 +971,11 @@ mod tests {
                 Expression::function_call(
                     Expression::reference("+", false),
                     vec![
-                        Expression::value(RuntimeValue::Number(1.0)),
-                        Expression::value(RuntimeValue::Number(2.0)),
+                        Expression::value(LiteralValue::Number(1.0)),
+                        Expression::value(LiteralValue::Number(2.0)),
                     ],
                 ),
-                Expression::value(RuntimeValue::Number(3.0)),
+                Expression::value(LiteralValue::Number(3.0)),
             ],
         );
         assert_eq!(Parser::parse("1 + 2 + 3").unwrap(), expected);
@@ -1001,24 +1008,24 @@ mod tests {
                         Expression::function_call(
                             Expression::reference("+", false),
                             vec![
-                                Expression::value(RuntimeValue::Number(1.0)),
+                                Expression::value(LiteralValue::Number(1.0)),
                                 Expression::function_call(
                                     Expression::reference("*", false),
                                     vec![
-                                        Expression::value(RuntimeValue::Number(2.0)),
-                                        Expression::value(RuntimeValue::Number(3.0)),
+                                        Expression::value(LiteralValue::Number(2.0)),
+                                        Expression::value(LiteralValue::Number(3.0)),
                                     ],
                                 ),
                             ],
                         ),
-                        Expression::value(RuntimeValue::Number(4.0)),
+                        Expression::value(LiteralValue::Number(4.0)),
                     ],
                 ),
                 Expression::function_call(
                     Expression::reference("==", false),
                     vec![
-                        Expression::value(RuntimeValue::Number(5.0)),
-                        Expression::value(RuntimeValue::Number(6.0)),
+                        Expression::value(LiteralValue::Number(5.0)),
+                        Expression::value(LiteralValue::Number(6.0)),
                     ],
                 ),
             ],
@@ -1032,7 +1039,7 @@ mod tests {
         // This should parse as a function call where the function is (if toggle keys values)
         // and the argument is {one: "two"}
         let mut expected_map = HashMap::new();
-        expected_map.insert("one".to_string(), Expression::value(RuntimeValue::String("two".to_string())));
+        expected_map.insert("one".to_string(), Expression::value(LiteralValue::String("two".to_string())));
         let expected_object = Expression::object(expected_map);
 
         let expected = Expression::function_call(
@@ -1055,7 +1062,7 @@ mod tests {
         // Test that lisp-like syntax works in pipelines
         // data | (if toggle keys values) {one: "two"} | count
         let mut expected_map = HashMap::new();
-        expected_map.insert("one".to_string(), Expression::value(RuntimeValue::String("two".to_string())));
+        expected_map.insert("one".to_string(), Expression::value(LiteralValue::String("two".to_string())));
         let expected_object = Expression::object(expected_map);
 
         let expected = Expression::pipeline(vec![
@@ -1150,11 +1157,11 @@ mod tests {
     #[test]
     fn test_parse_indexing() {
         // Test array indexing: array[0]
-        let expected = Expression::index_single(Expression::value(RuntimeValue::Number(0.0)), Expression::reference("array", false));
+        let expected = Expression::index_single(Expression::value(LiteralValue::Number(0.0)), Expression::reference("array", false));
         assert_eq!(Parser::parse("array[0]").unwrap(), expected);
 
         // Test string indexing: string[1]
-        let expected = Expression::index_single(Expression::value(RuntimeValue::Number(1.0)), Expression::reference("string", false));
+        let expected = Expression::index_single(Expression::value(LiteralValue::Number(1.0)), Expression::reference("string", false));
         assert_eq!(Parser::parse("string[1]").unwrap(), expected);
 
         // Test chained indexing: array[0][1]
@@ -1162,10 +1169,10 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("index", true),
             vec![
-                Expression::value(RuntimeValue::Number(1.0)),
+                Expression::value(LiteralValue::Number(1.0)),
                 Expression::function_call(
                     Expression::reference("index", true),
-                    vec![Expression::value(RuntimeValue::Number(0.0)), Expression::reference("array", false)],
+                    vec![Expression::value(LiteralValue::Number(0.0)), Expression::reference("array", false)],
                 ),
             ],
         );
@@ -1178,7 +1185,7 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("index", true),
             vec![
-                Expression::value(RuntimeValue::Number(0.0)),
+                Expression::value(LiteralValue::Number(0.0)),
                 Expression::dot_access(Expression::reference("object", false), "field"),
             ],
         );
@@ -1188,7 +1195,7 @@ mod tests {
         let expected = Expression::dot_access(
             Expression::function_call(
                 Expression::reference("index", true),
-                vec![Expression::value(RuntimeValue::Number(0.0)), Expression::reference("object", false)],
+                vec![Expression::value(LiteralValue::Number(0.0)), Expression::reference("object", false)],
             ),
             "field",
         );
@@ -1241,11 +1248,11 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("index", true),
             vec![
-                Expression::value(RuntimeValue::Number(0.0)),
+                Expression::value(LiteralValue::Number(0.0)),
                 Expression::array(vec![
-                    Expression::value(RuntimeValue::Number(1.0)),
-                    Expression::value(RuntimeValue::Number(2.0)),
-                    Expression::value(RuntimeValue::Number(3.0)),
+                    Expression::value(LiteralValue::Number(1.0)),
+                    Expression::value(LiteralValue::Number(2.0)),
+                    Expression::value(LiteralValue::Number(3.0)),
                 ]),
             ],
         );
@@ -1263,7 +1270,7 @@ mod tests {
         // Test empty indexing: []
         let expected = Expression::function_call(
             Expression::reference("index", true),
-            vec![Expression::value(RuntimeValue::Null), Expression::reference("array", false)],
+            vec![Expression::value(LiteralValue::Null), Expression::reference("array", false)],
         );
         assert_eq!(Parser::parse("array[]").unwrap(), expected);
 
@@ -1271,8 +1278,8 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("index", true),
             vec![
-                Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Null),
+                Expression::value(LiteralValue::Number(1.0)),
+                Expression::value(LiteralValue::Null),
                 Expression::reference("array", false),
             ],
         );
@@ -1282,8 +1289,8 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("index", true),
             vec![
-                Expression::value(RuntimeValue::Null),
-                Expression::value(RuntimeValue::Number(2.0)),
+                Expression::value(LiteralValue::Null),
+                Expression::value(LiteralValue::Number(2.0)),
                 Expression::reference("array", false),
             ],
         );
@@ -1293,8 +1300,8 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("index", true),
             vec![
-                Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Number(2.0)),
+                Expression::value(LiteralValue::Number(1.0)),
+                Expression::value(LiteralValue::Number(2.0)),
                 Expression::reference("array", false),
             ],
         );
@@ -1304,8 +1311,8 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("index", true),
             vec![
-                Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Number(2.0)),
+                Expression::value(LiteralValue::Number(1.0)),
+                Expression::value(LiteralValue::Number(2.0)),
                 Expression::reference("array", false),
             ],
         );
@@ -1315,8 +1322,8 @@ mod tests {
         let expected = Expression::function_call(
             Expression::reference("index", true),
             vec![
-                Expression::value(RuntimeValue::Number(1.0)),
-                Expression::value(RuntimeValue::Number(2.0)),
+                Expression::value(LiteralValue::Number(1.0)),
+                Expression::value(LiteralValue::Number(2.0)),
                 Expression::reference("array", false),
             ],
         );
@@ -1335,7 +1342,7 @@ mod tests {
                     Expression::function_call(
                         Expression::reference("index", true),
                         vec![
-                            Expression::value(RuntimeValue::Number(0.0)),
+                            Expression::value(LiteralValue::Number(0.0)),
                             Expression::parenthetical(Expression::function_call(
                                 Expression::reference("keys", false),
                                 vec![Expression::reference("x", false)]

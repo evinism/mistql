@@ -4,10 +4,12 @@
 //! conversion, equality, comparison, and truthiness operations.
 
 use crate::executor::ExecutionError;
+use crate::parser::LiteralValue;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
+use std::rc::Rc;
 
 // Custom regex wrapper that implements Serialize/Deserialize/
 #[derive(Debug, Clone)]
@@ -168,19 +170,54 @@ impl fmt::Display for RuntimeValueType {
 }
 
 // MistQL runtime value representing all possible data types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum RuntimeValue {
     Null,
     Boolean(bool),
     Number(f64),
     String(String),
-    Object(HashMap<String, RuntimeValue>),
-    Array(Vec<RuntimeValue>),
+    Object(Rc<HashMap<String, Rc<RuntimeValue>>>),
+    Array(Rc<Vec<Rc<RuntimeValue>>>),
     Function(String),
     Regex(MistQLRegex),
 }
 
 impl RuntimeValue {
+    // Constructors
+    pub fn null() -> Rc<Self> {
+        Rc::new(RuntimeValue::Null)
+    }
+    pub fn boolean(value: bool) -> Rc<Self> {
+        Rc::new(RuntimeValue::Boolean(value))
+    }
+    pub fn number(value: f64) -> Rc<Self> {
+        Rc::new(RuntimeValue::Number(value))
+    }
+    pub fn number_ref(value: &f64) -> Rc<Self> {
+        Rc::new(RuntimeValue::Number(*value))
+    }
+    pub fn string(value: String) -> Rc<Self> {
+        Rc::new(RuntimeValue::String(value))
+    }
+    pub fn string_ref(value: &str) -> Rc<Self> {
+        Rc::new(RuntimeValue::String(value.to_string()))
+    }
+    pub fn function(value: String) -> Rc<Self> {
+        Rc::new(RuntimeValue::Function(value))
+    }
+    pub fn function_ref(value: &str) -> Rc<Self> {
+        Rc::new(RuntimeValue::Function(value.to_string()))
+    }
+    pub fn regex(value: MistQLRegex) -> Rc<Self> {
+        Rc::new(RuntimeValue::Regex(value))
+    }
+    pub fn array(value: Vec<Rc<RuntimeValue>>) -> Rc<Self> {
+        Rc::new(RuntimeValue::Array(Rc::new(value)))
+    }
+    pub fn object(value: HashMap<String, Rc<RuntimeValue>>) -> Rc<Self> {
+        Rc::new(RuntimeValue::Object(Rc::new(value)))
+    }
+    // Basic properties
     pub fn get_type(&self) -> RuntimeValueType {
         match self {
             RuntimeValue::Null => RuntimeValueType::Null,
@@ -193,7 +230,6 @@ impl RuntimeValue {
             RuntimeValue::Regex(_) => RuntimeValueType::Regex,
         }
     }
-
     pub fn truthy(&self) -> bool {
         match self {
             RuntimeValue::Null => false,
@@ -206,62 +242,47 @@ impl RuntimeValue {
             RuntimeValue::Regex(_) => true,
         }
     }
-
     pub fn comparable(&self) -> bool {
         matches!(self, RuntimeValue::Boolean(_) | RuntimeValue::Number(_) | RuntimeValue::String(_))
     }
-}
-
-impl fmt::Display for RuntimeValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: lol.
-        // Always use permissive mode for display to ensure graceful output
-        match self.to_serde_value(true) {
-            Ok(value) => value.fmt(f),
-            // Should never happen, but just in case.
-            Err(_) => write!(f, "non-external"),
+    // Access methods
+    pub fn keys(&self) -> Vec<String> {
+        match self {
+            RuntimeValue::Object(obj) => obj.keys().cloned().collect(),
+            _ => Vec::new(),
         }
     }
-}
+    pub fn index(&self, index: usize) -> Rc<RuntimeValue> {
+        match self {
+            RuntimeValue::Array(arr) => arr.get(index).cloned().unwrap_or_else(|| Rc::new(RuntimeValue::Null)),
+            _ => Rc::new(RuntimeValue::Null),
+        }
+    }
+    pub fn access(&self, key: &str) -> Rc<RuntimeValue> {
+        match self {
+            RuntimeValue::Object(obj) => obj.get(key).cloned().unwrap_or_else(|| Rc::new(RuntimeValue::Null)),
+            _ => Rc::new(RuntimeValue::Null),
+        }
+    }
+    // Compare two values for ordering (<, >, <=, >=)
+    pub fn compare(&self, other: &Self) -> Result<std::cmp::Ordering, String> {
+        if self.get_type() != other.get_type() {
+            return Err("Cannot compare MistQL values of different types".to_string());
+        }
 
-impl PartialEq for RuntimeValue {
-    fn eq(&self, other: &Self) -> bool {
+        if !self.comparable() {
+            return Err(format!("Cannot compare MistQL values of type {}", self.get_type()));
+        }
+
         match (self, other) {
-            (RuntimeValue::Null, RuntimeValue::Null) => true,
-            (RuntimeValue::Boolean(a), RuntimeValue::Boolean(b)) => a == b,
-            (RuntimeValue::Number(a), RuntimeValue::Number(b)) => a == b,
-            (RuntimeValue::String(a), RuntimeValue::String(b)) => a == b,
-            (RuntimeValue::Object(a), RuntimeValue::Object(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for (key, value) in a {
-                    if let Some(other_value) = b.get(key) {
-                        if value != other_value {
-                            return false;
-                        }
-                    } else {
-                        return false;
-                    }
-                }
-                true
-            }
-            (RuntimeValue::Array(a), RuntimeValue::Array(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                a.iter().zip(b.iter()).all(|(a, b)| a == b)
-            }
-            (RuntimeValue::Function(a), RuntimeValue::Function(b)) => a == b, // Referential equality
-            (RuntimeValue::Regex(a), RuntimeValue::Regex(b)) => a.pattern() == b.pattern() && a.flags() == b.flags(),
-            _ => false,
+            (RuntimeValue::Boolean(a), RuntimeValue::Boolean(b)) => Ok(a.cmp(b)),
+            (RuntimeValue::Number(a), RuntimeValue::Number(b)) => a.partial_cmp(b).ok_or_else(|| "Invalid number comparison".to_string()),
+            (RuntimeValue::String(a), RuntimeValue::String(b)) => Ok(a.cmp(b)),
+            _ => Err(format!("Cannot compare MistQL values of type {}", self.get_type())),
         }
     }
-}
 
-impl Eq for RuntimeValue {}
-
-impl RuntimeValue {
+    // Conversions
     pub fn to_serde_value(&self, permissive: bool) -> Result<serde_json::Value, ExecutionError> {
         match self {
             RuntimeValue::Null => Ok(serde_json::Value::Null),
@@ -273,14 +294,14 @@ impl RuntimeValue {
             RuntimeValue::String(s) => Ok(serde_json::Value::String(s.clone())),
             RuntimeValue::Array(arr) => {
                 let mut result = Vec::new();
-                for v in arr {
+                for v in arr.iter() {
                     result.push(v.to_serde_value(permissive)?);
                 }
                 Ok(serde_json::Value::Array(result))
             }
             RuntimeValue::Object(obj) => {
                 let mut map = serde_json::Map::new();
-                for (key, value) in obj {
+                for (key, value) in obj.iter() {
                     map.insert(key.clone(), value.to_serde_value(permissive)?);
                 }
                 Ok(serde_json::Value::Object(map))
@@ -304,24 +325,6 @@ impl RuntimeValue {
 
     pub fn to_serde_value_default(&self) -> Result<serde_json::Value, ExecutionError> {
         self.to_serde_value(false)
-    }
-
-    // Compare two values for ordering (<, >, <=, >=)
-    pub fn compare(&self, other: &Self) -> Result<std::cmp::Ordering, String> {
-        if self.get_type() != other.get_type() {
-            return Err("Cannot compare MistQL values of different types".to_string());
-        }
-
-        if !self.comparable() {
-            return Err(format!("Cannot compare MistQL values of type {}", self.get_type()));
-        }
-
-        match (self, other) {
-            (RuntimeValue::Boolean(a), RuntimeValue::Boolean(b)) => Ok(a.cmp(b)),
-            (RuntimeValue::Number(a), RuntimeValue::Number(b)) => a.partial_cmp(b).ok_or_else(|| "Invalid number comparison".to_string()),
-            (RuntimeValue::String(a), RuntimeValue::String(b)) => Ok(a.cmp(b)),
-            _ => Err(format!("Cannot compare MistQL values of type {}", self.get_type())),
-        }
     }
 
     // Convert to string for serialization (use escape characters)
@@ -397,33 +400,13 @@ impl RuntimeValue {
         }
     }
 
-    // Access object property
-    pub fn access(&self, key: &str) -> RuntimeValue {
-        match self {
-            RuntimeValue::Object(obj) => obj.get(key).cloned().unwrap_or(RuntimeValue::Null),
-            _ => RuntimeValue::Null,
-        }
-    }
-
-    // Get object keys
-    pub fn keys(&self) -> Vec<String> {
-        match self {
-            RuntimeValue::Object(obj) => obj.keys().cloned().collect(),
-            _ => Vec::new(),
-        }
-    }
-}
-
-impl TryFrom<&serde_json::Value> for RuntimeValue {
-    type Error = ExecutionError;
-
-    fn try_from(value: &serde_json::Value) -> Result<Self, Self::Error> {
+    pub fn from_serde_value(value: &serde_json::Value) -> Result<Rc<RuntimeValue>, ExecutionError> {
         match value {
-            serde_json::Value::Null => Ok(RuntimeValue::Null),
-            serde_json::Value::Bool(b) => Ok(RuntimeValue::Boolean(*b)),
+            serde_json::Value::Null => Ok(Rc::new(RuntimeValue::Null)),
+            serde_json::Value::Bool(b) => Ok(Rc::new(RuntimeValue::Boolean(*b))),
             serde_json::Value::Number(n) => {
                 match n.as_f64() {
-                    Some(f) => Ok(RuntimeValue::Number(f)),
+                    Some(f) => Ok(Rc::new(RuntimeValue::Number(f))),
                     // Going against the docs, see comment:
                     // https://www.mistql.com/docs/reference/types
                     // Likely the original decision was because JSON does not support NaN or Infinity.
@@ -432,32 +415,105 @@ impl TryFrom<&serde_json::Value> for RuntimeValue {
                     )),
                 }
             }
-            serde_json::Value::String(s) => Ok(RuntimeValue::String(s.clone())),
+            serde_json::Value::String(s) => Ok(Rc::new(RuntimeValue::String(s.clone()))),
             serde_json::Value::Array(arr) => {
-                let values = arr
+                let values: Vec<Rc<RuntimeValue>> = arr
                     .iter()
-                    .map(TryFrom::try_from)
-                    .collect::<Result<Vec<RuntimeValue>, ExecutionError>>()?;
-                Ok(RuntimeValue::Array(values))
+                    .map(|x| RuntimeValue::from_serde_value(x))
+                    .collect::<Result<Vec<Rc<RuntimeValue>>, ExecutionError>>()?;
+                Ok(RuntimeValue::array(values))
             }
             serde_json::Value::Object(obj) => {
                 let mut map = HashMap::new();
                 for (key, value) in obj {
-                    map.insert(key.clone(), TryFrom::try_from(value)?);
+                    map.insert(key.clone(), RuntimeValue::from_serde_value(value)?);
                 }
-                Ok(RuntimeValue::Object(map))
+                Ok(RuntimeValue::object(map))
             }
         }
     }
 }
-
-impl TryFrom<serde_json::Value> for RuntimeValue {
-    type Error = ExecutionError;
-
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
-        TryFrom::try_from(&value)
+impl From<HashMap<String, RuntimeValue>> for RuntimeValue {
+    fn from(value: HashMap<String, RuntimeValue>) -> Self {
+        RuntimeValue::Object(Rc::new(value.into_iter().map(|(k, v)| (k, Rc::new(v))).collect()))
     }
 }
+impl From<HashMap<String, Rc<RuntimeValue>>> for RuntimeValue {
+    fn from(value: HashMap<String, Rc<RuntimeValue>>) -> Self {
+        RuntimeValue::Object(Rc::new(value))
+    }
+}
+impl From<Vec<RuntimeValue>> for RuntimeValue {
+    fn from(value: Vec<RuntimeValue>) -> Self {
+        RuntimeValue::Array(Rc::new(value.into_iter().map(|v| Rc::new(v)).collect()))
+    }
+}
+impl From<Vec<Rc<RuntimeValue>>> for RuntimeValue {
+    fn from(value: Vec<Rc<RuntimeValue>>) -> Self {
+        RuntimeValue::Array(Rc::new(value))
+    }
+}
+impl From<MistQLRegex> for RuntimeValue {
+    fn from(value: MistQLRegex) -> Self {
+        RuntimeValue::Regex(value)
+    }
+}
+impl From<LiteralValue> for RuntimeValue {
+    fn from(value: LiteralValue) -> Self {
+        match value {
+            LiteralValue::Null => RuntimeValue::Null,
+            LiteralValue::Boolean(value) => RuntimeValue::Boolean(value),
+            LiteralValue::Number(value) => RuntimeValue::Number(value),
+            LiteralValue::String(value) => RuntimeValue::String(value),
+        }
+    }
+}
+impl fmt::Display for RuntimeValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: lol.
+        // Always use permissive mode for display to ensure graceful output
+        match self.to_serde_value(true) {
+            Ok(value) => value.fmt(f),
+            // Should never happen, but just in case.
+            Err(_) => write!(f, "non-external"),
+        }
+    }
+}
+impl PartialEq for RuntimeValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (RuntimeValue::Null, RuntimeValue::Null) => true,
+            (RuntimeValue::Boolean(a), RuntimeValue::Boolean(b)) => a == b,
+            (RuntimeValue::Number(a), RuntimeValue::Number(b)) => a == b,
+            (RuntimeValue::String(a), RuntimeValue::String(b)) => a == b,
+            (RuntimeValue::Object(a), RuntimeValue::Object(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                for (key, value) in a.iter() {
+                    if let Some(other_value) = b.get(key) {
+                        if value != other_value {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+                true
+            }
+            (RuntimeValue::Array(a), RuntimeValue::Array(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                a.iter().zip(b.iter()).all(|(a, b)| a == b)
+            }
+            (RuntimeValue::Function(a), RuntimeValue::Function(b)) => a == b, // Referential equality
+            (RuntimeValue::Regex(a), RuntimeValue::Regex(b)) => a.pattern() == b.pattern() && a.flags() == b.flags(),
+            _ => false,
+        }
+    }
+}
+impl Eq for RuntimeValue {}
 
 #[cfg(test)]
 mod tests {
@@ -482,12 +538,12 @@ mod tests {
         assert!(num_val.truthy());
 
         // Test string
-        let str_val = RuntimeValue::String("hello".to_string());
+        let str_val = RuntimeValue::string("hello".to_string());
         assert_eq!(str_val.get_type(), RuntimeValueType::String);
         assert!(str_val.truthy());
 
         // Test empty string
-        let empty_str = RuntimeValue::String("".to_string());
+        let empty_str = RuntimeValue::string("".to_string());
         assert!(!empty_str.truthy());
     }
 
@@ -500,7 +556,7 @@ mod tests {
             "scores": [1, 2, 3]
         });
 
-        let runtime_val: RuntimeValue = (&json_val).try_into().unwrap();
+        let runtime_val: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_val).unwrap();
         assert_eq!(runtime_val.get_type(), RuntimeValueType::Object);
 
         let back_to_json = runtime_val.to_serde_value_default().unwrap();
@@ -520,14 +576,14 @@ mod tests {
     #[test]
     fn test_object_access() {
         let mut obj = std::collections::HashMap::new();
-        obj.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-        obj.insert("age".to_string(), RuntimeValue::Number(30.0));
+        obj.insert("name".to_string(), RuntimeValue::string("John".to_string()));
+        obj.insert("age".to_string(), Rc::new(RuntimeValue::Number(30.0)));
 
-        let runtime_obj = RuntimeValue::Object(obj);
+        let runtime_obj = RuntimeValue::from(obj);
 
-        assert_eq!(runtime_obj.access("name"), RuntimeValue::String("John".to_string()));
-        assert_eq!(runtime_obj.access("age"), RuntimeValue::Number(30.0));
-        assert_eq!(runtime_obj.access("missing"), RuntimeValue::Null);
+        assert_eq!(runtime_obj.access("name"), RuntimeValue::string("John".to_string()));
+        assert_eq!(runtime_obj.access("age"), Rc::new(RuntimeValue::Number(30.0)));
+        assert_eq!(runtime_obj.access("missing"), Rc::new(RuntimeValue::Null));
     }
 }
 
@@ -597,9 +653,10 @@ mod basic_types {
     fn test_object_type() {
         let mut obj = HashMap::new();
         obj.insert("key".to_string(), RuntimeValue::String("value".to_string()));
-        let non_empty_obj = RuntimeValue::Object(obj);
+        let non_empty_obj = RuntimeValue::from(obj);
 
-        let empty_obj = RuntimeValue::Object(HashMap::new());
+        let empty_obj: HashMap<String, Rc<RuntimeValue>> = HashMap::new();
+        let empty_obj = RuntimeValue::from(empty_obj);
 
         assert_eq!(non_empty_obj.get_type(), RuntimeValueType::Object);
         assert_eq!(empty_obj.get_type(), RuntimeValueType::Object);
@@ -612,8 +669,9 @@ mod basic_types {
 
     #[test]
     fn test_array_type() {
-        let non_empty_arr = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
-        let empty_arr = RuntimeValue::Array(vec![]);
+        let non_empty_arr = RuntimeValue::from(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
+        let empty_vec: Vec<Rc<RuntimeValue>> = Vec::new();
+        let empty_arr = RuntimeValue::from(empty_vec);
 
         assert_eq!(non_empty_arr.get_type(), RuntimeValueType::Array);
         assert_eq!(empty_arr.get_type(), RuntimeValueType::Array);
@@ -698,9 +756,9 @@ mod equality_tests {
         obj3.insert("a".to_string(), RuntimeValue::Number(1.0));
         obj3.insert("b".to_string(), RuntimeValue::String("different".to_string()));
 
-        let runtime_obj1 = RuntimeValue::Object(obj1);
-        let runtime_obj2 = RuntimeValue::Object(obj2);
-        let runtime_obj3 = RuntimeValue::Object(obj3);
+        let runtime_obj1 = RuntimeValue::from(obj1);
+        let runtime_obj2 = RuntimeValue::from(obj2);
+        let runtime_obj3 = RuntimeValue::from(obj3);
 
         assert_eq!(runtime_obj1, runtime_obj2);
         assert_ne!(runtime_obj1, runtime_obj3);
@@ -708,11 +766,11 @@ mod equality_tests {
 
     #[test]
     fn test_array_equality() {
-        let arr1 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
+        let arr1 = RuntimeValue::from(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
 
-        let arr2 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
+        let arr2 = RuntimeValue::from(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
 
-        let arr3 = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("different".to_string())]);
+        let arr3 = RuntimeValue::from(vec![RuntimeValue::Number(1.0), RuntimeValue::String("different".to_string())]);
 
         assert_eq!(arr1, arr2);
         assert_ne!(arr1, arr3);
@@ -801,8 +859,10 @@ mod comparison_tests {
     #[test]
     fn test_incomparable_types() {
         let null = RuntimeValue::Null;
-        let obj = RuntimeValue::Object(HashMap::new());
-        let arr = RuntimeValue::Array(vec![]);
+        let obj: HashMap<String, Rc<RuntimeValue>> = HashMap::new();
+        let obj = RuntimeValue::from(obj);
+        let arr: Vec<Rc<RuntimeValue>> = Vec::new();
+        let arr = RuntimeValue::from(arr);
         let func = RuntimeValue::Function("test".to_string());
         let regex = RuntimeValue::Regex(MistQLRegex::new("test", "").unwrap());
 
@@ -842,8 +902,8 @@ mod serde_conversion_tests {
     #[test]
     fn test_null_conversion() {
         let json_null = json!(null);
-        let runtime_null: RuntimeValue = (&json_null).try_into().unwrap();
-        assert_eq!(runtime_null, RuntimeValue::Null);
+        let runtime_null: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_null).unwrap();
+        assert_eq!(runtime_null, RuntimeValue::null());
 
         let back_to_json = runtime_null.to_serde_value_default().unwrap();
         let back_to_json: serde_json::Value = back_to_json.try_into().unwrap();
@@ -855,11 +915,11 @@ mod serde_conversion_tests {
         let json_true = json!(true);
         let json_false = json!(false);
 
-        let runtime_true: RuntimeValue = (&json_true).try_into().unwrap();
-        let runtime_false: RuntimeValue = (&json_false).try_into().unwrap();
+        let runtime_true: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_true).unwrap();
+        let runtime_false: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_false).unwrap();
 
-        assert_eq!(runtime_true, RuntimeValue::Boolean(true));
-        assert_eq!(runtime_false, RuntimeValue::Boolean(false));
+        assert_eq!(runtime_true, RuntimeValue::boolean(true));
+        assert_eq!(runtime_false, RuntimeValue::boolean(false));
 
         assert_eq!(runtime_true.to_serde_value_default().unwrap(), json_true);
         assert_eq!(runtime_false.to_serde_value_default().unwrap(), json_false);
@@ -871,13 +931,13 @@ mod serde_conversion_tests {
         let json_float = json!(3.14);
         let json_negative = json!(-100);
 
-        let runtime_int: RuntimeValue = (&json_int).try_into().unwrap();
-        let runtime_float: RuntimeValue = (&json_float).try_into().unwrap();
-        let runtime_negative: RuntimeValue = (&json_negative).try_into().unwrap();
+        let runtime_int: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_int).unwrap();
+        let runtime_float: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_float).unwrap();
+        let runtime_negative: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_negative).unwrap();
 
-        assert_eq!(runtime_int, RuntimeValue::Number(42.0));
-        assert_eq!(runtime_float, RuntimeValue::Number(3.14));
-        assert_eq!(runtime_negative, RuntimeValue::Number(-100.0));
+        assert_eq!(runtime_int, RuntimeValue::number(42.0));
+        assert_eq!(runtime_float, RuntimeValue::number(3.14));
+        assert_eq!(runtime_negative, RuntimeValue::number(-100.0));
 
         // Note: When converting back to JSON, integers become floats
         // This is expected behavior since RuntimeValue stores all numbers as f64
@@ -897,13 +957,13 @@ mod serde_conversion_tests {
         let json_empty = json!("");
         let json_unicode = json!("🚀🌟");
 
-        let runtime_str: RuntimeValue = (&json_str).try_into().unwrap();
-        let runtime_empty: RuntimeValue = (&json_empty).try_into().unwrap();
-        let runtime_unicode: RuntimeValue = (&json_unicode).try_into().unwrap();
+        let runtime_str: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_str).unwrap();
+        let runtime_empty: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_empty).unwrap();
+        let runtime_unicode: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_unicode).unwrap();
 
-        assert_eq!(runtime_str, RuntimeValue::String("hello world".to_string()));
-        assert_eq!(runtime_empty, RuntimeValue::String("".to_string()));
-        assert_eq!(runtime_unicode, RuntimeValue::String("🚀🌟".to_string()));
+        assert_eq!(runtime_str, RuntimeValue::string("hello world".to_string()));
+        assert_eq!(runtime_empty, RuntimeValue::string("".to_string()));
+        assert_eq!(runtime_unicode, RuntimeValue::string("🚀🌟".to_string()));
 
         assert_eq!(runtime_str.to_serde_value_default().unwrap(), json_str);
         assert_eq!(runtime_empty.to_serde_value_default().unwrap(), json_empty);
@@ -913,13 +973,13 @@ mod serde_conversion_tests {
     #[test]
     fn test_array_conversion() {
         let json_arr = json!([1, "test", true, null]);
-        let runtime_arr: RuntimeValue = (&json_arr).try_into().unwrap();
+        let runtime_arr: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_arr).unwrap();
 
-        let expected = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::String("test".to_string()),
-            RuntimeValue::Boolean(true),
-            RuntimeValue::Null,
+        let expected = RuntimeValue::array(vec![
+            RuntimeValue::number(1.0),
+            RuntimeValue::string("test".to_string()),
+            RuntimeValue::boolean(true),
+            RuntimeValue::null(),
         ]);
 
         assert_eq!(runtime_arr, expected);
@@ -946,7 +1006,7 @@ mod serde_conversion_tests {
             "scores": [1, 2, 3]
         });
 
-        let runtime_obj: RuntimeValue = (&json_obj).try_into().unwrap();
+        let runtime_obj: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_obj).unwrap();
         let back_to_json = runtime_obj.to_serde_value_default().unwrap();
 
         // Test that the conversion preserves the structure and values
@@ -981,7 +1041,7 @@ mod serde_conversion_tests {
             }
         });
 
-        let runtime_nested: RuntimeValue = (&json_nested).try_into().unwrap();
+        let runtime_nested: Rc<RuntimeValue> = RuntimeValue::from_serde_value(&json_nested).unwrap();
         let back_to_json = runtime_nested.to_serde_value_default().unwrap();
 
         // Test that the structure is preserved
@@ -1045,13 +1105,11 @@ mod type_conversion_tests {
 
     #[test]
     fn test_to_string_complex_types() {
-        let obj = RuntimeValue::Object({
-            let mut map = HashMap::new();
-            map.insert("key".to_string(), RuntimeValue::String("value".to_string()));
-            map
-        });
+        let mut obj: HashMap<String, Rc<RuntimeValue>> = HashMap::new();
+        obj.insert("key".to_string(), Rc::new(RuntimeValue::String("value".to_string())));
+        let obj = RuntimeValue::from(obj);
 
-        let arr = RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
+        let arr = RuntimeValue::from(vec![RuntimeValue::Number(1.0), RuntimeValue::String("test".to_string())]);
 
         // These should serialize to JSON
         let obj_str = obj.to_string_serialize();
@@ -1075,12 +1133,12 @@ mod object_operation_tests {
         obj.insert("age".to_string(), RuntimeValue::Number(30.0));
         obj.insert("active".to_string(), RuntimeValue::Boolean(true));
 
-        let runtime_obj = RuntimeValue::Object(obj);
+        let runtime_obj = RuntimeValue::from(obj);
 
-        assert_eq!(runtime_obj.access("name"), RuntimeValue::String("John".to_string()));
-        assert_eq!(runtime_obj.access("age"), RuntimeValue::Number(30.0));
-        assert_eq!(runtime_obj.access("active"), RuntimeValue::Boolean(true));
-        assert_eq!(runtime_obj.access("missing"), RuntimeValue::Null);
+        assert_eq!(runtime_obj.access("name"), Rc::new(RuntimeValue::String("John".to_string())));
+        assert_eq!(runtime_obj.access("age"), Rc::new(RuntimeValue::Number(30.0)));
+        assert_eq!(runtime_obj.access("active"), Rc::new(RuntimeValue::Boolean(true)));
+        assert_eq!(runtime_obj.access("missing"), Rc::new(RuntimeValue::Null));
     }
 
     #[test]
@@ -1089,9 +1147,9 @@ mod object_operation_tests {
         let num_val = RuntimeValue::Number(42.0);
         let null_val = RuntimeValue::Null;
 
-        assert_eq!(str_val.access("key"), RuntimeValue::Null);
-        assert_eq!(num_val.access("key"), RuntimeValue::Null);
-        assert_eq!(null_val.access("key"), RuntimeValue::Null);
+        assert_eq!(str_val.access("key"), Rc::new(RuntimeValue::Null));
+        assert_eq!(num_val.access("key"), Rc::new(RuntimeValue::Null));
+        assert_eq!(null_val.access("key"), Rc::new(RuntimeValue::Null));
     }
 
     #[test]
@@ -1101,7 +1159,7 @@ mod object_operation_tests {
         obj.insert("b".to_string(), RuntimeValue::Number(2.0));
         obj.insert("c".to_string(), RuntimeValue::Number(3.0));
 
-        let runtime_obj = RuntimeValue::Object(obj);
+        let runtime_obj = RuntimeValue::from(obj);
         let mut keys = runtime_obj.keys();
         keys.sort(); // Sort for consistent testing
 
@@ -1121,9 +1179,10 @@ mod object_operation_tests {
 
     #[test]
     fn test_empty_object() {
-        let empty_obj = RuntimeValue::Object(HashMap::new());
+        let empty_obj: HashMap<String, Rc<RuntimeValue>> = HashMap::new();
+        let empty_obj = RuntimeValue::from(empty_obj);
 
-        assert_eq!(empty_obj.access("any_key"), RuntimeValue::Null);
+        assert_eq!(empty_obj.access("any_key"), Rc::new(RuntimeValue::Null));
         assert_eq!(empty_obj.keys(), Vec::<String>::new());
         assert!(!empty_obj.truthy());
     }
@@ -1201,8 +1260,10 @@ mod edge_case_tests {
     #[test]
     fn test_empty_structures() {
         let empty_str = RuntimeValue::String("".to_string());
-        let empty_arr = RuntimeValue::Array(vec![]);
-        let empty_obj = RuntimeValue::Object(HashMap::new());
+        let empty_arr: Vec<Rc<RuntimeValue>> = Vec::new();
+        let empty_arr = RuntimeValue::from(empty_arr);
+        let empty_obj: HashMap<String, Rc<RuntimeValue>> = HashMap::new();
+        let empty_obj = RuntimeValue::from(empty_obj);
 
         assert!(!empty_str.truthy());
         assert!(!empty_arr.truthy());
@@ -1211,9 +1272,13 @@ mod edge_case_tests {
 
     #[test]
     fn test_nested_empty_structures() {
-        let nested_empty = RuntimeValue::Array(vec![
-            RuntimeValue::Array(vec![]),
-            RuntimeValue::Object(HashMap::new()),
+        let empty_arr: Vec<Rc<RuntimeValue>> = Vec::new();
+        let empty_arr = RuntimeValue::from(empty_arr);
+        let empty_obj: HashMap<String, Rc<RuntimeValue>> = HashMap::new();
+        let empty_obj = RuntimeValue::from(empty_obj);
+        let nested_empty = RuntimeValue::from(vec![
+            empty_arr,
+            empty_obj,
             RuntimeValue::String("".to_string()),
         ]);
 
@@ -1233,13 +1298,13 @@ mod edge_case_tests {
         let mut level3 = HashMap::new();
         level3.insert("value".to_string(), RuntimeValue::String("deep".to_string()));
 
-        let level2 = RuntimeValue::Object(level3);
-        let level1 = RuntimeValue::Array(vec![level2]);
+        let level2 = RuntimeValue::from(level3);
+        let level1 = RuntimeValue::from(vec![level2]);
 
-        let root = RuntimeValue::Object({
+        let root = RuntimeValue::from({
             let mut map = HashMap::new();
             map.insert("nested".to_string(), level1);
-            map
+            RuntimeValue::from(map)
         });
 
         assert!(root.truthy());
