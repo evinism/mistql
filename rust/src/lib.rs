@@ -51,22 +51,23 @@ pub enum MistQLError {
 /// use mistql::{query_runtime, RuntimeValue, builtins::{CustomFunction, FunctionMetadata}};
 /// use mistql::executor::{ExecutionContext, ExecutionError};
 /// use mistql::parser::Expression;
+/// use std::rc::Rc;
 ///
 /// // Define a custom function that calculates the square of a number
-/// fn square_function(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+/// fn square_function(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
 ///     mistql::builtins::validate_args("square", args, 1, Some(1))?;
 ///     let value = mistql::executor::execute_expression(&args[0], context)?;
-///     match value {
-///         RuntimeValue::Number(n) => Ok(RuntimeValue::Number(n * n)),
+///     match &*value {
+///         RuntimeValue::Number(n) => Ok(RuntimeValue::number(n * n)),
 ///         _ => Err(ExecutionError::TypeMismatch("square requires a number".to_string())),
 ///     }
 /// }
 ///
 /// // Create data and context
-/// let data = RuntimeValue::Array(vec![
-///     RuntimeValue::Number(5.0),
-///     RuntimeValue::Number(3.0),
-///     RuntimeValue::Number(4.0),
+/// let data = RuntimeValue::array(vec![
+///     RuntimeValue::number(5.0),
+///     RuntimeValue::number(3.0),
+///     RuntimeValue::number(4.0),
 /// ]);
 ///
 /// let mut context = ExecutionContext::with_builtins(data.clone());
@@ -84,10 +85,10 @@ pub enum MistQLError {
 /// ).unwrap();
 ///
 /// // Use both stock and custom functions together
-/// let result = query_runtime("@ | map square | sum", &data).unwrap();
+/// let result = query_runtime("@ | map square | sum", data).unwrap();
 /// // This calculates: [5, 3, 4] | map square | sum = [25, 9, 16] | sum = 50
 /// ```
-pub fn query(query_str: &str, data: Value) -> Result<Rc<RuntimeValue>, MistQLError> {
+pub fn query(query_str: &str, data: &Value) -> Result<Rc<RuntimeValue>, MistQLError> {
     let runtime_data = RuntimeValue::from_serde_value(&data).map_err(|e: ExecutionError| MistQLError::Runtime(e.to_string()))?;
     query_runtime(query_str, runtime_data)
 }

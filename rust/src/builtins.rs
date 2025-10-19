@@ -8,6 +8,7 @@ use crate::executor::{execute_expression, ExecutionContext, ExecutionError};
 use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use std::rc::Rc;
 
 // ============================================================================
@@ -19,7 +20,6 @@ pub struct Builtin {
     name: String,
     callable: fn(&[Expression], &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError>,
 }
-
 impl Builtin {
     pub fn new(
         name: String,
@@ -30,258 +30,94 @@ impl Builtin {
             callable,
         }
     }
-
     pub fn name(&self) -> &str {
         &self.name
     }
-
     pub fn execute(&self, arguments: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
         (self.callable)(arguments, context)
     }
 }
-
-pub fn get_builtin(s: &str) -> Result<Builtin, ExecutionError> {
-    match s {
+fn init_builtin_names() -> HashMap<String, Builtin> {
+    HashMap::from([
         // Unary operators.
-        "!/unary" => Ok(Builtin::new(
-            "!/unary".to_string(),
-            not,
-        )),
-        "-/unary" => Ok(Builtin::new(
-            "-/unary".to_string(),
-            negate,
-        )),
+        ("!/unary".to_string(), Builtin::new("!/unary".to_string(), not)),
+        ("-/unary".to_string(), Builtin::new("-/unary".to_string(), negate)),
 
         // Binary operators.
-        "||" => Ok(Builtin::new("||".to_string(), or)),
-        "&&" => Ok(Builtin::new("&&".to_string(), and)),
-        "==" => Ok(Builtin::new("==".to_string(), equal)),
-        "!=" => Ok(Builtin::new("!=".to_string(), notequal)),
-        ">" => Ok(Builtin::new(">".to_string(), greaterthan)),
-        "<" => Ok(Builtin::new("<".to_string(), lessthan)),
-        ">=" => Ok(Builtin::new(
-            ">=".to_string(),
-            greaterthanorequal,
-        )),
-        "<=" => Ok(Builtin::new(
-            "<=".to_string(),
-            lessthanorequal,
-        )),
-        "=~" => Ok(Builtin::new(
-            "=~".to_string(),
-            regex_match,
-        )),
-        "+" => Ok(Builtin::new("+".to_string(), add_operator)),
-        "-" => Ok(Builtin::new(
-            "-".to_string(),
-            subtract_operator,
-        )),
-        "*" => Ok(Builtin::new(
-            "*".to_string(),
-            multiply_operator,
-        )),
-        "/" => Ok(Builtin::new(
-            "/".to_string(),
-            divide_operator,
-        )),
-        "%" => Ok(Builtin::new(
-            "%".to_string(),
-            modulo_operator,
-        )),
+        ("||".to_string(), Builtin::new("||".to_string(), or)),
+        ("&&".to_string(), Builtin::new("&&".to_string(), and)),
+        ("==".to_string(), Builtin::new("==".to_string(), equal)),
+        ("!=".to_string(), Builtin::new("!=".to_string(), notequal)),
+        (">".to_string(), Builtin::new(">".to_string(), greaterthan)),
+        ("<".to_string(), Builtin::new("<".to_string(), lessthan)),
+        (">=".to_string(), Builtin::new(">=".to_string(), greaterthanorequal)),
+        ("<=".to_string(), Builtin::new("<=".to_string(), lessthanorequal)),
+        ("=~".to_string(), Builtin::new("=~".to_string(), regex_match)),
+        ("+".to_string(), Builtin::new("+".to_string(), add_operator)),
+        ("-".to_string(), Builtin::new("-".to_string(), subtract_operator)),
+        ("*".to_string(), Builtin::new("*".to_string(), multiply_operator)),
+        ("/".to_string(), Builtin::new("/".to_string(), divide_operator)),
+        ("%".to_string(), Builtin::new("%".to_string(), modulo_operator)),
 
         // Utility functions.
-        "log" => Ok(Builtin::new("log".to_string(), log)),
-        "if" => Ok(Builtin::new(
-            "if".to_string(),
-            if_function,
-        )),
-        "apply" => Ok(Builtin::new(
-            "apply".to_string(),
-            apply,
-        )),
+        ("log".to_string(), Builtin::new("log".to_string(), log)),
+        ("if".to_string(), Builtin::new("if".to_string(), if_function)),
+        ("apply".to_string(), Builtin::new("apply".to_string(), apply)),
 
         // Array operations.
-        "count" => Ok(Builtin::new(
-            "count".to_string(),
-            count,
-        )),
-        "filter" => Ok(Builtin::new(
-            "filter".to_string(),
-            filter,
-        )),
-        "map" => Ok(Builtin::new("map".to_string(), map)),
-        "find" => Ok(Builtin::new("find".to_string(), find)),
-        "reverse" => Ok(Builtin::new(
-            "reverse".to_string(),
-            reverse,
-        )),
-        "flatten" => Ok(Builtin::new(
-            "flatten".to_string(),
-            flatten,
-        )),
-        "sum" => Ok(Builtin::new("sum".to_string(), sum)),
-        "sort" => Ok(Builtin::new("sort".to_string(), sort)),
-        "sortby" => Ok(Builtin::new(
-            "sortby".to_string(),
-            sortby,
-        )),
-        "reduce" => Ok(Builtin::new(
-            "reduce".to_string(),
-            reduce,
-        )),
-        "groupby" => Ok(Builtin::new(
-            "groupby".to_string(),
-            groupby,
-        )),
-        "withindices" => Ok(Builtin::new(
-            "withindices".to_string(),
-            withindices,
-        )),
-        "sequence" => Ok(Builtin::new(
-            "sequence".to_string(),
-            sequence,
-        )),
+        ("count".to_string(), Builtin::new("count".to_string(), count)),
+        ("filter".to_string(), Builtin::new("filter".to_string(), filter)),
+        ("map".to_string(), Builtin::new("map".to_string(), map)),
+        ("find".to_string(), Builtin::new("find".to_string(), find)),
+        ("reverse".to_string(), Builtin::new("reverse".to_string(), reverse)),
+        ("flatten".to_string(), Builtin::new("flatten".to_string(), flatten)),
+        ("sum".to_string(), Builtin::new("sum".to_string(), sum)),
+        ("sort".to_string(), Builtin::new("sort".to_string(), sort)),
+        ("sortby".to_string(), Builtin::new("sortby".to_string(), sortby)),
+        ("reduce".to_string(), Builtin::new("reduce".to_string(), reduce)),
+        ("groupby".to_string(), Builtin::new("groupby".to_string(), groupby)),
+        ("withindices".to_string(), Builtin::new("withindices".to_string(), withindices)),
+        ("sequence".to_string(), Builtin::new("sequence".to_string(), sequence)),
 
         // Object operations.
-        "keys" => Ok(Builtin::new("keys".to_string(), keys)),
-        "values" => Ok(Builtin::new(
-            "values".to_string(),
-            values,
-        )),
-        "entries" => Ok(Builtin::new(
-            "entries".to_string(),
-            entries,
-        )),
-        "fromentries" => Ok(Builtin::new(
-            "fromentries".to_string(),
-            fromentries,
-        )),
-        "mapkeys" => Ok(Builtin::new(
-            "mapkeys".to_string(),
-            mapkeys,
-        )),
-        "mapvalues" => Ok(Builtin::new(
-            "mapvalues".to_string(),
-            mapvalues,
-        )),
-        "filterkeys" => Ok(Builtin::new(
-            "filterkeys".to_string(),
-            filterkeys,
-        )),
-        "filtervalues" => Ok(Builtin::new(
-            "filtervalues".to_string(),
-            filtervalues,
-        )),
+        ("keys".to_string(), Builtin::new("keys".to_string(), keys)),
+        ("values".to_string(), Builtin::new("values".to_string(), values)),
+        ("entries".to_string(), Builtin::new("entries".to_string(), entries)),
+        ("fromentries".to_string(), Builtin::new("fromentries".to_string(), fromentries)),
+        ("mapkeys".to_string(), Builtin::new("mapkeys".to_string(), mapkeys)),
+        ("mapvalues".to_string(), Builtin::new("mapvalues".to_string(), mapvalues)),
+        ("filterkeys".to_string(), Builtin::new("filterkeys".to_string(), filterkeys)),
+        ("filtervalues".to_string(), Builtin::new("filtervalues".to_string(), filtervalues)),
 
         // String operations.
-        "split" => Ok(Builtin::new(
-            "split".to_string(),
-            split,
-        )),
-        "stringjoin" => Ok(Builtin::new(
-            "stringjoin".to_string(),
-            stringjoin,
-        )),
-        "replace" => Ok(Builtin::new(
-            "replace".to_string(),
-            replace,
-        )),
-        "match" => Ok(Builtin::new(
-            "match".to_string(),
-            match_function,
-        )),
-        "regex" => Ok(Builtin::new(
-            "regex".to_string(),
-            regex,
-        )),
+        ("split".to_string(), Builtin::new("split".to_string(), split)),
+        ("stringjoin".to_string(), Builtin::new("stringjoin".to_string(), stringjoin)),
+        ("replace".to_string(), Builtin::new("replace".to_string(), replace)),
+        ("match".to_string(), Builtin::new("match".to_string(), match_function)),
+        ("regex".to_string(), Builtin::new("regex".to_string(), regex)),
 
         // Mathematical functions.
-        "range" => Ok(Builtin::new(
-            "range".to_string(),
-            range,
-        )),
-        "summarize" => Ok(Builtin::new(
-            "summarize".to_string(),
-            summarize,
-        )),
+        ("range".to_string(), Builtin::new("range".to_string(), range)),
+        ("summarize".to_string(), Builtin::new("summarize".to_string(), summarize)),
 
         // Indexing.
-        "index" => Ok(Builtin::new(
-            "index".to_string(),
-            index,
-        )),
+        ("index".to_string(), Builtin::new("index".to_string(), index)),
 
         // Type conversion.
-        "string" => Ok(Builtin::new(
-            "string".to_string(),
-            string,
-        )),
-        "float" => Ok(Builtin::new(
-            "float".to_string(),
-            float,
-        )),
-
-        _ => Err(ExecutionError::Custom(format!("Unknown builtin function: {}", s))),
-    }
+        ("string".to_string(), Builtin::new("string".to_string(), string)),
+        ("float".to_string(), Builtin::new("float".to_string(), float)),
+    ])
 }
-
-// Check if a function name conflicts with stock builtins
+static BUILTIN_NAMES: OnceLock<HashMap<String, Builtin>> = OnceLock::new();
+pub fn get_builtin_names() -> &'static HashMap<String, Builtin> {
+    BUILTIN_NAMES.get_or_init(init_builtin_names)
+}
+pub fn get_builtin(name: &str) -> Option<&'static Builtin> {
+    get_builtin_names().get(name)
+}
 pub fn is_stock_builtin(name: &str) -> bool {
-    get_builtin(name).is_ok()
+    get_builtin_names().contains_key(name)
 }
-
-pub const BUILTIN_NAMES: [&str; 50] = [
-    "!/unary",
-    "-/unary",
-    "||",
-    "&&",
-    "==",
-    "!=",
-    ">",
-    "<",
-    ">=",
-    "<=",
-    "=~",
-    "+",
-    "-",
-    "*",
-    "/",
-    "%",
-    "log",
-    "if",
-    "apply",
-    "count",
-    "filter",
-    "map",
-    "find",
-    "reverse",
-    "flatten",
-    "sum",
-    "sort",
-    "sortby",
-    "reduce",
-    "groupby",
-    "withindices",
-    "sequence",
-    "keys",
-    "values",
-    "entries",
-    "fromentries",
-    "mapkeys",
-    "mapvalues",
-    "filterkeys",
-    "filtervalues",
-    "split",
-    "stringjoin",
-    "replace",
-    "match",
-    "regex",
-    "range",
-    "summarize",
-    "index",
-    "string",
-    "float",
-];
 
 // ============================================================================
 // CUSTOM FUNCTION REGISTRY
@@ -663,7 +499,19 @@ pub fn filter(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<
     for item in array.iter() {
         context.push_context(item.clone());
 
-        let condition_result = execute_expression(condition, context)?;
+        let condition_eval = execute_expression(condition, context)?;
+
+        // If the condition evaluates to a function, call it with @ as the argument
+        let condition_result = if let RuntimeValue::Function(_) = &*condition_eval {
+            let call_expr = Expression::FnExpression {
+                function: Box::new(condition.clone()),
+                arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
+            };
+            execute_expression(&call_expr, context)?
+        } else {
+            condition_eval
+        };
+
         context.pop_context()?;
         if condition_result.truthy() {
             result.push(item.clone());
@@ -684,7 +532,19 @@ pub fn map(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<Run
     for item in array.iter() {
         context.push_context(item.clone());
 
-        let transformed = execute_expression(transformation, context)?;
+        let transformed_result = execute_expression(transformation, context)?;
+
+        // If the transformation evaluates to a function, call it with @ as the argument
+        let transformed = if let RuntimeValue::Function(_) = &*transformed_result {
+            let call_expr = Expression::FnExpression {
+                function: Box::new(transformation.clone()),
+                arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
+            };
+            execute_expression(&call_expr, context)?
+        } else {
+            transformed_result
+        };
+
         context.pop_context()?;
         result.push(transformed);
     }
@@ -812,7 +672,19 @@ pub fn sortby(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<
     for item in array.iter() {
         context.push_context(item.clone());
 
-        let key = execute_expression(key_expr, context)?;
+        let key_eval = execute_expression(key_expr, context)?;
+
+        // If the key expression evaluates to a function, call it with @ as the argument
+        let key = if let RuntimeValue::Function(_) = &*key_eval {
+            let call_expr = Expression::FnExpression {
+                function: Box::new(key_expr.clone()),
+                arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
+            };
+            execute_expression(&call_expr, context)?
+        } else {
+            key_eval
+        };
+
         context.pop_context()?;
 
         if !key.comparable() {
@@ -841,7 +713,20 @@ pub fn reduce(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<
     for item in array.iter() {
         let acc_cur = RuntimeValue::array(vec![accumulator.clone(), item.clone()]);
         context.push_context(acc_cur.clone());
-        accumulator = execute_expression(reducer_expr, context)?;
+
+        let reducer_eval = execute_expression(reducer_expr, context)?;
+
+        // If the reducer evaluates to a function, call it with @ as the argument
+        accumulator = if let RuntimeValue::Function(_) = &*reducer_eval {
+            let call_expr = Expression::FnExpression {
+                function: Box::new(reducer_expr.clone()),
+                arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
+            };
+            execute_expression(&call_expr, context)?
+        } else {
+            reducer_eval
+        };
+
         context.pop_context()?;
     }
 
@@ -855,30 +740,30 @@ pub fn groupby(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc
     let key_expr = &args[0];
     let array = assert_array(execute_expression(&args[1], context)?)?;
 
-    let mut groups: HashMap<String, RuntimeValue> = HashMap::new();
+    let mut groups: HashMap<String, Vec<Rc<RuntimeValue>>> = HashMap::new();
 
     for item in array.iter() {
         context.push_context(item.clone());
 
         let key = execute_expression(key_expr, context)?;
         context.pop_context()?;
-        // Dispatch to string_display to handle nested objects and arrays.
-        // Otherwise use string_display to handle strings.
-        match &*key {
-            RuntimeValue::Object(_) => {
-                groups.entry(key.to_string_display());
-            }
-            RuntimeValue::Array(_) => {
-                groups.entry(key.to_string_display());
-            }
-            _ => {
-                groups.entry(key.to_string_display());
-            }
-        }
+
+        // Convert the key to a string for grouping
+        let key_string = key.to_string_display();
+
+        // Add the item to the group for this key
+        groups.entry(key_string)
+            .or_insert_with(Vec::new)
+            .push(item.clone());
     }
 
+    // Convert the HashMap<String, Vec<Rc<RuntimeValue>>> to HashMap<String, Rc<RuntimeValue>>
+    let result: HashMap<String, Rc<RuntimeValue>> = groups
+        .into_iter()
+        .map(|(k, v)| (k, RuntimeValue::array(v)))
+        .collect();
 
-    Ok(Rc::new(RuntimeValue::from(groups)))
+    Ok(RuntimeValue::object(result))
 }
 
 // Add indices to array elements.
@@ -1183,9 +1068,15 @@ pub fn stringjoin(args: &[Expression], context: &mut ExecutionContext) -> Result
     let delimiter = assert_string(execute_expression(&args[0], context)?)?;
     let array = assert_array(execute_expression(&args[1], context)?)?;
 
-    let strings: Result<Vec<String>, ExecutionError> = array.iter().map(|v| assert_string(v.clone())).collect();
+    // Convert each element to a string, casting non-strings
+    let strings: Vec<String> = array.iter().map(|v| {
+        match &**v {
+            RuntimeValue::String(s) => s.clone(),
+            // For non-strings, use to_string_display which doesn't add quotes
+            _ => v.to_string_display(),
+        }
+    }).collect();
 
-    let strings = strings?;
     let result = strings.join(&delimiter);
 
     Ok(RuntimeValue::string(result))
@@ -1277,10 +1168,22 @@ pub fn string(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<
     validate_args("string", args, 1, Some(1))?;
     let value = execute_expression(&args[0], context)?;
 
+    // Helper function to check if value or any nested values contain function/regex
+    fn contains_non_stringable(value: &RuntimeValue) -> bool {
+        match value {
+            RuntimeValue::Function(_) | RuntimeValue::Regex(_) => true,
+            RuntimeValue::Array(arr) => arr.iter().any(|v| contains_non_stringable(v)),
+            RuntimeValue::Object(obj) => obj.values().any(|v| contains_non_stringable(v)),
+            _ => false,
+        }
+    }
+
+    if contains_non_stringable(&value) {
+        return Err(ExecutionError::TypeMismatch("Cannot cast function or regex to string".to_string()));
+    }
+
     match &*value {
         RuntimeValue::String(s) => Ok(RuntimeValue::string(s.clone())),
-        RuntimeValue::Function(_) => Err(ExecutionError::TypeMismatch("Cannot cast function to string".to_string())),
-        RuntimeValue::Regex(_) => Err(ExecutionError::TypeMismatch("Cannot cast regex to string".to_string())),
         _ => Ok(RuntimeValue::string(value.to_string_serialize())),
     }
 }
@@ -1997,6 +1900,7 @@ mod tests {
         ];
 
         let result = groupby(&args, &mut context).unwrap();
+        println!("result: {}", result.to_string_display());
         if let RuntimeValue::Object(groups) = &*result {
             assert_eq!(groups.len(), 2);
             assert!(groups.contains_key("female"));

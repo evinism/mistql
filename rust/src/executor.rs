@@ -97,7 +97,7 @@ impl ExecutionContext {
         dollar_frame.insert("@".to_string(), data.clone());
 
         // Add all builtin functions to the $ frame
-        for builtin_name in crate::builtins::BUILTIN_NAMES.iter() {
+        for builtin_name in crate::builtins::get_builtin_names().keys() {
             let builtin = crate::builtins::get_builtin(builtin_name).unwrap();
 
             dollar_frame.insert(builtin.name().to_string(), Rc::new(RuntimeValue::Function(builtin_name.to_string())));
@@ -106,6 +106,8 @@ impl ExecutionContext {
         let mut functions_frame = HashMap::new();
         functions_frame.insert("$".to_string(), Rc::new(RuntimeValue::Object(Rc::new(dollar_frame))));
         self.stack.push(functions_frame);
+
+        self.push_context(data);
     }
 
     pub fn push_context(&mut self, value: Rc<RuntimeValue>) {
@@ -127,7 +129,6 @@ impl ExecutionContext {
     }
 
     pub fn pop_context(&mut self) -> Result<(), ExecutionError> {
-        // TODO: Might need to be 1.
         if self.stack.len() <= 2 {
             return Err(ExecutionError::Custom("Cannot pop initial stack frames".to_string()));
         }
