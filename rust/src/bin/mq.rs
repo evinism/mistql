@@ -4,7 +4,7 @@
 //! similar to the JavaScript and Python implementations.
 
 use clap::{Arg, ArgAction, Command};
-use mistql::query;
+use mistql::{query_runtime, RuntimeValue};
 use serde_json::Value;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read};
@@ -145,7 +145,15 @@ fn main() {
         process::exit(1);
     };
 
-    let result = match query(query_str, &json_data) {
+    let runtime_data = match RuntimeValue::from_serde_value(&json_data) {
+        Ok(data) => data,
+        Err(e) => {
+            eprintln!("Error converting JSON to RuntimeValue: {}", e);
+            process::exit(1);
+        }
+    };
+
+    let result = match query_runtime(query_str, runtime_data) {
         Ok(result) => result,
         Err(e) => {
             eprintln!("MistQL error: {}", e);

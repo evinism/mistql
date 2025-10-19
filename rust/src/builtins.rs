@@ -1619,13 +1619,14 @@ fn index_double(start: Rc<RuntimeValue>, end: Rc<RuntimeValue>, operand: Rc<Runt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parser::LiteralValue;
     use crate::types::RuntimeValueType;
 
     fn create_test_context() -> ExecutionContext {
-        let data = RuntimeValue::Object({
+        let data = RuntimeValue::object({
             let mut map = HashMap::new();
-            map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-            map.insert("age".to_string(), RuntimeValue::Number(30.0));
+            map.insert("name".to_string(), RuntimeValue::string("John".to_string()));
+            map.insert("age".to_string(), RuntimeValue::number(30.0));
             map
         });
 
@@ -1636,16 +1637,16 @@ mod tests {
     fn test_count_function() {
         let mut context = create_test_context();
 
-        let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Array(vec![
-                RuntimeValue::Number(1.0),
-                RuntimeValue::Number(2.0),
-                RuntimeValue::Number(3.0),
-            ]),
+        let args = vec![Expression::ArrayExpression {
+            items: vec![
+                Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+            ],
         }];
 
         let result = count(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(3.0));
+        assert_eq!(result, RuntimeValue::number(3.0));
     }
 
     #[test]
@@ -1664,35 +1665,35 @@ mod tests {
                             absolute: false,
                         },
                         Expression::ValueExpression {
-                            value: RuntimeValue::Number(2.0),
+                            value: LiteralValue::Number(2.0),
                         },
                     ],
                 ),
                 Expression::ValueExpression {
-                    value: RuntimeValue::Number(0.0),
+                    value: LiteralValue::Number(0.0),
                 },
             ],
         );
 
         let args = vec![
             condition,
-            Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![
-                    RuntimeValue::Number(1.0),
-                    RuntimeValue::Number(2.0),
-                    RuntimeValue::Number(3.0),
-                    RuntimeValue::Number(4.0),
-                    RuntimeValue::Number(5.0),
-                ]),
+            Expression::ArrayExpression {
+                items: vec![
+                    Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(4.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(5.0) },
+                ],
             },
         ];
 
         let result = filter(&args, &mut context).unwrap();
 
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 2);
-            assert_eq!(arr[0], RuntimeValue::Number(2.0));
-            assert_eq!(arr[1], RuntimeValue::Number(4.0));
+            assert_eq!(*arr[0], RuntimeValue::Number(2.0));
+            assert_eq!(*arr[1], RuntimeValue::Number(4.0));
         } else {
             panic!("Expected array result");
         }
@@ -1711,29 +1712,29 @@ mod tests {
                     absolute: false,
                 },
                 Expression::ValueExpression {
-                    value: RuntimeValue::Number(2.0),
+                    value: LiteralValue::Number(2.0),
                 },
             ],
         );
 
         let args = vec![
             transformation,
-            Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![
-                    RuntimeValue::Number(1.0),
-                    RuntimeValue::Number(2.0),
-                    RuntimeValue::Number(3.0),
-                ]),
+            Expression::ArrayExpression {
+                items: vec![
+                    Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+                ],
             },
         ];
 
         let result = map(&args, &mut context).unwrap();
 
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 3);
-            assert_eq!(arr[0], RuntimeValue::Number(2.0));
-            assert_eq!(arr[1], RuntimeValue::Number(4.0));
-            assert_eq!(arr[2], RuntimeValue::Number(6.0));
+            assert_eq!(*arr[0], RuntimeValue::Number(2.0));
+            assert_eq!(*arr[1], RuntimeValue::Number(4.0));
+            assert_eq!(*arr[2], RuntimeValue::Number(6.0));
         } else {
             panic!("Expected array result");
         }
@@ -1743,40 +1744,40 @@ mod tests {
     fn test_sum_function() {
         let mut context = create_test_context();
 
-        let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Array(vec![
-                RuntimeValue::Number(1.0),
-                RuntimeValue::Number(2.0),
-                RuntimeValue::Number(3.0),
-            ]),
+        let args = vec![Expression::ArrayExpression {
+            items: vec![
+                Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+            ],
         }];
 
         let result = sum(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(6.0));
+        assert_eq!(result, RuntimeValue::number(6.0));
     }
 
     #[test]
     fn test_keys_function() {
         let mut context = create_test_context();
 
-        let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Object({
+        let args = vec![Expression::ObjectExpression {
+            entries: {
                 let mut map = HashMap::new();
-                map.insert("a".to_string(), RuntimeValue::Number(1.0));
-                map.insert("b".to_string(), RuntimeValue::Number(2.0));
+                map.insert("a".to_string(), Expression::ValueExpression { value: LiteralValue::Number(1.0) });
+                map.insert("b".to_string(), Expression::ValueExpression { value: LiteralValue::Number(2.0) });
                 map
-            }),
+            },
         }];
 
         let result = keys(&args, &mut context).unwrap();
 
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 2);
             // Keys order is not guaranteed, so we check that both keys are present
             let keys: Vec<String> = arr
-                .into_iter()
-                .map(|v| match v {
-                    RuntimeValue::String(s) => s,
+                .iter()
+                .map(|v| match &**v {
+                    RuntimeValue::String(s) => s.clone(),
                     _ => panic!("Expected string key"),
                 })
                 .collect();
@@ -1792,11 +1793,11 @@ mod tests {
         let mut context = create_test_context();
 
         let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Number(42.0),
+            value: LiteralValue::Number(42.0),
         }];
 
         let result = string(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("42".to_string()));
+        assert_eq!(result, RuntimeValue::string("42".to_string()));
     }
 
     #[test]
@@ -1805,54 +1806,54 @@ mod tests {
 
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::Boolean(true),
+                value: LiteralValue::Boolean(true),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("yes".to_string()),
+                value: LiteralValue::String("yes".to_string()),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("no".to_string()),
+                value: LiteralValue::String("no".to_string()),
             },
         ];
 
         let result = if_function(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("yes".to_string()));
+        assert_eq!(result, RuntimeValue::string("yes".to_string()));
 
         // Test false condition
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::Boolean(false),
+                value: LiteralValue::Boolean(false),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("yes".to_string()),
+                value: LiteralValue::String("yes".to_string()),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("no".to_string()),
+                value: LiteralValue::String("no".to_string()),
             },
         ];
 
         let result = if_function(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("no".to_string()));
+        assert_eq!(result, RuntimeValue::string("no".to_string()));
     }
 
     #[test]
     fn test_sort_function() {
         let mut context = create_test_context();
 
-        let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Array(vec![
-                RuntimeValue::Number(3.0),
-                RuntimeValue::Number(1.0),
-                RuntimeValue::Number(2.0),
-            ]),
+        let args = vec![Expression::ArrayExpression {
+            items: vec![
+                Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+            ],
         }];
 
         let result = sort(&args, &mut context).unwrap();
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 3);
-            assert_eq!(arr[0], RuntimeValue::Number(1.0));
-            assert_eq!(arr[1], RuntimeValue::Number(2.0));
-            assert_eq!(arr[2], RuntimeValue::Number(3.0));
+            assert_eq!(*arr[0], RuntimeValue::Number(1.0));
+            assert_eq!(*arr[1], RuntimeValue::Number(2.0));
+            assert_eq!(*arr[2], RuntimeValue::Number(3.0));
         } else {
             panic!("Expected array result");
         }
@@ -1871,30 +1872,30 @@ mod tests {
                     absolute: false,
                 },
                 Expression::ValueExpression {
-                    value: RuntimeValue::Number(4.0),
+                    value: LiteralValue::Number(4.0),
                 },
             ],
         );
 
         let args = vec![
             transformation,
-            Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![
-                    RuntimeValue::Number(3.0),
-                    RuntimeValue::Number(1.0),
-                    RuntimeValue::Number(2.0),
-                    RuntimeValue::Number(8.0),
-                ]),
+            Expression::ArrayExpression {
+                items: vec![
+                    Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(8.0) },
+                ],
             },
         ];
 
         let result = sortby(&args, &mut context).unwrap();
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 4);
-            assert_eq!(arr[0], RuntimeValue::Number(8.0)); // 8 % 4 = 0
-            assert_eq!(arr[1], RuntimeValue::Number(1.0)); // 1 % 4 = 1
-            assert_eq!(arr[2], RuntimeValue::Number(2.0)); // 2 % 4 = 2
-            assert_eq!(arr[3], RuntimeValue::Number(3.0)); // 3 % 4 = 3
+            assert_eq!(*arr[0], RuntimeValue::Number(8.0)); // 8 % 4 = 0
+            assert_eq!(*arr[1], RuntimeValue::Number(1.0)); // 1 % 4 = 1
+            assert_eq!(*arr[2], RuntimeValue::Number(2.0)); // 2 % 4 = 2
+            assert_eq!(*arr[3], RuntimeValue::Number(3.0)); // 3 % 4 = 3
         } else {
             panic!("Expected array result");
         }
@@ -1912,7 +1913,7 @@ mod tests {
                     Expression::reference("index", false),
                     vec![
                         Expression::ValueExpression {
-                            value: RuntimeValue::Number(0.0),
+                            value: LiteralValue::Number(0.0),
                         },
                         Expression::RefExpression {
                             name: "@".to_string(),
@@ -1924,7 +1925,7 @@ mod tests {
                     Expression::reference("index", false),
                     vec![
                         Expression::ValueExpression {
-                            value: RuntimeValue::Number(1.0),
+                            value: LiteralValue::Number(1.0),
                         },
                         Expression::RefExpression {
                             name: "@".to_string(),
@@ -1938,19 +1939,19 @@ mod tests {
         let args = vec![
             reducer,
             Expression::ValueExpression {
-                value: RuntimeValue::Number(0.0),
+                value: LiteralValue::Number(0.0),
             }, // initial
-            Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![
-                    RuntimeValue::Number(1.0),
-                    RuntimeValue::Number(2.0),
-                    RuntimeValue::Number(3.0),
-                ]),
+            Expression::ArrayExpression {
+                items: vec![
+                    Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+                ],
             },
         ];
 
         let result = reduce(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(6.0));
+        assert_eq!(result, RuntimeValue::number(6.0));
     }
 
     #[test]
@@ -1965,41 +1966,47 @@ mod tests {
 
         let args = vec![
             key_expr,
-            Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![
-                    RuntimeValue::Object({
-                        let mut map = HashMap::new();
-                        map.insert("gender".to_string(), RuntimeValue::String("female".to_string()));
-                        map.insert("name".to_string(), RuntimeValue::String("hayley".to_string()));
-                        map
-                    }),
-                    RuntimeValue::Object({
-                        let mut map = HashMap::new();
-                        map.insert("gender".to_string(), RuntimeValue::String("male".to_string()));
-                        map.insert("name".to_string(), RuntimeValue::String("abhik".to_string()));
-                        map
-                    }),
-                    RuntimeValue::Object({
-                        let mut map = HashMap::new();
-                        map.insert("gender".to_string(), RuntimeValue::String("female".to_string()));
-                        map.insert("name".to_string(), RuntimeValue::String("emily".to_string()));
-                        map
-                    }),
-                ]),
+            Expression::ArrayExpression {
+                items: vec![
+                    Expression::ObjectExpression {
+                        entries: {
+                            let mut map = HashMap::new();
+                            map.insert("gender".to_string(), Expression::ValueExpression { value: LiteralValue::String("female".to_string()) });
+                            map.insert("name".to_string(), Expression::ValueExpression { value: LiteralValue::String("hayley".to_string()) });
+                            map
+                        },
+                    },
+                    Expression::ObjectExpression {
+                        entries: {
+                            let mut map = HashMap::new();
+                            map.insert("gender".to_string(), Expression::ValueExpression { value: LiteralValue::String("male".to_string()) });
+                            map.insert("name".to_string(), Expression::ValueExpression { value: LiteralValue::String("abhik".to_string()) });
+                            map
+                        },
+                    },
+                    Expression::ObjectExpression {
+                        entries: {
+                            let mut map = HashMap::new();
+                            map.insert("gender".to_string(), Expression::ValueExpression { value: LiteralValue::String("female".to_string()) });
+                            map.insert("name".to_string(), Expression::ValueExpression { value: LiteralValue::String("emily".to_string()) });
+                            map
+                        },
+                    },
+                ],
             },
         ];
 
         let result = groupby(&args, &mut context).unwrap();
-        if let RuntimeValue::Object(groups) = result {
+        if let RuntimeValue::Object(groups) = &*result {
             assert_eq!(groups.len(), 2);
             assert!(groups.contains_key("female"));
             assert!(groups.contains_key("male"));
 
-            if let RuntimeValue::Array(female_group) = &groups["female"] {
+            if let RuntimeValue::Array(female_group) = &**groups.get("female").unwrap() {
                 assert_eq!(female_group.len(), 2);
             }
 
-            if let RuntimeValue::Array(male_group) = &groups["male"] {
+            if let RuntimeValue::Array(male_group) = &**groups.get("male").unwrap() {
                 assert_eq!(male_group.len(), 1);
             }
         } else {
@@ -2011,34 +2018,34 @@ mod tests {
     fn test_withindices_function() {
         let mut context = create_test_context();
 
-        let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Array(vec![
-                RuntimeValue::String("a".to_string()),
-                RuntimeValue::String("b".to_string()),
-                RuntimeValue::String("c".to_string()),
-            ]),
+        let args = vec![Expression::ArrayExpression {
+            items: vec![
+                Expression::ValueExpression { value: LiteralValue::String("a".to_string()) },
+                Expression::ValueExpression { value: LiteralValue::String("b".to_string()) },
+                Expression::ValueExpression { value: LiteralValue::String("c".to_string()) },
+            ],
         }];
 
         let result = withindices(&args, &mut context).unwrap();
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 3);
 
             // Check first pair
-            if let RuntimeValue::Array(pair) = &arr[0] {
-                assert_eq!(pair[0], RuntimeValue::Number(0.0));
-                assert_eq!(pair[1], RuntimeValue::String("a".to_string()));
+            if let RuntimeValue::Array(pair) = arr[0].as_ref() {
+                assert_eq!(pair[0], RuntimeValue::number(0.0));
+                assert_eq!(pair[1], RuntimeValue::string("a".to_string()));
             }
 
             // Check second pair
-            if let RuntimeValue::Array(pair) = &arr[1] {
-                assert_eq!(pair[0], RuntimeValue::Number(1.0));
-                assert_eq!(pair[1], RuntimeValue::String("b".to_string()));
+            if let RuntimeValue::Array(pair) = arr[1].as_ref() {
+                assert_eq!(pair[0], RuntimeValue::number(1.0));
+                assert_eq!(pair[1], RuntimeValue::string("b".to_string()));
             }
 
             // Check third pair
-            if let RuntimeValue::Array(pair) = &arr[2] {
-                assert_eq!(pair[0], RuntimeValue::Number(2.0));
-                assert_eq!(pair[1], RuntimeValue::String("c".to_string()));
+            if let RuntimeValue::Array(pair) = arr[2].as_ref() {
+                assert_eq!(pair[0], RuntimeValue::number(2.0));
+                assert_eq!(pair[1], RuntimeValue::string("c".to_string()));
             }
         } else {
             panic!("Expected array result");
@@ -2049,22 +2056,22 @@ mod tests {
     fn test_entries_function() {
         let mut context = create_test_context();
 
-        let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Object({
+        let args = vec![Expression::ObjectExpression {
+            entries: {
                 let mut map = HashMap::new();
-                map.insert("foo".to_string(), RuntimeValue::String("bar".to_string()));
-                map.insert("baz".to_string(), RuntimeValue::Number(42.0));
+                map.insert("foo".to_string(), Expression::ValueExpression { value: LiteralValue::String("bar".to_string()) });
+                map.insert("baz".to_string(), Expression::ValueExpression { value: LiteralValue::Number(42.0) });
                 map
-            }),
+            },
         }];
 
         let result = entries(&args, &mut context).unwrap();
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 2);
 
             // Check that entries are [key, value] pairs
-            for entry in arr {
-                if let RuntimeValue::Array(pair) = entry {
+            for entry in arr.iter() {
+                if let RuntimeValue::Array(pair) = &**entry {
                     assert_eq!(pair.len(), 2);
                     assert_eq!(pair[0].get_type(), RuntimeValueType::String);
                 } else {
@@ -2080,21 +2087,28 @@ mod tests {
     fn test_fromentries_function() {
         let mut context = create_test_context();
 
-        let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Array(vec![
-                RuntimeValue::Array(vec![
-                    RuntimeValue::String("foo".to_string()),
-                    RuntimeValue::String("bar".to_string()),
-                ]),
-                RuntimeValue::Array(vec![RuntimeValue::String("baz".to_string()), RuntimeValue::Number(42.0)]),
-            ]),
+        let args = vec![Expression::ArrayExpression {
+            items: vec![
+                Expression::ArrayExpression {
+                    items: vec![
+                        Expression::ValueExpression { value: LiteralValue::String("foo".to_string()) },
+                        Expression::ValueExpression { value: LiteralValue::String("bar".to_string()) },
+                    ],
+                },
+                Expression::ArrayExpression {
+                    items: vec![
+                        Expression::ValueExpression { value: LiteralValue::String("baz".to_string()) },
+                        Expression::ValueExpression { value: LiteralValue::Number(42.0) },
+                    ],
+                },
+            ],
         }];
 
         let result = fromentries(&args, &mut context).unwrap();
-        if let RuntimeValue::Object(obj) = result {
+        if let RuntimeValue::Object(obj) = &*result {
             assert_eq!(obj.len(), 2);
-            assert_eq!(obj["foo"], RuntimeValue::String("bar".to_string()));
-            assert_eq!(obj["baz"], RuntimeValue::Number(42.0));
+            assert_eq!(obj.get("foo").unwrap(), &RuntimeValue::string("bar".to_string()));
+            assert_eq!(obj.get("baz").unwrap(), &RuntimeValue::number(42.0));
         } else {
             panic!("Expected object result");
         }
@@ -2106,17 +2120,17 @@ mod tests {
 
         // Test range(5) -> [0, 1, 2, 3, 4]
         let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Number(5.0),
+            value: LiteralValue::Number(5.0),
         }];
 
         let result = range(&args, &mut context).unwrap();
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 5);
-            assert_eq!(arr[0], RuntimeValue::Number(0.0));
-            assert_eq!(arr[1], RuntimeValue::Number(1.0));
-            assert_eq!(arr[2], RuntimeValue::Number(2.0));
-            assert_eq!(arr[3], RuntimeValue::Number(3.0));
-            assert_eq!(arr[4], RuntimeValue::Number(4.0));
+            assert_eq!(*arr[0], RuntimeValue::Number(0.0));
+            assert_eq!(*arr[1], RuntimeValue::Number(1.0));
+            assert_eq!(*arr[2], RuntimeValue::Number(2.0));
+            assert_eq!(*arr[3], RuntimeValue::Number(3.0));
+            assert_eq!(*arr[4], RuntimeValue::Number(4.0));
         } else {
             panic!("Expected array result");
         }
@@ -2124,18 +2138,18 @@ mod tests {
         // Test range(3, 8) -> [3, 4, 5, 6, 7]
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::Number(3.0),
+                value: LiteralValue::Number(3.0),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::Number(8.0),
+                value: LiteralValue::Number(8.0),
             },
         ];
 
         let result = range(&args, &mut context).unwrap();
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 5);
-            assert_eq!(arr[0], RuntimeValue::Number(3.0));
-            assert_eq!(arr[4], RuntimeValue::Number(7.0));
+            assert_eq!(*arr[0], RuntimeValue::Number(3.0));
+            assert_eq!(*arr[4], RuntimeValue::Number(7.0));
         } else {
             panic!("Expected array result");
         }
@@ -2145,23 +2159,23 @@ mod tests {
     fn test_summarize_function() {
         let mut context = create_test_context();
 
-        let args = vec![Expression::ValueExpression {
-            value: RuntimeValue::Array(vec![
-                RuntimeValue::Number(1.0),
-                RuntimeValue::Number(2.0),
-                RuntimeValue::Number(3.0),
-                RuntimeValue::Number(4.0),
-                RuntimeValue::Number(5.0),
-                RuntimeValue::Number(6.0),
-            ]),
+        let args = vec![Expression::ArrayExpression {
+            items: vec![
+                Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(4.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(5.0) },
+                Expression::ValueExpression { value: LiteralValue::Number(6.0) },
+            ],
         }];
 
         let result = summarize(&args, &mut context).unwrap();
-        if let RuntimeValue::Object(stats) = result {
-            assert_eq!(stats["max"], RuntimeValue::Number(6.0));
-            assert_eq!(stats["min"], RuntimeValue::Number(1.0));
-            assert_eq!(stats["mean"], RuntimeValue::Number(3.5));
-            assert_eq!(stats["median"], RuntimeValue::Number(3.5));
+        if let RuntimeValue::Object(stats) = &*result {
+            assert_eq!(stats.get("max").unwrap(), &RuntimeValue::number(6.0));
+            assert_eq!(stats.get("min").unwrap(), &RuntimeValue::number(1.0));
+            assert_eq!(stats.get("mean").unwrap(), &RuntimeValue::number(3.5));
+            assert_eq!(stats.get("median").unwrap(), &RuntimeValue::number(3.5));
             // Variance and stddev should be present
             assert!(stats.contains_key("variance"));
             assert!(stats.contains_key("stddev"));
@@ -2177,61 +2191,61 @@ mod tests {
         // Test array indexing: index 1 [1, 2, 3] -> 2
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::Number(1.0),
+                value: LiteralValue::Number(1.0),
             },
-            Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![
-                    RuntimeValue::Number(1.0),
-                    RuntimeValue::Number(2.0),
-                    RuntimeValue::Number(3.0),
-                ]),
+            Expression::ArrayExpression {
+                items: vec![
+                    Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+                ],
             },
         ];
 
         let result = index(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(2.0));
+        assert_eq!(result, RuntimeValue::number(2.0));
 
         // Test object indexing: index "key" {key: "value"} -> "value"
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::String("key".to_string()),
+                value: LiteralValue::String("key".to_string()),
             },
-            Expression::ValueExpression {
-                value: RuntimeValue::Object({
+            Expression::ObjectExpression {
+                entries: {
                     let mut map = HashMap::new();
-                    map.insert("key".to_string(), RuntimeValue::String("value".to_string()));
+                    map.insert("key".to_string(), Expression::ValueExpression { value: LiteralValue::String("value".to_string()) });
                     map
-                }),
+                },
             },
         ];
 
         let result = index(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("value".to_string()));
+        assert_eq!(result, RuntimeValue::string("value".to_string()));
 
         // Test slicing: index 1 3 [1, 2, 3, 4, 5] -> [2, 3]
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::Number(1.0),
+                value: LiteralValue::Number(1.0),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::Number(3.0),
+                value: LiteralValue::Number(3.0),
             },
-            Expression::ValueExpression {
-                value: RuntimeValue::Array(vec![
-                    RuntimeValue::Number(1.0),
-                    RuntimeValue::Number(2.0),
-                    RuntimeValue::Number(3.0),
-                    RuntimeValue::Number(4.0),
-                    RuntimeValue::Number(5.0),
-                ]),
+            Expression::ArrayExpression {
+                items: vec![
+                    Expression::ValueExpression { value: LiteralValue::Number(1.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(2.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(3.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(4.0) },
+                    Expression::ValueExpression { value: LiteralValue::Number(5.0) },
+                ],
             },
         ];
 
         let result = index(&args, &mut context).unwrap();
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 2);
-            assert_eq!(arr[0], RuntimeValue::Number(2.0));
-            assert_eq!(arr[1], RuntimeValue::Number(3.0));
+            assert_eq!(*arr[0], RuntimeValue::Number(2.0));
+            assert_eq!(*arr[1], RuntimeValue::Number(3.0));
         } else {
             panic!("Expected array result");
         }
@@ -2244,18 +2258,18 @@ mod tests {
         // Test string replacement
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::String("haha".to_string()),
+                value: LiteralValue::String("haha".to_string()),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("z".to_string()),
+                value: LiteralValue::String("z".to_string()),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("haha".to_string()),
+                value: LiteralValue::String("haha".to_string()),
             },
         ];
 
         let result = replace(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("z".to_string()));
+        assert_eq!(result, RuntimeValue::string("z".to_string()));
     }
 
     #[test]
@@ -2265,28 +2279,28 @@ mod tests {
         // Test string matching
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::String("test".to_string()),
+                value: LiteralValue::String("test".to_string()),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("this is a test".to_string()),
+                value: LiteralValue::String("this is a test".to_string()),
             },
         ];
 
         let result = match_function(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Boolean(true));
+        assert_eq!(result, RuntimeValue::boolean(true));
 
         // Test non-matching
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::String("xyz".to_string()),
+                value: LiteralValue::String("xyz".to_string()),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("this is a test".to_string()),
+                value: LiteralValue::String("this is a test".to_string()),
             },
         ];
 
         let result = match_function(&args, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Boolean(false));
+        assert_eq!(result, RuntimeValue::boolean(false));
     }
 
     #[test]
@@ -2296,10 +2310,10 @@ mod tests {
         // Test regex creation
         let args = vec![
             Expression::ValueExpression {
-                value: RuntimeValue::String("test".to_string()),
+                value: LiteralValue::String("test".to_string()),
             },
             Expression::ValueExpression {
-                value: RuntimeValue::String("i".to_string()),
+                value: LiteralValue::String("i".to_string()),
             },
         ];
 
@@ -2323,13 +2337,13 @@ mod tests {
         let mut registry = CustomFunctionRegistry::new();
 
         // Define a simple custom function
-        fn custom_add(args: &[Expression], context: &mut crate::executor::ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        fn custom_add(args: &[Expression], context: &mut crate::executor::ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
             validate_args("custom_add", args, 2, Some(2))?;
             let left = execute_expression(&args[0], context)?;
             let right = execute_expression(&args[1], context)?;
 
-            match (left, right) {
-                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::Number(a + b)),
+            match (&*left, &*right) {
+                (RuntimeValue::Number(a), RuntimeValue::Number(b)) => Ok(RuntimeValue::number(a + b)),
                 _ => Err(ExecutionError::TypeMismatch("custom_add requires two numbers".to_string())),
             }
         }
@@ -2358,8 +2372,8 @@ mod tests {
     fn test_custom_function_conflict_with_stock_builtin() {
         let mut registry = CustomFunctionRegistry::new();
 
-        fn dummy_function(_args: &[Expression], _context: &mut crate::executor::ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
-            Ok(RuntimeValue::Null)
+        fn dummy_function(_args: &[Expression], _context: &mut crate::executor::ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
+            Ok(RuntimeValue::null())
         }
 
         let metadata = FunctionMetadata {

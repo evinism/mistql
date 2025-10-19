@@ -4,6 +4,7 @@
 //! It serves as a powerful common expression language with strong cross-platform behavior semantics.
 
 use std::rc::Rc;
+use serde_json::Value;
 use crate::executor::ExecutionError;
 pub mod builtins;
 pub mod executor;
@@ -86,11 +87,8 @@ pub enum MistQLError {
 /// let result = query_runtime("@ | map square | sum", &data).unwrap();
 /// // This calculates: [5, 3, 4] | map square | sum = [25, 9, 16] | sum = 50
 /// ```
-pub fn query<T>(query_str: &str, data: T) -> Result<Rc<RuntimeValue>, MistQLError>
-where
-    T: TryInto<Rc<RuntimeValue>, Error = ExecutionError>,
-{
-    let runtime_data= data.try_into().map_err(|e: ExecutionError| MistQLError::Runtime(e.to_string()))?.into();
+pub fn query(query_str: &str, data: Value) -> Result<Rc<RuntimeValue>, MistQLError> {
+    let runtime_data = RuntimeValue::from_serde_value(&data).map_err(|e: ExecutionError| MistQLError::Runtime(e.to_string()))?;
     query_runtime(query_str, runtime_data)
 }
 
@@ -103,7 +101,7 @@ pub fn query_runtime(query_str: &str, data: Rc<RuntimeValue>) -> Result<Rc<Runti
     let expr = Parser::parse(query_str).map_err(MistQLError::Parser)?;
 
     // Create execution context with builtins
-    let mut context = ExecutionContext::with_builtins(data.clone().into());
+    let mut context = ExecutionContext::with_builtins(data.clone());
 
     // Execute the expression
     let result = execute_expression(&expr, &mut context).map_err(|e| MistQLError::Runtime(e.to_string()))?;

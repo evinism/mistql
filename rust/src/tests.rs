@@ -345,13 +345,13 @@ mod test_runner {
         use serde_json::json;
 
         // @ on [1, 2, 3]
-        let runtime_data: RuntimeValue = (&json!([1, 2, 3])).try_into().unwrap();
-        let result = query_runtime("@", &runtime_data).expect("Basic identity query should work");
+        let runtime_data = RuntimeValue::from_serde_value(&json!([1, 2, 3])).unwrap();
+        let result = query_runtime("@", runtime_data.clone()).expect("Basic identity query should work");
         assert_eq!(result, runtime_data, "@ on arrays should work");
 
         // @ on {"a": 1, "b": 2}
-        let runtime_data: RuntimeValue = (&json!({"a": 1, "b": 2})).try_into().unwrap();
-        let result = query_runtime("@", &runtime_data).expect("Object identity query should work");
+        let runtime_data = RuntimeValue::from_serde_value(&json!({"a": 1, "b": 2})).unwrap();
+        let result = query_runtime("@", runtime_data.clone()).expect("Object identity query should work");
         assert_eq!(result, runtime_data, "@ on objects should work");
     }
 
@@ -360,44 +360,44 @@ mod test_runner {
         use serde_json::json;
 
         // $.@ on {"filter": "cat", "nums": [1, 2, 3]}
-        let runtime_data: RuntimeValue = (&json!({"filter": "cat", "nums": [1, 2, 3]})).try_into().unwrap();
-        let result = query_runtime("$.@", &runtime_data).expect("$.@ should work");
+        let runtime_data = RuntimeValue::from_serde_value(&json!({"filter": "cat", "nums": [1, 2, 3]})).unwrap();
+        let result = query_runtime("$.@", runtime_data.clone()).expect("$.@ should work");
         assert_eq!(result, runtime_data, "$.@ should work");
 
         // $.@.filter on {"filter": "cat", "nums": [1, 2, 3]}
-        let result = query_runtime("$.@.filter", &runtime_data).expect("$.@.filter should work");
-        assert_eq!(result, (&json!("cat")).try_into().unwrap(), "$.@.filter should work");
+        let result = query_runtime("$.@.filter", runtime_data.clone()).expect("$.@.filter should work");
+        assert_eq!(result, RuntimeValue::from_serde_value(&json!("cat")).unwrap(), "$.@.filter should work");
 
         // $.count $.@.nums on {"filter": "cat", "nums": [1, 2, 3]}
-        let result = query_runtime("$.count $.@.nums", &runtime_data).expect("$.count $.@.nums should work");
-        assert_eq!(result, (&json!(3)).try_into().unwrap(), "$.count $.@.nums should work");
+        let result = query_runtime("$.count $.@.nums", runtime_data.clone()).expect("$.count $.@.nums should work");
+        assert_eq!(result, RuntimeValue::from_serde_value(&json!(3)).unwrap(), "$.count $.@.nums should work");
 
         // $.sum $.@.nums on {"filter": "cat", "nums": [1, 2, 3]}
-        let result = query_runtime("$.sum $.@.nums", &runtime_data).expect("$.sum $.@.nums should work");
-        assert_eq!(result, (&json!(6)).try_into().unwrap(), "$.sum $.@.nums should work");
+        let result = query_runtime("$.sum $.@.nums", runtime_data.clone()).expect("$.sum $.@.nums should work");
+        assert_eq!(result, RuntimeValue::from_serde_value(&json!(6)).unwrap(), "$.sum $.@.nums should work");
     }
 
     #[test]
     fn test_float_function() {
         use serde_json::json;
 
-        let runtime_data: RuntimeValue = (&json!(null)).try_into().unwrap();
+        let runtime_data = RuntimeValue::from_serde_value(&json!(null)).unwrap();
 
         // float "1.1e1"
-        let result = query_runtime("float \"1.1e1\"", &runtime_data).expect("float should work");
-        assert_eq!(result, RuntimeValue::Number(11.0), "float \"1.1e1\" should work");
+        let result = query_runtime("float \"1.1e1\"", runtime_data.clone()).expect("float should work");
+        assert_eq!(result, RuntimeValue::number(11.0), "float \"1.1e1\" should work");
 
         // float "5."
-        let result = query_runtime("float \"5.\"", &runtime_data).expect("float should work");
-        assert_eq!(result, RuntimeValue::Number(5.0), "float \"5.\" should work");
+        let result = query_runtime("float \"5.\"", runtime_data.clone()).expect("float should work");
+        assert_eq!(result, RuntimeValue::number(5.0), "float \"5.\" should work");
 
         // float "1.1e1"
-        let result = query_runtime("float \"1.1e1\"", &runtime_data).expect("float should work");
-        assert_eq!(result, RuntimeValue::Number(11.0), "float \"1.1e1\" should work");
+        let result = query_runtime("float \"1.1e1\"", runtime_data.clone()).expect("float should work");
+        assert_eq!(result, RuntimeValue::number(11.0), "float \"1.1e1\" should work");
 
         // float "5."
-        let result = query_runtime("float \"5.\"", &runtime_data).expect("float should work");
-        assert_eq!(result, RuntimeValue::Number(5.0), "float \"5.\" should work");
+        let result = query_runtime("float \"5.\"", runtime_data).expect("float should work");
+        assert_eq!(result, RuntimeValue::number(5.0), "float \"5.\" should work");
     }
 
     #[test]
@@ -408,9 +408,9 @@ mod test_runner {
         let test_cases = vec![(1e50, "1e+50"), (3e20, "300000000000000000000"), (3e21, "3e+21"), (1e-7, "1e-7")];
 
         for (input, expected) in test_cases {
-            let runtime_data: RuntimeValue = (&json!(input)).try_into().unwrap();
-            let result = query_runtime("string @", &runtime_data).expect("string should work");
-            assert_eq!(result, RuntimeValue::String(expected.to_string()), "string should work");
+            let runtime_data = RuntimeValue::from_serde_value(&json!(input)).unwrap();
+            let result = query_runtime("string @", runtime_data).expect("string should work");
+            assert_eq!(result, RuntimeValue::string(expected.to_string()), "string should work");
         }
     }
 
@@ -418,34 +418,34 @@ mod test_runner {
     fn test_keys_function() {
         use serde_json::json;
 
-        let runtime_data: RuntimeValue = (&json!({})).try_into().unwrap();
+        let runtime_data = RuntimeValue::from_serde_value(&json!({})).unwrap();
 
         // Test keys function
-        let result = query_runtime("{a: 1, b: 2} | keys", &runtime_data).expect("keys should work");
+        let result = query_runtime("{a: 1, b: 2} | keys", runtime_data.clone()).expect("keys should work");
         assert_eq!(
             result,
-            RuntimeValue::Array(vec![RuntimeValue::String("a".to_string()), RuntimeValue::String("b".to_string())]),
+            RuntimeValue::array(vec![RuntimeValue::string("a".to_string()), RuntimeValue::string("b".to_string())]),
             "keys should work"
         );
 
         // Test empty object
-        let result = query_runtime("{} | keys", &runtime_data).expect("keys should work");
-        assert_eq!(result, RuntimeValue::Array(vec![]), "empty keys should work");
+        let result = query_runtime("{} | keys", runtime_data).expect("keys should work");
+        assert_eq!(result, RuntimeValue::array(vec![]), "empty keys should work");
     }
 
     #[test]
     fn test_regex_operator() {
         use serde_json::json;
 
-        let runtime_data: RuntimeValue = (&json!(null)).try_into().unwrap();
+        let runtime_data = RuntimeValue::from_serde_value(&json!(null)).unwrap();
 
         // Test =~ operator with string pattern
-        let result = query_runtime("\"Hello\" =~ \"[a-z]ello\"", &runtime_data).expect("regex should work");
-        assert_eq!(result, RuntimeValue::Boolean(false), "Hello =~ [a-z]ello should work");
+        let result = query_runtime("\"Hello\" =~ \"[a-z]ello\"", runtime_data.clone()).expect("regex should work");
+        assert_eq!(result, RuntimeValue::boolean(false), "Hello =~ [a-z]ello should work");
 
         // Test =~ operator with regex object
-        let result = query_runtime("\"Hello\" =~ (regex \"[a-z]ello\" \"i\")", &runtime_data).expect("regex should work");
-        assert_eq!(result, RuntimeValue::Boolean(true), "Hello =~ (regex [a-z]ello i) should work");
+        let result = query_runtime("\"Hello\" =~ (regex \"[a-z]ello\" \"i\")", runtime_data).expect("regex should work");
+        assert_eq!(result, RuntimeValue::boolean(true), "Hello =~ (regex [a-z]ello i) should work");
     }
 
     #[test]
@@ -454,11 +454,11 @@ mod test_runner {
         let assertion = TestAssertion {
             assertion_number: 999,
             query: "string {a: 1, b: \"2\"}".to_string(),
-            data: RuntimeValue::Null,
+            data: RuntimeValue::null(),
             expected: None,
             expected_set: Some(vec![
-                RuntimeValue::String("{\"a\":1,\"b\":\"2\"}".to_string()),
-                RuntimeValue::String("{\"b\":\"2\",\"a\":1}".to_string()),
+                RuntimeValue::string("{\"a\":1,\"b\":\"2\"}".to_string()),
+                RuntimeValue::string("{\"b\":\"2\",\"a\":1}".to_string()),
             ]),
             throws: None,
         };
