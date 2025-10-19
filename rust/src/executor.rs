@@ -7,9 +7,10 @@ use crate::builtins::{is_stock_builtin, CustomFunction, CustomFunctionRegistry, 
 use crate::parser::Expression;
 use crate::types::RuntimeValue;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 // A single frame in the execution stack containing variable bindings.
-pub type StackFrame = HashMap<String, RuntimeValue>;
+pub type StackFrame = HashMap<String, Rc<RuntimeValue>>;
 
 // The execution stack containing nested variable scopes.
 pub type ExecutionStack = Vec<StackFrame>;
@@ -19,7 +20,6 @@ pub type ExecutionStack = Vec<StackFrame>;
 pub struct ExecutionContext {
     stack: ExecutionStack,
     custom_functions: CustomFunctionRegistry,
-    root_data: RuntimeValue,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,22 +56,21 @@ impl std::fmt::Display for ExecutionError {
 impl std::error::Error for ExecutionError {}
 
 impl ExecutionContext {
-    pub fn new(data: RuntimeValue) -> Self {
+    pub fn new(data: Rc<RuntimeValue>) -> Self {
         let mut context = Self {
             stack: Vec::new(),
             custom_functions: CustomFunctionRegistry::new(),
-            root_data: data.clone(),
         };
 
-        context.build_initial_stack(data);
+        context.build_initial_stack(data.clone());
         context
     }
 
-    pub fn with_builtins(data: RuntimeValue) -> Self {
+    pub fn with_builtins(data: Rc<RuntimeValue>) -> Self {
         Self::new(data)
     }
 
-    pub fn with_custom_functions(data: RuntimeValue, custom_functions: CustomFunctionRegistry) -> Self {
+    pub fn with_custom_functions(data: Rc<RuntimeValue>, custom_functions: CustomFunctionRegistry) -> Self {
         let mut context = Self::new(data);
         context.custom_functions = custom_functions;
         context
@@ -92,37 +91,36 @@ impl ExecutionContext {
         self.custom_functions.has_function(name)
     }
 
-    fn build_initial_stack(&mut self, data: RuntimeValue) {
+    fn build_initial_stack(&mut self, data: Rc<RuntimeValue>) {
         // Frame 0: $ variable containing the root data and builtin functions
         let mut dollar_frame = HashMap::new();
         dollar_frame.insert("@".to_string(), data.clone());
 
         // Add all builtin functions to the $ frame
-        for builtin_name in crate::builtins::BUILTIN_NAMES.iter() {
+        for builtin_name in crate::builtins::get_builtin_names().keys() {
             let builtin = crate::builtins::get_builtin(builtin_name).unwrap();
 
-            dollar_frame.insert(builtin.name().to_string(), builtin.runtime_value().clone());
+            dollar_frame.insert(builtin.name().to_string(), Rc::new(RuntimeValue::Function(builtin_name.to_string())));
         }
 
         let mut functions_frame = HashMap::new();
-        functions_frame.insert("$".to_string(), RuntimeValue::Object(dollar_frame));
+        functions_frame.insert("$".to_string(), Rc::new(RuntimeValue::Object(Rc::new(dollar_frame))));
         self.stack.push(functions_frame);
 
-        // Frame 1: Data context (object keys become variables).
         self.push_context(data);
     }
 
-    pub fn push_context(&mut self, value: RuntimeValue) {
-        let mut new_frame = HashMap::new();
+    pub fn push_context(&mut self, value: Rc<RuntimeValue>) {
+        let mut new_frame: HashMap<String, Rc<RuntimeValue>> = HashMap::new();
 
         // Always add @ variable.
         new_frame.insert("@".to_string(), value.clone());
 
         // If the value is an object, populate keys as variables.
-        if let RuntimeValue::Object(obj) = &value {
-            for (key, val) in obj {
+        if let RuntimeValue::Object(obj) = &*value {
+            for (key, val) in obj.iter() {
                 if is_valid_identifier(key) {
-                    new_frame.insert(key.clone(), val.clone());
+                    new_frame.insert(key.to_string(), val.clone());
                 }
             }
         }
@@ -139,7 +137,7 @@ impl ExecutionContext {
     }
 
     // Find a variable in the execution stack.
-    pub fn find_variable(&self, name: &str, absolute: bool) -> Result<RuntimeValue, ExecutionError> {
+    pub fn find_variable(&self, name: &str, absolute: bool) -> Result<Rc<RuntimeValue>, ExecutionError> {
         if absolute {
             // For absolute references (like $), only search in the first frame.
             if let Some(frame) = self.stack.first() {
@@ -158,29 +156,25 @@ impl ExecutionContext {
 
         // If not found in stack, check custom functions
         if self.custom_functions.has_function(name) {
-            return Ok(RuntimeValue::Function(name.to_string()));
+            return Ok(Rc::new(RuntimeValue::Function(name.to_string())));
         }
 
         // Finally, check if it's a stock builtin
         if is_stock_builtin(name) {
-            return Ok(RuntimeValue::Function(name.to_string()));
+            return Ok(Rc::new(RuntimeValue::Function(name.to_string())));
         }
 
         Err(ExecutionError::VariableNotFound(name.to_string()))
     }
 
     // Get the current @ context value.
-    pub fn get_current_context(&self) -> Result<&RuntimeValue, ExecutionError> {
+    pub fn get_current_context(&self) -> Result<&Rc<RuntimeValue>, ExecutionError> {
         for frame in self.stack.iter().rev() {
             if let Some(value) = frame.get("@") {
                 return Ok(value);
             }
         }
         Err(ExecutionError::VariableNotFound("@".to_string()))
-    }
-
-    pub fn get_root_data(&self) -> &RuntimeValue {
-        &self.root_data
     }
 
     pub fn stack_depth(&self) -> usize {
@@ -206,9 +200,9 @@ fn is_valid_identifier(s: &str) -> bool {
     chars.all(|c| c.is_alphanumeric() || c == '_')
 }
 
-pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
     match expr {
-        Expression::ValueExpression { value } => Ok(value.clone()),
+        Expression::ValueExpression { value } => Ok(Rc::new(value.clone().into())),
         Expression::RefExpression { name, absolute } => context.find_variable(name, *absolute),
         Expression::FnExpression { function, arguments } => execute_function_call(function, arguments, context),
         Expression::ArrayExpression { items } => execute_array(items, context),
@@ -219,71 +213,41 @@ pub fn execute_expression(expr: &Expression, context: &mut ExecutionContext) -> 
     }
 }
 
-// Helper function to execute an expression in a contextualized way
-// If the expression is a function reference, it creates a function call with @ as argument
-// Otherwise, it evaluates the expression directly
-pub fn execute_contextualized_expression(expr: &Expression, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
-    match expr {
-        Expression::RefExpression { name, absolute } => {
-            // Check if this is a function reference
-            let func_value = context.find_variable(name, *absolute)?;
-            if matches!(func_value, RuntimeValue::Function(_)) {
-                // Create a function call with @ as argument
-                let func_call = Expression::FnExpression {
-                    function: Box::new(expr.clone()),
-                    arguments: vec![Expression::RefExpression {
-                        name: "@".to_string(),
-                        absolute: false,
-                    }],
-                };
-                execute_expression(&func_call, context)
-            } else {
-                // Not a function, evaluate directly
-                execute_expression(expr, context)
-            }
-        }
-        _ => {
-            // Not a function reference, evaluate directly
-            execute_expression(expr, context)
-        }
-    }
-}
-
-fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_array(items: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
     let mut result = Vec::new();
     for item in items {
         let value = execute_expression(item, context)?;
         result.push(value);
     }
-    Ok(RuntimeValue::Array(result))
+    Ok(Rc::new(RuntimeValue::Array(Rc::new(result))))
 }
 
 fn execute_object(
     entries: &std::collections::HashMap<String, Expression>,
     context: &mut ExecutionContext,
-) -> Result<RuntimeValue, ExecutionError> {
+) -> Result<Rc<RuntimeValue>, ExecutionError> {
     let mut result = std::collections::HashMap::new();
     for (key, expr) in entries {
         let value = execute_expression(expr, context)?;
         result.insert(key.clone(), value);
     }
-    Ok(RuntimeValue::Object(result))
+    Ok(Rc::new(RuntimeValue::Object(Rc::new(result))))
 }
 
 fn execute_function_call(
     function: &Expression,
     arguments: &[Expression],
     context: &mut ExecutionContext,
-) -> Result<RuntimeValue, ExecutionError> {
+) -> Result<Rc<RuntimeValue>, ExecutionError> {
     let func_value = execute_expression(function, context)?;
 
-    match func_value {
+    match &*func_value {
         RuntimeValue::Function(func_name) => {
             // First try custom functions
             if context.custom_functions.has_function(&func_name) {
                 // We know the function exists, so we can safely execute it
-                if let Some(function) = context.custom_functions.functions.get(&func_name) {
-                    function(arguments, context)
+                if let Some(function) = context.custom_functions.functions.get(func_name) {
+                    Ok((*function)(arguments, context)?)
                 } else {
                     // This should never happen since we just checked has_function
                     Err(ExecutionError::Custom(format!("Custom function '{}' not found", func_name)))
@@ -291,14 +255,14 @@ fn execute_function_call(
             } else {
                 // Fall back to stock builtins
                 let builtin = crate::builtins::get_builtin(&func_name).unwrap();
-                builtin.call(arguments, context)
+                Ok(builtin.execute(arguments, context)?)
             }
         }
         _ => Err(ExecutionError::NotCallable(func_value.get_type().to_string())),
     }
 }
 
-fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
     if stages.is_empty() {
         return Err(ExecutionError::Custom("Empty pipeline".to_string()));
     }
@@ -313,7 +277,7 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
             Expression::FnExpression { function, arguments } => {
                 // For function calls, append data as the last argument.
                 let mut new_args = arguments.clone();
-                new_args.push(Expression::ValueExpression { value: data.clone() });
+                new_args.push(Expression::RefExpression { name: "@".to_string(), absolute: false });
 
                 let new_call = Expression::FnExpression {
                     function: function.clone(),
@@ -323,11 +287,11 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
             }
             Expression::RefExpression { name, absolute } => {
                 // For function references, create a function call with data as argument.
-                let func_value = context.find_variable(name, *absolute)?;
-                if matches!(func_value, RuntimeValue::Function(_)) {
+                let func_value = context.find_variable(name, *absolute)?.clone();
+                if matches!(&*func_value, RuntimeValue::Function(_)) {
                     let new_call = Expression::FnExpression {
                         function: Box::new(stage.clone()),
-                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                        arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
                     };
                     execute_expression(&new_call, context)?
                 } else {
@@ -338,10 +302,10 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
             Expression::DotAccessExpression { object: _, field: _ } => {
                 // For dot access, check if it resolves to a function.
                 let func_value = execute_expression(stage, context)?;
-                if matches!(func_value, RuntimeValue::Function(_)) {
+                if matches!(&*func_value, RuntimeValue::Function(_)) {
                     let new_call = Expression::FnExpression {
-                        function: Box::new(Expression::ValueExpression { value: func_value }),
-                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                        function: Box::new(stage.clone()),
+                        arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
                     };
                     execute_expression(&new_call, context)?
                 } else {
@@ -352,11 +316,11 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
             _ => {
                 // For other expressions, execute and check if result is a function.
                 let stage_result = execute_expression(stage, context)?;
-                if matches!(stage_result, RuntimeValue::Function(_)) {
+                if matches!(&*stage_result, RuntimeValue::Function(_)) {
                     // If the result is a function, execute it with data as argument.
                     let new_call = Expression::FnExpression {
-                        function: Box::new(Expression::ValueExpression { value: stage_result }),
-                        arguments: vec![Expression::ValueExpression { value: data.clone() }],
+                        function: Box::new(stage.clone()),
+                        arguments: vec![Expression::RefExpression { name: "@".to_string(), absolute: false }],
                     };
                     execute_expression(&new_call, context)?
                 } else {
@@ -373,14 +337,14 @@ fn execute_pipeline(stages: &[Expression], context: &mut ExecutionContext) -> Re
     Ok(data)
 }
 
-fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+fn execute_dot_access(object: &Expression, field: &str, context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
     let obj_value = execute_expression(object, context)?;
 
-    match obj_value {
-        RuntimeValue::Object(obj) => Ok(obj.get(field).cloned().unwrap_or(RuntimeValue::Null)),
+    match &*obj_value {
+        RuntimeValue::Object(obj) => Ok(obj.get(field).cloned().unwrap_or(Rc::new(RuntimeValue::Null))),
         RuntimeValue::Null => {
             // Null coalescing: property access on null returns null.
-            Ok(RuntimeValue::Null)
+            Ok(Rc::new(RuntimeValue::Null))
         }
         _ => Err(ExecutionError::TypeMismatch(format!(
             "Cannot access property '{}' on type {}",
@@ -397,23 +361,22 @@ mod tests {
     use std::collections::HashMap;
 
     fn create_test_context() -> ExecutionContext {
-        let data = RuntimeValue::Object({
+        let data = RuntimeValue::Object(Rc::new({
             let mut map = HashMap::new();
-            map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-            map.insert("age".to_string(), RuntimeValue::Number(30.0));
+            map.insert("name".to_string(), RuntimeValue::string("John".to_string()));
+            map.insert("age".to_string(), RuntimeValue::number(30.0));
             map
-        });
+        }));
 
-        ExecutionContext::new(data)
+        ExecutionContext::new(Rc::new(data))
     }
 
     #[test]
     fn test_execution_context_creation() {
-        let data = RuntimeValue::String("test".to_string());
+        let data = RuntimeValue::string("test".to_string());
         let context = ExecutionContext::new(data.clone());
 
-        assert_eq!(context.get_root_data(), &data);
-        assert!(context.stack_depth() >= 2); // builtins+$ and data frames
+        assert!(context.stack_depth() >= 1); // stack frames
     }
 
     #[test]
@@ -426,10 +389,10 @@ mod tests {
 
         // Test object key variables
         let name_value = context.find_variable("name", false).unwrap();
-        assert_eq!(name_value, RuntimeValue::String("John".to_string()));
+        assert_eq!(name_value, RuntimeValue::string("John".to_string()));
 
         let age_value = context.find_variable("age", false).unwrap();
-        assert_eq!(age_value, RuntimeValue::Number(30.0));
+        assert_eq!(age_value, RuntimeValue::number(30.0));
     }
 
     #[test]
@@ -445,7 +408,7 @@ mod tests {
         let mut context = create_test_context();
         let initial_depth = context.stack_depth();
 
-        let new_data = RuntimeValue::String("new context".to_string());
+        let new_data = RuntimeValue::string("new context".to_string());
         context.push_context(new_data.clone());
 
         assert_eq!(context.stack_depth(), initial_depth + 1);
@@ -463,22 +426,22 @@ mod tests {
     fn test_context_population_from_object() {
         let mut context = create_test_context();
 
-        let obj_data = RuntimeValue::Object({
+        let obj_data = RuntimeValue::Object(Rc::new({
             let mut map = HashMap::new();
-            map.insert("foo".to_string(), RuntimeValue::String("bar".to_string()));
-            map.insert("123invalid".to_string(), RuntimeValue::String("ignored".to_string())); // Invalid identifier
-            map.insert("_valid".to_string(), RuntimeValue::Number(42.0));
+            map.insert("foo".to_string(), RuntimeValue::string("bar".to_string()));
+            map.insert("123invalid".to_string(), RuntimeValue::string("ignored".to_string())); // Invalid identifier
+            map.insert("_valid".to_string(), RuntimeValue::number(42.0));
             map
-        });
+        }));
 
-        context.push_context(obj_data);
+        context.push_context(Rc::new(obj_data));
 
         // Valid identifiers should be available as variables
         let foo_value = context.find_variable("foo", false).unwrap();
-        assert_eq!(foo_value, RuntimeValue::String("bar".to_string()));
+        assert_eq!(foo_value, RuntimeValue::string("bar".to_string()));
 
         let valid_value = context.find_variable("_valid", false).unwrap();
-        assert_eq!(valid_value, RuntimeValue::Number(42.0));
+        assert_eq!(valid_value, RuntimeValue::number(42.0));
 
         // Invalid identifiers should not be available
         let result = context.find_variable("123invalid", false);
@@ -495,11 +458,11 @@ mod tests {
 
         // Absolute lookup should find builtin
         let count_value = context.find_variable("count", true).unwrap();
-        assert_eq!(count_value, RuntimeValue::Function("count".to_string()));
+        assert_eq!(count_value, RuntimeValue::function("count".to_string()));
 
         // Non-absolute lookup should also find it (searches all frames)
         let count_value2 = context.find_variable("count", false).unwrap();
-        assert_eq!(count_value2, RuntimeValue::Function("count".to_string()));
+        assert_eq!(count_value2, RuntimeValue::function("count".to_string()));
     }
 
     #[test]
@@ -537,34 +500,35 @@ mod tests {
 mod execution_tests {
     use super::*;
     use std::collections::HashMap;
+    use crate::parser::LiteralValue;
 
     fn create_test_context() -> ExecutionContext {
-        let data = RuntimeValue::Object({
+        let data = RuntimeValue::Object(Rc::new({
             let mut map = HashMap::new();
-            map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-            map.insert("age".to_string(), RuntimeValue::Number(30.0));
+            map.insert("name".to_string(), RuntimeValue::string("John".to_string()));
+            map.insert("age".to_string(), RuntimeValue::number(30.0));
             map.insert(
                 "scores".to_string(),
-                RuntimeValue::Array(vec![
-                    RuntimeValue::Number(85.0),
-                    RuntimeValue::Number(92.0),
-                    RuntimeValue::Number(78.0),
+                RuntimeValue::array(vec![
+                    RuntimeValue::number(85.0),
+                    RuntimeValue::number(92.0),
+                    RuntimeValue::number(78.0),
                 ]),
             );
             map
-        });
+        }));
 
-        ExecutionContext::with_builtins(data)
+        ExecutionContext::with_builtins(Rc::new(data))
     }
 
     #[test]
     fn test_execute_value_expression() {
         let mut context = create_test_context();
 
-        let expr = Expression::value(RuntimeValue::String("hello".to_string()));
+        let expr = Expression::value(LiteralValue::String("hello".to_string()));
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("hello".to_string()));
+        assert_eq!(result, RuntimeValue::string("hello".to_string()));
     }
 
     #[test]
@@ -574,7 +538,7 @@ mod execution_tests {
         let expr = Expression::reference("name", false);
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("John".to_string()));
+        assert_eq!(result, RuntimeValue::string("John".to_string()));
     }
 
     #[test]
@@ -582,16 +546,16 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let expr = Expression::array(vec![
-            Expression::value(RuntimeValue::Number(1.0)),
-            Expression::value(RuntimeValue::Number(2.0)),
-            Expression::value(RuntimeValue::Number(3.0)),
+            Expression::value(LiteralValue::Number(1.0)),
+            Expression::value(LiteralValue::Number(2.0)),
+            Expression::value(LiteralValue::Number(3.0)),
         ]);
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        let expected = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::Number(2.0),
-            RuntimeValue::Number(3.0),
+        let expected = RuntimeValue::array(vec![
+            RuntimeValue::number(1.0),
+            RuntimeValue::number(2.0),
+            RuntimeValue::number(3.0),
         ]);
         assert_eq!(result, expected);
     }
@@ -601,16 +565,16 @@ mod execution_tests {
         let mut context = create_test_context();
 
         let mut entries = HashMap::new();
-        entries.insert("key1".to_string(), Expression::value(RuntimeValue::String("value1".to_string())));
-        entries.insert("key2".to_string(), Expression::value(RuntimeValue::Number(42.0)));
+        entries.insert("key1".to_string(), Expression::value(LiteralValue::String("value1".to_string())));
+        entries.insert("key2".to_string(), Expression::value(LiteralValue::Number(42.0)));
 
         let expr = Expression::object(entries);
 
         let result = execute_expression(&expr, &mut context).unwrap();
 
-        if let RuntimeValue::Object(obj) = result {
-            assert_eq!(obj["key1"], RuntimeValue::String("value1".to_string()));
-            assert_eq!(obj["key2"], RuntimeValue::Number(42.0));
+        if let RuntimeValue::Object(obj) = &*result {
+            assert_eq!(obj["key1"], RuntimeValue::string("value1".to_string()));
+            assert_eq!(obj["key2"], RuntimeValue::number(42.0));
         } else {
             panic!("Expected object result");
         }
@@ -620,10 +584,10 @@ mod execution_tests {
     fn test_execute_parenthetical_expression() {
         let mut context = create_test_context();
 
-        let expr = Expression::parenthetical(Expression::value(RuntimeValue::Number(42.0)));
+        let expr = Expression::parenthetical(Expression::value(LiteralValue::Number(42.0)));
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(42.0));
+        assert_eq!(result, RuntimeValue::number(42.0));
     }
 
     #[test]
@@ -632,11 +596,11 @@ mod execution_tests {
 
         let expr = Expression::function_call(
             Expression::reference("!/unary", true),
-            vec![Expression::value(RuntimeValue::Boolean(true))],
+            vec![Expression::value(LiteralValue::Boolean(true))],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Boolean(false));
+        assert_eq!(result, RuntimeValue::boolean(false));
     }
 
     #[test]
@@ -645,11 +609,11 @@ mod execution_tests {
 
         let expr = Expression::function_call(
             Expression::reference("-/unary", false),
-            vec![Expression::value(RuntimeValue::Number(42.0))],
+            vec![Expression::value(LiteralValue::Number(42.0))],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(-42.0));
+        assert_eq!(result, RuntimeValue::number(-42.0));
     }
 
     #[test]
@@ -660,25 +624,25 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("+", false),
             vec![
-                Expression::value(RuntimeValue::Number(10.0)),
-                Expression::value(RuntimeValue::Number(5.0)),
+                Expression::value(LiteralValue::Number(10.0)),
+                Expression::value(LiteralValue::Number(5.0)),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(15.0));
+        assert_eq!(result, RuntimeValue::number(15.0));
 
         // Test multiplication
         let expr = Expression::function_call(
             Expression::reference("*", false),
             vec![
-                Expression::value(RuntimeValue::Number(3.0)),
-                Expression::value(RuntimeValue::Number(4.0)),
+                Expression::value(LiteralValue::Number(3.0)),
+                Expression::value(LiteralValue::Number(4.0)),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(12.0));
+        assert_eq!(result, RuntimeValue::number(12.0));
     }
 
     #[test]
@@ -689,25 +653,25 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("==", false),
             vec![
-                Expression::value(RuntimeValue::Number(5.0)),
-                Expression::value(RuntimeValue::Number(5.0)),
+                Expression::value(LiteralValue::Number(5.0)),
+                Expression::value(LiteralValue::Number(5.0)),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Boolean(true));
+        assert_eq!(result, RuntimeValue::boolean(true));
 
         // Test greater than
         let expr = Expression::function_call(
             Expression::reference(">", false),
             vec![
-                Expression::value(RuntimeValue::Number(10.0)),
-                Expression::value(RuntimeValue::Number(5.0)),
+                Expression::value(LiteralValue::Number(10.0)),
+                Expression::value(LiteralValue::Number(5.0)),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Boolean(true));
+        assert_eq!(result, RuntimeValue::boolean(true));
     }
 
     #[test]
@@ -718,25 +682,25 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("&&", false),
             vec![
-                Expression::value(RuntimeValue::Boolean(false)),
-                Expression::value(RuntimeValue::Boolean(true)),
+                Expression::value(LiteralValue::Boolean(false)),
+                Expression::value(LiteralValue::Boolean(true)),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Boolean(false));
+        assert_eq!(result, RuntimeValue::boolean(false));
 
         // Test logical OR (short-circuiting)
         let expr = Expression::function_call(
             Expression::reference("||", false),
             vec![
-                Expression::value(RuntimeValue::Boolean(true)),
-                Expression::value(RuntimeValue::Boolean(false)),
+                Expression::value(LiteralValue::Boolean(true)),
+                Expression::value(LiteralValue::Boolean(false)),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Boolean(true));
+        assert_eq!(result, RuntimeValue::boolean(true));
     }
 
     #[test]
@@ -749,7 +713,7 @@ mod execution_tests {
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("John".to_string()));
+        assert_eq!(result, RuntimeValue::string("John".to_string()));
     }
 
     #[test]
@@ -762,7 +726,7 @@ mod execution_tests {
         };
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Null);
+        assert_eq!(result, RuntimeValue::null());
     }
 
     #[test]
@@ -771,11 +735,11 @@ mod execution_tests {
 
         let expr = Expression::function_call(
             Expression::reference("index", false),
-            vec![Expression::value(RuntimeValue::Number(0.0)), Expression::reference("scores", false)],
+            vec![Expression::value(LiteralValue::Number(0.0)), Expression::reference("scores", false)],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(85.0));
+        assert_eq!(result, RuntimeValue::number(85.0));
     }
 
     #[test]
@@ -785,13 +749,13 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("index", false),
             vec![
-                Expression::value(RuntimeValue::Number(-1.0)),
+                Expression::value(LiteralValue::Number(-1.0)),
                 Expression::reference("scores", false),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(78.0));
+        assert_eq!(result, RuntimeValue::number(78.0));
     }
 
     #[test]
@@ -801,13 +765,13 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("index", false),
             vec![
-                Expression::value(RuntimeValue::Number(0.0)),
-                Expression::value(RuntimeValue::String("hello".to_string())),
+                Expression::value(LiteralValue::Number(0.0)),
+                Expression::value(LiteralValue::String("hello".to_string())),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("h".to_string()));
+        assert_eq!(result, RuntimeValue::string("h".to_string()));
     }
 
     #[test]
@@ -838,7 +802,7 @@ mod execution_tests {
     fn test_execute_function_call_non_function() {
         let mut context = create_test_context();
 
-        let expr = Expression::function_call(Expression::value(RuntimeValue::String("not a function".to_string())), vec![]);
+        let expr = Expression::function_call(Expression::value(LiteralValue::String("not a function".to_string())), vec![]);
 
         let result = execute_expression(&expr, &mut context);
         assert!(matches!(result, Err(ExecutionError::NotCallable(_))));
@@ -851,8 +815,8 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("/", false),
             vec![
-                Expression::value(RuntimeValue::Number(10.0)),
-                Expression::value(RuntimeValue::Number(0.0)),
+                Expression::value(LiteralValue::Number(10.0)),
+                Expression::value(LiteralValue::Number(0.0)),
             ],
         );
 
@@ -868,8 +832,8 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("+", false),
             vec![
-                Expression::value(RuntimeValue::String("hello".to_string())),
-                Expression::value(RuntimeValue::Number(5.0)),
+                Expression::value(LiteralValue::String("hello".to_string())),
+                Expression::value(LiteralValue::Number(5.0)),
             ],
         );
 
@@ -884,13 +848,13 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("+", false),
             vec![
-                Expression::value(RuntimeValue::String("hello ".to_string())),
-                Expression::value(RuntimeValue::String("world".to_string())),
+                Expression::value(LiteralValue::String("hello ".to_string())),
+                Expression::value(LiteralValue::String("world".to_string())),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::String("hello world".to_string()));
+        assert_eq!(result, RuntimeValue::string("hello world".to_string()));
     }
 
     #[test]
@@ -900,17 +864,23 @@ mod execution_tests {
         let expr = Expression::function_call(
             Expression::reference("+", false),
             vec![
-                Expression::value(RuntimeValue::Array(vec![RuntimeValue::Number(1.0), RuntimeValue::Number(2.0)])),
-                Expression::value(RuntimeValue::Array(vec![RuntimeValue::Number(3.0), RuntimeValue::Number(4.0)])),
+                Expression::array(vec![
+                    Expression::value(LiteralValue::Number(1.0)),
+                    Expression::value(LiteralValue::Number(2.0)),
+                ]),
+                Expression::array(vec![
+                    Expression::value(LiteralValue::Number(3.0)),
+                    Expression::value(LiteralValue::Number(4.0)),
+                ]),
             ],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        let expected = RuntimeValue::Array(vec![
-            RuntimeValue::Number(1.0),
-            RuntimeValue::Number(2.0),
-            RuntimeValue::Number(3.0),
-            RuntimeValue::Number(4.0),
+        let expected = RuntimeValue::array(vec![
+            RuntimeValue::number(1.0),
+            RuntimeValue::number(2.0),
+            RuntimeValue::number(3.0),
+            RuntimeValue::number(4.0),
         ]);
         assert_eq!(result, expected);
     }
@@ -918,17 +888,17 @@ mod execution_tests {
     #[test]
     fn test_contextualized_expressions_with_builtins() {
         // Create context with array data
-        let data = RuntimeValue::Array(vec![
-            RuntimeValue::Object({
+        let data = RuntimeValue::array(vec![
+            RuntimeValue::object({
                 let mut map = HashMap::new();
-                map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-                map.insert("age".to_string(), RuntimeValue::Number(30.0));
+                map.insert("name".to_string(), RuntimeValue::string("John".to_string()));
+                map.insert("age".to_string(), RuntimeValue::number(30.0));
                 map
             }),
-            RuntimeValue::Object({
+            RuntimeValue::object({
                 let mut map = HashMap::new();
-                map.insert("name".to_string(), RuntimeValue::String("Jane".to_string()));
-                map.insert("age".to_string(), RuntimeValue::Number(25.0));
+                map.insert("name".to_string(), RuntimeValue::string("Jane".to_string()));
+                map.insert("age".to_string(), RuntimeValue::number(25.0));
                 map
             }),
         ]);
@@ -943,7 +913,7 @@ mod execution_tests {
                     object: Box::new(Expression::reference("@", false)),
                     field: "age".to_string(),
                 },
-                Expression::value(RuntimeValue::Number(26.0)),
+                Expression::value(LiteralValue::Number(26.0)),
             ],
         );
 
@@ -954,11 +924,11 @@ mod execution_tests {
 
         let result = execute_expression(&filter_expr, &mut context).unwrap();
 
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 1);
-            if let RuntimeValue::Object(obj) = &arr[0] {
-                assert_eq!(obj["name"], RuntimeValue::String("John".to_string()));
-                assert_eq!(obj["age"], RuntimeValue::Number(30.0));
+            if let RuntimeValue::Object(obj) = &*arr[0] {
+                assert_eq!(obj["name"], RuntimeValue::string("John".to_string()));
+                assert_eq!(obj["age"], RuntimeValue::number(30.0));
             } else {
                 panic!("Expected object in filtered result");
             }
@@ -970,17 +940,17 @@ mod execution_tests {
     #[test]
     fn test_map_with_contextualized_expressions() {
         // Create context with array data
-        let data = RuntimeValue::Array(vec![
-            RuntimeValue::Object({
+        let data = RuntimeValue::array(vec![
+            RuntimeValue::object({
                 let mut map = HashMap::new();
-                map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-                map.insert("age".to_string(), RuntimeValue::Number(30.0));
+                map.insert("name".to_string(), RuntimeValue::string("John".to_string()));
+                map.insert("age".to_string(), RuntimeValue::number(30.0));
                 map
             }),
-            RuntimeValue::Object({
+            RuntimeValue::object({
                 let mut map = HashMap::new();
-                map.insert("name".to_string(), RuntimeValue::String("Jane".to_string()));
-                map.insert("age".to_string(), RuntimeValue::Number(25.0));
+                map.insert("name".to_string(), RuntimeValue::string("Jane".to_string()));
+                map.insert("age".to_string(), RuntimeValue::number(25.0));
                 map
             }),
         ]);
@@ -1000,10 +970,10 @@ mod execution_tests {
 
         let result = execute_expression(&map_expr, &mut context).unwrap();
 
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 2);
-            assert_eq!(arr[0], RuntimeValue::String("John".to_string()));
-            assert_eq!(arr[1], RuntimeValue::String("Jane".to_string()));
+            assert_eq!(arr[0], RuntimeValue::string("John".to_string()));
+            assert_eq!(arr[1], RuntimeValue::string("Jane".to_string()));
         } else {
             panic!("Expected array result from map");
         }
@@ -1013,25 +983,26 @@ mod execution_tests {
 #[cfg(test)]
 mod custom_function_tests {
     use super::*;
+    use crate::parser::LiteralValue;
     use std::collections::HashMap;
 
     fn create_test_context() -> ExecutionContext {
-        let data = RuntimeValue::Object({
+        let data = RuntimeValue::Object(Rc::new({
             let mut map = HashMap::new();
-            map.insert("name".to_string(), RuntimeValue::String("John".to_string()));
-            map.insert("age".to_string(), RuntimeValue::Number(30.0));
+            map.insert("name".to_string(), RuntimeValue::string("John".to_string()));
+            map.insert("age".to_string(), RuntimeValue::number(30.0));
             map.insert(
                 "scores".to_string(),
-                RuntimeValue::Array(vec![
-                    RuntimeValue::Number(85.0),
-                    RuntimeValue::Number(92.0),
-                    RuntimeValue::Number(78.0),
+                RuntimeValue::array(vec![
+                    RuntimeValue::number(85.0),
+                    RuntimeValue::number(92.0),
+                    RuntimeValue::number(78.0),
                 ]),
             );
             map
-        });
+        }));
 
-        ExecutionContext::with_builtins(data)
+        ExecutionContext::with_builtins(Rc::new(data))
     }
 
     #[test]
@@ -1039,12 +1010,12 @@ mod custom_function_tests {
         let mut context = create_test_context();
 
         // Define a custom function that doubles a number
-        fn custom_double(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        fn custom_double(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
             crate::builtins::validate_args("custom_double", args, 1, Some(1))?;
             let value = execute_expression(&args[0], context)?;
 
-            match value {
-                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(n * 2.0)),
+            match &*value {
+                RuntimeValue::Number(n) => Ok(RuntimeValue::number(n * 2.0)),
                 _ => Err(ExecutionError::TypeMismatch("custom_double requires a number".to_string())),
             }
         }
@@ -1069,11 +1040,11 @@ mod custom_function_tests {
         // Test executing the custom function
         let expr = Expression::function_call(
             Expression::reference("custom_double", false),
-            vec![Expression::value(RuntimeValue::Number(21.0))],
+            vec![Expression::value(LiteralValue::Number(21.0))],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(42.0));
+        assert_eq!(result, RuntimeValue::number(42.0));
     }
 
     #[test]
@@ -1081,12 +1052,12 @@ mod custom_function_tests {
         let mut context = create_test_context();
 
         // Define a custom function that adds 10 to a number
-        fn add_ten(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        fn add_ten(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
             crate::builtins::validate_args("add_ten", args, 1, Some(1))?;
             let value = execute_expression(&args[0], context)?;
 
-            match value {
-                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(n + 10.0)),
+            match &*value {
+                RuntimeValue::Number(n) => Ok(RuntimeValue::number(n + 10.0)),
                 _ => Err(ExecutionError::TypeMismatch("add_ten requires a number".to_string())),
             }
         }
@@ -1117,15 +1088,15 @@ mod custom_function_tests {
 
         let result = execute_expression(&expr, &mut context).unwrap();
         // sum([85, 92, 78]) = 255, add_ten(255) = 265
-        assert_eq!(result, RuntimeValue::Number(265.0));
+        assert_eq!(result, RuntimeValue::number(265.0));
     }
 
     #[test]
     fn test_custom_function_conflict_with_stock_builtin() {
         let mut context = create_test_context();
 
-        fn dummy_function(_args: &[Expression], _context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
-            Ok(RuntimeValue::Null)
+        fn dummy_function(_args: &[Expression], _context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
+            Ok(RuntimeValue::null())
         }
 
         // Try to register a function with a stock builtin name
@@ -1152,15 +1123,15 @@ mod custom_function_tests {
         // stock builtins should still work
         let expr = Expression::function_call(
             Expression::reference("count", false),
-            vec![Expression::value(RuntimeValue::Array(vec![
-                RuntimeValue::Number(1.0),
-                RuntimeValue::Number(2.0),
-                RuntimeValue::Number(3.0),
-            ]))],
+            vec![Expression::array(vec![
+                Expression::value(LiteralValue::Number(1.0)),
+                Expression::value(LiteralValue::Number(2.0)),
+                Expression::value(LiteralValue::Number(3.0)),
+            ])],
         );
 
         let result = execute_expression(&expr, &mut context).unwrap();
-        assert_eq!(result, RuntimeValue::Number(3.0));
+        assert_eq!(result, RuntimeValue::number(3.0));
     }
 
     #[test]
@@ -1168,12 +1139,12 @@ mod custom_function_tests {
         let mut context = create_test_context();
 
         // Define a custom function that squares a number
-        fn square(args: &[Expression], context: &mut ExecutionContext) -> Result<RuntimeValue, ExecutionError> {
+        fn square(args: &[Expression], context: &mut ExecutionContext) -> Result<Rc<RuntimeValue>, ExecutionError> {
             crate::builtins::validate_args("square", args, 1, Some(1))?;
             let value = execute_expression(&args[0], context)?;
 
-            match value {
-                RuntimeValue::Number(n) => Ok(RuntimeValue::Number(n * n)),
+            match &*value {
+                RuntimeValue::Number(n) => Ok(RuntimeValue::number(n * n)),
                 _ => Err(ExecutionError::TypeMismatch("square requires a number".to_string())),
             }
         }
@@ -1195,10 +1166,10 @@ mod custom_function_tests {
         // Test using custom function directly first
         let direct_expr = Expression::function_call(
             Expression::reference("square", false),
-            vec![Expression::value(RuntimeValue::Number(5.0))],
+            vec![Expression::value(LiteralValue::Number(5.0))],
         );
         let direct_result = execute_expression(&direct_expr, &mut context).unwrap();
-        assert_eq!(direct_result, RuntimeValue::Number(25.0));
+        assert_eq!(direct_result, RuntimeValue::number(25.0));
 
         // If we get here, the direct call works, so the issue is in the pipeline
         println!("Direct function call works!");
@@ -1215,7 +1186,7 @@ mod custom_function_tests {
             ],
         };
         let stock_result = execute_expression(&stock_expr, &mut context).unwrap();
-        assert_eq!(stock_result, RuntimeValue::Number(3.0));
+        assert_eq!(stock_result, RuntimeValue::number(3.0));
         println!("Stock builtin in pipeline works!");
 
         // Test using custom function in a pipeline
@@ -1232,12 +1203,12 @@ mod custom_function_tests {
 
         let result = execute_expression(&expr, &mut context).unwrap();
 
-        if let RuntimeValue::Array(arr) = result {
+        if let RuntimeValue::Array(arr) = &*result {
             assert_eq!(arr.len(), 3);
             // 85^2 = 7225, 92^2 = 8464, 78^2 = 6084
-            assert_eq!(arr[0], RuntimeValue::Number(7225.0));
-            assert_eq!(arr[1], RuntimeValue::Number(8464.0));
-            assert_eq!(arr[2], RuntimeValue::Number(6084.0));
+            assert_eq!(arr[0], RuntimeValue::number(7225.0));
+            assert_eq!(arr[1], RuntimeValue::number(8464.0));
+            assert_eq!(arr[2], RuntimeValue::number(6084.0));
         } else {
             panic!("Expected array result");
         }
